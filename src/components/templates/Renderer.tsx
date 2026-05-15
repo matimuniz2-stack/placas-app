@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePlacaStore } from '@/lib/store';
 import { getTemplate } from './registry';
-import { VARIANTS } from '@/lib/variants';
+import { VARIANTS, type VariantDef } from '@/lib/variants';
 import { TextLayer } from './primitives/TextLayer';
 import { Photo } from './primitives/Photo';
 import { Logo } from './primitives/Logo';
@@ -47,6 +47,24 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
   // Apply variant overrides at template level
   const bgColor = variant.id !== 'default' ? variant.bgColor ?? tpl.bgColor : tpl.bgColor;
+
+  // Variant accent color: most templates use a contrasting accent for the price/separator.
+  // When the variant has its own brand color, use it; fallback to the placa's accent default.
+  const variantApplied = variant.id !== 'default';
+
+  const applyVariant = (layer: any, layerId: LayerId) => {
+    if (!variantApplied) return layer;
+    const isAccent = layerId === 'price' || layerId === 'op' || layerId === 'lbl' || layerId === 'tag' || layerId === 'dot';
+    const isLine = layerId === 'line';
+    const newColor = variant.textColor || layer.color;
+    return {
+      ...layer,
+      color: isAccent && variant.brand ? variant.brand : newColor,
+      font: variant.fontPrimary && (layerId === 'addr' || layerId === 'price' || layerId === 'num') ? variant.fontPrimary : layer.font,
+      bg: isLine && variant.brand ? variant.brand : layer.bg,
+      borderTop: layer.borderTop && variant.brand ? layer.borderTop.replace(/#[0-9a-fA-F]{3,8}/, variant.brand) : layer.borderTop,
+    };
+  };
 
   // Layer content resolver
   const getContent = (id: LayerId): React.ReactNode => {
@@ -111,7 +129,8 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       {/* Render each layer in defaultLayers (excluding photo + special ones) */}
       {(Object.keys(tpl.defaultLayers) as LayerId[]).map((lid) => {
         if (lid === 'photo' || lid === 'logo' || lid === 'badge' || lid === 'qr' || lid === 'agent') return null;
-        const defaults = tpl.defaultLayers[lid]!;
+        const baseDefaults = tpl.defaultLayers[lid]!;
+        const defaults = applyVariant(baseDefaults, lid);
         const ov = overrides[lid];
         const visible = ov?.visible ?? defaults.visible;
         if (visible === false) return null;
