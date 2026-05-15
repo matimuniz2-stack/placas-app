@@ -4,7 +4,7 @@ import { usePlacaStore } from '@/lib/store';
 import { generateReel, isReelSupported, PRESETS, type Transition, type Preset, type ReelOpts } from '@/lib/reel';
 import { downloadBlob } from '@/lib/export';
 import { slugify } from '@/lib/format';
-import { Film, Download, Play, Music, Sparkles, Zap, Minus, Crown, Upload, X } from 'lucide-react';
+import { Film, Download, Play, Sparkles, Zap, Minus, Crown } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -44,7 +44,6 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const [hd, setHd] = useState(true);
   const [intro, setIntro] = useState(true);
   const [outro, setOutro] = useState(true);
-  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   // State
   const [busy, setBusy] = useState(false);
@@ -119,7 +118,6 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         hd,
         intro: intro && content === 'photos',
         outro,
-        audioFile,
         bitrate: hd ? 14_000_000 : 10_000_000,
         onProgress: (ph, cur, total) => { setPhase(ph); setProgress({ cur, total }); },
         onAbort: () => abortRef.current,
@@ -142,7 +140,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   };
 
   const progressPct = progress.total > 0 ? Math.round((progress.cur / progress.total) * 100) : 0;
-  const phaseLabel = phase === 'capturing' ? 'Capturando fotos' : phase === 'encoding' ? 'Encodeando H.264' : phase === 'audio' ? 'Procesando audio' : '';
+  const phaseLabel = phase === 'capturing' ? 'Capturando fotos' : phase === 'encoding' ? 'Encodeando H.264' : '';
 
   return (
     <Modal open={open} onClose={onClose} title="Reel MP4 · Cinematic Studio" width={680}>
@@ -183,43 +181,22 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
               </div>
             </div>
 
-            {/* Content + Audio */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Contenido</label>
-                <div className="grid grid-cols-2 gap-1">
-                  <button disabled={busy} onClick={() => setContent('photos')} className={`p-2 rounded border text-left text-[11px] transition ${content === 'photos' ? 'border-brand bg-brand/5' : 'border-neutral-200'}`}>
-                    <b>Solo fotos</b>
-                    <div className="text-[9px] opacity-70">Sin logo ni textos</div>
-                  </button>
-                  <button disabled={busy} onClick={() => setContent('placa')} className={`p-2 rounded border text-left text-[11px] transition ${content === 'placa' ? 'border-brand bg-brand/5' : 'border-neutral-200'}`}>
-                    <b>Con placa</b>
-                    <div className="text-[9px] opacity-70">Branding completo</div>
-                  </button>
-                </div>
+            {/* Content */}
+            <div>
+              <label className="label">Contenido</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button disabled={busy} onClick={() => setContent('photos')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'photos' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                  <b>Solo fotos</b>
+                  <div className="text-[10px] text-neutral-500 leading-tight">Sin logo ni textos. Cover-fit al frame.</div>
+                </button>
+                <button disabled={busy} onClick={() => setContent('placa')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'placa' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                  <b>Con placa</b>
+                  <div className="text-[10px] text-neutral-500 leading-tight">Branding + datos + stickers.</div>
+                </button>
               </div>
-
-              <div>
-                <label className="label">Música de fondo</label>
-                <label className="flex items-center justify-between gap-2 h-[58px] px-2.5 border border-neutral-200 rounded cursor-pointer hover:border-neutral-300 transition">
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    <Music className="w-3.5 h-3.5 flex-shrink-0 text-brand" />
-                    <span className="text-[11px] truncate">{audioFile ? audioFile.name : 'Subí MP3 (opcional)'}</span>
-                  </div>
-                  {audioFile && (
-                    <button onClick={(e) => { e.preventDefault(); setAudioFile(null); }} className="text-neutral-400 hover:text-brand">
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    accept="audio/*,.mp3,.wav,.m4a"
-                    className="hidden"
-                    disabled={busy}
-                    onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-              </div>
+              <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
+                💡 El reel sale sin música. Subilo a Instagram y agregale audio desde la biblioteca de Reels (ahí están los hits virales licenciados).
+              </p>
             </div>
 
             {/* Timing */}
