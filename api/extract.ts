@@ -69,14 +69,28 @@ function extractImages(html: string, url: string): string[] {
     }
   });
 
-  // Filter duplicates by stripping query, prefer larger sizes
+  // Decode HTML entities in URLs (&amp; → &) and skip tiny thumbnails
+  const decoded = resolved.map((u) =>
+    u.replace(/&amp;/g, '&').replace(/&#x2F;/g, '/').replace(/&#39;/g, "'")
+  );
+
+  // Filter out tiny / non-content images
+  const filtered = decoded.filter((u) => {
+    if (/avatar|logo|icon|sprite|placeholder|spinner|loader|favicon/i.test(u)) return false;
+    // skip very small images (heuristic: width param < 200)
+    const sizeMatch = u.match(/(\d+)px[-_x]/);
+    if (sizeMatch && parseInt(sizeMatch[1]) < 200) return false;
+    return true;
+  });
+
+  // Dedup by stripping size variants
   const dedup = new Map<string, string>();
-  for (const u of resolved) {
-    const key = u.split('?')[0].replace(/-[A-Z]\.(jpg|jpeg|webp|png)/, '');
+  for (const u of filtered) {
+    const key = u.split('?')[0].replace(/-[A-Z]\.(jpg|jpeg|webp|png)/, '').replace(/\/(thumb\/)?\d+px-/, '/');
     if (!dedup.has(key)) dedup.set(key, u);
   }
 
-  return Array.from(dedup.values()).slice(0, 12);
+  return Array.from(dedup.values()).slice(0, 10);
 }
 
 export default async function handler(req: Request): Promise<Response> {

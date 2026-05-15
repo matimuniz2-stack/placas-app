@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { usePlacaStore } from '@/lib/store';
-import { Upload, Image, X, FileDown, Wand2, Trash2, Link2 } from 'lucide-react';
+import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
 import { extractFromUrl } from '@/lib/urlExtract';
+import { CropModal } from '@/components/modals/CropModal';
 
 type Tab = 'datos' | 'fotos' | 'agente';
 
@@ -41,47 +42,59 @@ const DatosTab: React.FC = () => {
   const patchData = usePlacaStore((s) => s.patchData);
   const [pasting, setPasting] = useState(false);
   const [pasteUrl, setPasteUrl] = useState('');
+  const [progress, setProgress] = useState<string>('');
+
+  const fetchAsDataUrl = async (url: string, timeoutMs = 8000): Promise<string | null> => {
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(url, { mode: 'cors', signal: controller.signal });
+      clearTimeout(t);
+      if (!res.ok) return null;
+      const b = await res.blob();
+      if (b.size > 8 * 1024 * 1024) return null; // skip > 8MB
+      return await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(b);
+      });
+    } catch {
+      return null;
+    }
+  };
 
   const handlePaste = async () => {
     if (!pasteUrl) return;
     setPasting(true);
+    setProgress('Extrayendo datos…');
     try {
       const extracted = await extractFromUrl(pasteUrl);
-      if (extracted) {
-        const { addPhotos: addPhotosNow } = usePlacaStore.getState();
-        const { photoUrl, photoUrls, ...rest } = extracted;
-        patchData(rest);
-
-        // fetch all photos as data URLs (so they survive across sessions and exports)
-        const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 10);
-        if (urls.length) {
-          const dataUrls = await Promise.all(
-            urls.map(async (u) => {
-              try {
-                const res = await fetch(u, { mode: 'cors' });
-                if (!res.ok) return null;
-                const b = await res.blob();
-                return await new Promise<string>((resolve, reject) => {
-                  const r = new FileReader();
-                  r.onload = () => resolve(r.result as string);
-                  r.onerror = () => reject(r.error);
-                  r.readAsDataURL(b);
-                });
-              } catch {
-                return u; // fallback: use the URL directly (may fail on canvas export due to CORS)
-              }
-            })
-          );
-          const valid = dataUrls.filter((u): u is string => !!u);
-          if (valid.length) addPhotosNow(valid);
-        }
-      } else {
+      if (!extracted) {
         alert('No se pudo extraer datos de esa URL. Probá con Mercado Libre, Zonaprop o Argenprop.');
+        return;
       }
+
+      const { photoUrl, photoUrls, ...rest } = extracted;
+      patchData(rest);
+
+      const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 6);
+      if (urls.length === 0) return;
+
+      const { addPhotos: addPhotosNow } = usePlacaStore.getState();
+      const downloaded: string[] = [];
+      for (let i = 0; i < urls.length; i++) {
+        setProgress(`Descargando foto ${i + 1}/${urls.length}…`);
+        const data = await fetchAsDataUrl(urls[i]);
+        if (data) downloaded.push(data);
+      }
+      if (downloaded.length) addPhotosNow(downloaded);
+      else alert('No se pudieron descargar las fotos del listing (CORS o tamaño).');
     } catch (e: any) {
       alert('Error: ' + (e.message || e));
     } finally {
       setPasting(false);
+      setProgress('');
     }
   };
 
@@ -99,11 +112,15 @@ const DatosTab: React.FC = () => {
             placeholder="Pegá URL ML / Zonaprop"
             value={pasteUrl}
             onChange={(e) => setPasteUrl(e.target.value)}
+            disabled={pasting}
           />
           <button className="btn btn-primary px-2.5" disabled={pasting || !pasteUrl} onClick={handlePaste}>
             {pasting ? '…' : <Link2 className="w-3.5 h-3.5" />}
           </button>
         </div>
+        {progress && (
+          <div className="text-[10px] text-brand mt-1.5 font-mono">{progress}</div>
+        )}
       </div>
 
       <div>
@@ -195,6 +212,7 @@ const FotosTab: React.FC = () => {
   const patchActive = usePlacaStore((s) => s.patchActivePhoto);
   const replaceUrl = usePlacaStore((s) => s.replacePhotoUrl);
   const [bgLoading, setBgLoading] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
   const active = photos[activeIdx];
 
   const handleFiles = (files: FileList | File[]) => {
@@ -259,9 +277,14 @@ const FotosTab: React.FC = () => {
 
           {active && (
             <>
-              <button className="btn w-full justify-center" onClick={handleBgRemove} disabled={bgLoading}>
-                <Wand2 className="w-3.5 h-3.5" /> {bgLoading ? 'Procesando IA (~30MB)…' : 'Quitar fondo (IA browser)'}
-              </button>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button className="btn justify-center" onClick={() => setCropOpen(true)}>
+                  <Crop className="w-3.5 h-3.5" /> Recortar
+                </button>
+                <button className="btn justify-center" onClick={handleBgRemove} disabled={bgLoading}>
+                  <Wand2 className="w-3.5 h-3.5" /> {bgLoading ? '…' : 'Quitar fondo'}
+                </button>
+              </div>
 
               <div className="space-y-2">
                 <FilterSlider label="Brillo" v={active.filter.b} on={(b) => patchActive({ filter: { ...active.filter, b } })} />
@@ -280,6 +303,7 @@ const FotosTab: React.FC = () => {
           )}
         </>
       )}
+      <CropModal open={cropOpen} onClose={() => setCropOpen(false)} />
     </div>
   );
 };

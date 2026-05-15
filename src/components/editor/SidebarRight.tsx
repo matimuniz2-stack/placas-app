@@ -237,11 +237,10 @@ const TemplatesTab: React.FC = () => {
                 onClick={() => setTemplate(t.id)}
                 className={`rounded border-2 overflow-hidden transition relative aspect-[9/16] ${templateId === t.id ? 'border-brand' : 'border-neutral-200 hover:border-neutral-400'}`}
                 title={t.name}
+                style={{ background: t.bgColor || '#1a1a1a' }}
               >
-                <div className="absolute inset-0 overflow-hidden" style={{ transformOrigin: 'top left', background: t.bgColor || '#1a1a1a' }}>
-                  <ThumbPreview templateId={t.id} />
-                </div>
-                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] py-0.5 text-center uppercase tracking-wider truncate">{t.name}</div>
+                <ThumbPreview templateId={t.id} />
+                <div className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[9px] py-0.5 text-center uppercase tracking-wider truncate z-10">{t.name}</div>
               </button>
             ))}
           </div>
@@ -252,35 +251,22 @@ const TemplatesTab: React.FC = () => {
 };
 
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
-  const tpl = ALL_TEMPLATES.find((t) => t.id === templateId)!;
-  const fontAddr = tpl.defaultLayers.addr?.font || 'Inter';
-  const fontPrice = tpl.defaultLayers.price?.font || fontAddr;
-  const text = tpl.textColor || '#fff';
-  const accent = tpl.bgColor && /^#[fF]/.test(tpl.bgColor) ? '#de1f1a' : text;
+  // Real mini-renderer of the placa at scale: 1080x1920 → ~140x250
+  const THUMB_W = 130;
+  const THUMB_H = (THUMB_W * 1920) / 1080;
+  const scale = THUMB_W / 1080;
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        color: text,
-        fontSize: 5.5,
-        lineHeight: 1.2,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: 6,
-        textTransform: tpl.id === 't04' || tpl.id === 't11' ? 'uppercase' : 'none',
-        background: tpl.overlay ? `linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%)` : undefined,
-      }}
-    >
-      <div style={{ opacity: 0.7, letterSpacing: 0.5, fontSize: 4 }}>{tpl.category.toUpperCase()} · {tpl.id.toUpperCase()}</div>
-      <div style={{ textAlign: tpl.defaultLayers.addr?.align as any, marginBottom: 4 }}>
-        <div style={{ fontFamily: `'${fontAddr}'`, fontWeight: tpl.defaultLayers.addr?.weight || 700, fontSize: tpl.id === 't04' ? 16 : tpl.id === 't11' ? 14 : 9, lineHeight: 1 }}>
-          {tpl.id === 't04' ? 'AV. LIB' : 'Av. Libertador'}
-        </div>
-        <div style={{ fontFamily: `'${fontPrice}'`, fontWeight: tpl.defaultLayers.price?.weight || 700, fontSize: 10, color: accent, marginTop: 2 }}>
-          USD 195K
-        </div>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <div
+        style={{
+          width: 1080,
+          height: 1920,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          pointerEvents: 'none',
+        }}
+      >
+        <PlacaRenderer overrideTemplateId={templateId} formatOverride="story" noOverrides />
       </div>
     </div>
   );

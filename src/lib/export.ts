@@ -22,12 +22,22 @@ async function waitFontsReady(): Promise<void> {
 
 async function captureNode(node: HTMLElement, opts: ExportOpts): Promise<string> {
   await waitFontsReady();
-  const baseOpts = {
+  // Filter out external stylesheets html-to-image can't read (cross-origin without CORS).
+  // We rely on self-hosted @fontsource so embedded fonts work, and we skip any leftover.
+  const filter = (el: Element) => {
+    if (el.tagName === 'LINK') {
+      const href = (el as HTMLLinkElement).href;
+      if (href && /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(href)) return false;
+    }
+    return true;
+  };
+  const baseOpts: any = {
     width: opts.width,
     height: opts.height,
     pixelRatio: opts.resolution,
     cacheBust: true,
     skipFonts: false,
+    filter,
     style: {
       transform: 'scale(1)',
       transformOrigin: 'top left',

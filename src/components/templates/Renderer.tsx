@@ -21,17 +21,24 @@ const DATA_LAYERS: LayerId[] = ['addr', 'barrio', 'price', 'amen', 'op', 'desc',
 
 interface Props {
   forCapture?: boolean;
+  overrideTemplateId?: string;
+  formatOverride?: 'story' | 'post';
+  noOverrides?: boolean; // skip layer overrides (for thumbnails)
 }
 
-export const PlacaRenderer: React.FC<Props> = ({ forCapture }) => {
-  const format = usePlacaStore((s) => s.format);
+export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId, formatOverride, noOverrides }) => {
+  const storeFormat = usePlacaStore((s) => s.format);
   const data = usePlacaStore((s) => s.data);
-  const templateId = usePlacaStore((s) => s.templateId);
+  const storeTemplateId = usePlacaStore((s) => s.templateId);
   const variantId = usePlacaStore((s) => s.variantId);
   const theme = usePlacaStore((s) => s.theme);
   const abbreviate = usePlacaStore((s) => s.abbreviatePrice);
-  const overrides = usePlacaStore((s) => s.layerOverrides);
+  const storeOverrides = usePlacaStore((s) => s.layerOverrides);
   const photos = usePlacaStore((s) => s.photos);
+
+  const format = formatOverride || storeFormat;
+  const templateId = overrideTemplateId || storeTemplateId;
+  const overrides = noOverrides ? {} : storeOverrides;
 
   const tpl = getTemplate(templateId);
   const variant = VARIANTS.find((v) => v.id === variantId) || VARIANTS[0];
