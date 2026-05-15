@@ -174,18 +174,22 @@ const StoryContent: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
-  const scale = SCREEN_W / 1080;
+  // Cover-fit: placa fills the whole iPhone screen edge-to-edge.
+  // iPhone is ~9:19.5, story is 9:16, so we scale by the larger ratio to cover.
+  const scale = Math.max(SCREEN_W / 1080, SCREEN_H / 1920);
+  const placaW = 1080 * scale;
   const placaH = 1920 * scale;
+  const offsetX = (SCREEN_W - placaW) / 2;
   const offsetY = (SCREEN_H - placaH) / 2;
 
   return (
     <>
-      {/* Scaled placa, fills screen */}
+      {/* Scaled placa, full-bleed under all UI chrome */}
       <div
         style={{
           position: 'absolute',
-          top: Math.max(0, offsetY),
-          left: 0,
+          top: offsetY,
+          left: offsetX,
           width: 1080,
           height: 1920,
           transform: `scale(${scale})`,
@@ -194,6 +198,32 @@ const StoryContent: React.FC = () => {
       >
         <PlacaRenderer />
       </div>
+
+      {/* Subtle top + bottom gradient so UI chrome reads well over any photo */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 130,
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 100%)',
+          zIndex: 15,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 90,
+          background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
+          zIndex: 15,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Top chrome: progress bars + header (under Dynamic Island & status) */}
       <div style={{ position: 'absolute', top: 50, left: 10, right: 10, zIndex: 20 }}>
