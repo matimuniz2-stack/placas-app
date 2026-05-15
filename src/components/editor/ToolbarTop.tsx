@@ -23,6 +23,8 @@ import { CaptionModal } from '@/components/modals/CaptionModal';
 import { DraftsModal } from '@/components/modals/DraftsModal';
 import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
 import { ShareModal } from '@/components/modals/ShareModal';
+import { IGSimulator } from '@/components/modals/IGSimulator';
+import { Eye } from 'lucide-react';
 
 interface Props {
   placaRef: React.RefObject<HTMLDivElement>;
@@ -57,6 +59,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
+  const [simulatorMode, setSimulatorMode] = useState<'story' | 'post' | null>(null);
 
   const sizeNow = FORMAT_SIZES[format];
 
@@ -164,6 +167,21 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         <div className="flex-1" />
 
         {/* Right actions */}
+        <button
+          onClick={() => setSimulatorMode('story')}
+          className="btn btn-ghost"
+          title="Ver como Story de Instagram"
+        >
+          <Smartphone className="w-3.5 h-3.5" /><span className="text-xs">Preview Story</span>
+        </button>
+        <button
+          onClick={() => setSimulatorMode('post')}
+          className="btn btn-ghost"
+          title="Ver como Post de Instagram"
+        >
+          <Eye className="w-3.5 h-3.5" /><span className="text-xs">Preview Post</span>
+        </button>
+        <div className="w-px h-6 bg-neutral-200 mx-1" />
         <button onClick={() => setDraftsOpen(true)} className="btn btn-ghost" title="Borradores"><FolderOpen className="w-3.5 h-3.5" /><span className="text-xs">Drafts</span></button>
         <button onClick={() => setCaptionOpen(true)} className="btn btn-ghost" title="Caption IG"><MessageSquare className="w-3.5 h-3.5" /><span className="text-xs">Caption</span></button>
         <button onClick={doShare} className="btn btn-ghost" title="Compartir"><Share2 className="w-3.5 h-3.5" /><span className="text-xs">Compartir</span></button>
@@ -182,6 +200,9 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
       <DraftsModal open={draftsOpen} onClose={() => setDraftsOpen(false)} />
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} url={shareUrl} />
+      {simulatorMode && (
+        <IGSimulator open={true} onClose={() => setSimulatorMode(null)} mode={simulatorMode} />
+      )}
     </>
   );
 };

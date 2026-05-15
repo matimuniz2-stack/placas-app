@@ -35,12 +35,13 @@ export const SidebarRight: React.FC = () => {
   const [tab, setTab] = useState<Tab>('inspector');
   const open = usePlacaStore((s) => s.sidebarRightOpen);
   const selected = usePlacaStore((s) => s.selectedLayer);
-  if (!open) return null;
 
-  // auto-switch to inspector when a layer is clicked
+  // Hooks must be called unconditionally — keep them BEFORE any early return
   React.useEffect(() => {
-    if (selected && tab !== 'inspector') setTab('inspector');
+    if (selected) setTab('inspector');
   }, [selected]);
+
+  if (!open) return null;
 
   return (
     <aside
