@@ -1,10 +1,17 @@
-// Vercel serverless function. Receives ?url=<listing> and tries to extract
-// basic property data from og:tags / regex heuristics.
-// Supports Mercado Libre, Zonaprop and Argenprop best-effort.
+// Vercel Edge function: GET /api/extract?url=<listing>
+// Extracts property data + multiple photos from Mercado Libre / Zonaprop / Argenprop / generic OG.
 
 export const config = { runtime: 'edge' };
 
-const cleanText = (s: string) => s.replace(/\s+/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+const cleanText = (s: string) =>
+  s
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 function pickMeta(html: string, prop: string): string | null {
   const re = new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i');
@@ -16,6 +23,62 @@ function pickTitle(html: string): string | null {
   return m ? cleanText(m[1]) : null;
 }
 
+function extractImages(html: string, url: string): string[] {
+  const out = new Set<string>();
+
+  // og:image and og:image:N
+  const ogRe = /<meta[^>]+(?:property|name)=["']og:image(?::\d+)?["'][^>]+content=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = ogRe.exec(html))) out.add(m[1]);
+
+  // Site-specific patterns
+  if (/mercadolibre|mlstatic/i.test(url + html)) {
+    // ML uses mlstatic.com with patterns like D_NQ_NP_  or  -O.webp / -O.jpg
+    const mlRe = /https?:\/\/[\w.-]*mlstatic\.com\/[^"'\s)]+\.(?:jpg|jpeg|webp|png)/gi;
+    while ((m = mlRe.exec(html))) {
+      // upgrade to high-res variant
+      const hi = m[0].replace(/-[A-Z]\./, '-F.');
+      out.add(hi);
+    }
+  }
+  if (/zonaprop|naventcdn/i.test(url + html)) {
+    const zpRe = /https?:\/\/img10?\.naventcdn\.com\/[^"'\s)]+/gi;
+    while ((m = zpRe.exec(html))) out.add(m[0]);
+  }
+  if (/argenprop|aprcdn/i.test(url + html)) {
+    const apRe = /https?:\/\/[\w.-]*aprcdn\.com\/[^"'\s)]+/gi;
+    while ((m = apRe.exec(html))) out.add(m[0]);
+  }
+
+  // Generic: <img src> from product galleries
+  const imgRe = /<img[^>]+(?:data-src|src)=["']([^"']+\.(?:jpg|jpeg|webp|png)[^"']*)["']/gi;
+  while ((m = imgRe.exec(html))) {
+    const src = m[1];
+    if (/avatar|logo|icon|sprite|placeholder|small/i.test(src)) continue;
+    if (src.startsWith('data:')) continue;
+    if (out.size < 12) out.add(src);
+  }
+
+  // Resolve relative URLs
+  const base = new URL(url);
+  const resolved = Array.from(out).map((u) => {
+    try {
+      return new URL(u, base).toString();
+    } catch {
+      return u;
+    }
+  });
+
+  // Filter duplicates by stripping query, prefer larger sizes
+  const dedup = new Map<string, string>();
+  for (const u of resolved) {
+    const key = u.split('?')[0].replace(/-[A-Z]\.(jpg|jpeg|webp|png)/, '');
+    if (!dedup.has(key)) dedup.set(key, u);
+  }
+
+  return Array.from(dedup.values()).slice(0, 12);
+}
+
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url).searchParams.get('url');
   if (!url) return new Response(JSON.stringify({ error: 'missing url' }), { status: 400 });
@@ -23,66 +86,73 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const r = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
         'Accept-Language': 'es-AR,es;q=0.9',
+        Accept: 'text/html,application/xhtml+xml',
       },
     });
-    if (!r.ok) return new Response(JSON.stringify({ error: 'fetch failed', status: r.status }), { status: 502 });
+    if (!r.ok)
+      return new Response(JSON.stringify({ error: 'fetch failed', status: r.status }), { status: 502 });
     const html = await r.text();
 
     const ogTitle = pickMeta(html, 'og:title') || pickTitle(html) || '';
     const ogDesc = pickMeta(html, 'og:description') || pickMeta(html, 'description') || '';
-    const ogImage = pickMeta(html, 'og:image') || '';
+    const photos = extractImages(html, url);
 
-    // Heuristics
     const text = `${ogTitle} ${ogDesc}`;
 
-    const ambMatch = text.match(/(\d+)\s*(?:ambient|amb\b)/i);
-    const m2Match = text.match(/(\d+)\s*m²|(\d+)\s*m2|(\d+)\s*metros/i);
+    const ambMatch = text.match(/(\d+)\s*(?:ambient|amb\b|dorm|hab)/i);
+    const m2Match =
+      text.match(/(\d+)\s*m²/i) || text.match(/(\d+)\s*m2/i) || text.match(/(\d+)\s*metros/i);
     const bathsMatch = text.match(/(\d+)\s*ba[ñn]os?/i);
-    const priceMatchUsd = text.match(/USD?\s*\$?\s*([\d.,]+)|U\$S\s*([\d.,]+)|US\$\s*([\d.,]+)/i);
-    const priceMatchArs = text.match(/\$\s*([\d.,]+)/i);
+    const priceUsd = text.match(/(?:USD?|U\$S|US\$|u\$s)\s*\$?\s*([\d.,]+)/i);
+    const priceArs = text.match(/\$\s*([\d.,]+)/i);
 
     let currency: 'USD' | 'ARS' = 'USD';
     let price = '';
-    if (priceMatchUsd) {
+    if (priceUsd) {
       currency = 'USD';
-      price = (priceMatchUsd[1] || priceMatchUsd[2] || priceMatchUsd[3] || '').replace(/[^\d]/g, '');
-    } else if (priceMatchArs) {
+      price = priceUsd[1].replace(/[^\d]/g, '');
+    } else if (priceArs) {
       currency = 'ARS';
-      price = priceMatchArs[1].replace(/[^\d]/g, '');
+      price = priceArs[1].replace(/[^\d]/g, '');
     }
     if (price && parseInt(price) > 0) {
       price = price.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
-    // Try to extract barrio (location after "en" or after dash)
     let barrio = '';
     const barrioMatch = ogTitle.match(/(?:en|,)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s*[-·,|]|$)/);
     if (barrioMatch) barrio = barrioMatch[1].trim();
 
-    // Address: lo primero antes de "en"
     let addr = '';
     const addrMatch = ogTitle.match(/^([^|·]+?)(?:\s+en\s+|,)/i);
     if (addrMatch) addr = addrMatch[1].trim();
+    if (!addr && ogTitle) addr = ogTitle.split('-')[0].split('|')[0].trim();
 
     const op: 'Venta' | 'Alquiler' = /alquiler|rent/i.test(text) ? 'Alquiler' : 'Venta';
 
     const out = {
-      addr: addr || ogTitle.split('-')[0].trim(),
+      addr,
       barrio,
       amb: ambMatch ? ambMatch[1] : '',
-      m2: m2Match ? (m2Match[1] || m2Match[2] || m2Match[3] || '') : '',
+      m2: m2Match ? m2Match[1] || m2Match[2] || m2Match[3] || '' : '',
       baths: bathsMatch ? bathsMatch[1] : '',
       price,
       currency,
       op,
-      desc: ogDesc.slice(0, 120),
-      photoUrl: ogImage,
+      desc: ogDesc.slice(0, 140),
+      photoUrl: photos[0] || '',
+      photoUrls: photos,
       listingUrl: url,
     };
     return new Response(JSON.stringify(out), {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message || 'unknown' }), { status: 500 });

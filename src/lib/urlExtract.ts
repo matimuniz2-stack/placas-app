@@ -2,6 +2,7 @@ import type { PlacaData } from '@/types';
 
 export interface ExtractedListing extends Partial<PlacaData> {
   photoUrl?: string;
+  photoUrls?: string[];
 }
 
 // Client-side extractor that tries our serverless endpoint first.

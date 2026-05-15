@@ -4,9 +4,6 @@ import { ALL_TEMPLATES } from '@/components/templates/registry';
 
 export function useGlobalShortcuts() {
   useEffect(() => {
-    const undo = (useTemporalStore as any)((s: any) => s.undo);
-    const redo = (useTemporalStore as any)((s: any) => s.redo);
-
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       const isInput = tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable;
@@ -15,11 +12,9 @@ export function useGlobalShortcuts() {
       // Undo/redo
       if (meta && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        if (e.shiftKey) {
-          (useTemporalStore.getState() as any).redo();
-        } else {
-          (useTemporalStore.getState() as any).undo();
-        }
+        const t = useTemporalStore.getState();
+        if (e.shiftKey) t.redo();
+        else t.undo();
         return;
       }
 

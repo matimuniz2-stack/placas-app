@@ -48,11 +48,32 @@ const DatosTab: React.FC = () => {
     try {
       const extracted = await extractFromUrl(pasteUrl);
       if (extracted) {
-        patchData(extracted);
-        if (extracted.photoUrl) {
-          // add photo
-          const { addPhotos } = usePlacaStore.getState();
-          addPhotos([extracted.photoUrl]);
+        const { addPhotos: addPhotosNow } = usePlacaStore.getState();
+        const { photoUrl, photoUrls, ...rest } = extracted;
+        patchData(rest);
+
+        // fetch all photos as data URLs (so they survive across sessions and exports)
+        const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 10);
+        if (urls.length) {
+          const dataUrls = await Promise.all(
+            urls.map(async (u) => {
+              try {
+                const res = await fetch(u, { mode: 'cors' });
+                if (!res.ok) return null;
+                const b = await res.blob();
+                return await new Promise<string>((resolve, reject) => {
+                  const r = new FileReader();
+                  r.onload = () => resolve(r.result as string);
+                  r.onerror = () => reject(r.error);
+                  r.readAsDataURL(b);
+                });
+              } catch {
+                return u; // fallback: use the URL directly (may fail on canvas export due to CORS)
+              }
+            })
+          );
+          const valid = dataUrls.filter((u): u is string => !!u);
+          if (valid.length) addPhotosNow(valid);
         }
       } else {
         alert('No se pudo extraer datos de esa URL. Probá con Mercado Libre, Zonaprop o Argenprop.');

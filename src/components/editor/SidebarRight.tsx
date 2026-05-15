@@ -251,13 +251,36 @@ const TemplatesTab: React.FC = () => {
 };
 
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
-  // Render a mini preview by temporarily overriding templateId via local style + render
-  // We use a simplified static preview: just show the bg + a few text dummies.
   const tpl = ALL_TEMPLATES.find((t) => t.id === templateId)!;
+  const fontAddr = tpl.defaultLayers.addr?.font || 'Inter';
+  const fontPrice = tpl.defaultLayers.price?.font || fontAddr;
+  const text = tpl.textColor || '#fff';
+  const accent = tpl.bgColor && /^#[fF]/.test(tpl.bgColor) ? '#de1f1a' : text;
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: 8, color: tpl.textColor || '#fff', fontSize: 7, lineHeight: 1.3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-      <div style={{ opacity: 0.7, letterSpacing: 1 }}>{tpl.category.toUpperCase()}</div>
-      <div style={{ fontSize: 11, fontWeight: 700, fontFamily: tpl.defaultLayers.addr?.font || 'Inter' }}>{tpl.name}</div>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        color: text,
+        fontSize: 5.5,
+        lineHeight: 1.2,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: 6,
+        textTransform: tpl.id === 't04' || tpl.id === 't11' ? 'uppercase' : 'none',
+        background: tpl.overlay ? `linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8) 100%)` : undefined,
+      }}
+    >
+      <div style={{ opacity: 0.7, letterSpacing: 0.5, fontSize: 4 }}>{tpl.category.toUpperCase()} · {tpl.id.toUpperCase()}</div>
+      <div style={{ textAlign: tpl.defaultLayers.addr?.align as any, marginBottom: 4 }}>
+        <div style={{ fontFamily: `'${fontAddr}'`, fontWeight: tpl.defaultLayers.addr?.weight || 700, fontSize: tpl.id === 't04' ? 16 : tpl.id === 't11' ? 14 : 9, lineHeight: 1 }}>
+          {tpl.id === 't04' ? 'AV. LIB' : 'Av. Libertador'}
+        </div>
+        <div style={{ fontFamily: `'${fontPrice}'`, fontWeight: tpl.defaultLayers.price?.weight || 700, fontSize: 10, color: accent, marginTop: 2 }}>
+          USD 195K
+        </div>
+      </div>
     </div>
   );
 };
@@ -286,7 +309,7 @@ const TemaTab: React.FC = () => {
             <input type="file" accept="image/*,.svg" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogo(e.target.files[0])} />
           </label>
         </div>
-        <button className="btn w-full" onClick={() => patchTheme({ logoUrl: '/logo-z.svg' })}>Volver al logo Z</button>
+        <button className="btn w-full" onClick={() => patchTheme({ logoUrl: '/logo-z.png' })}>Volver al logo Z</button>
       </div>
 
       <div className="divider" />

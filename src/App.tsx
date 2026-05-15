@@ -35,13 +35,32 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Auto-save state to IndexedDB
+  // Auto-save state to IndexedDB (only serializable data)
   useEffect(() => {
+    let saveTimer: any;
     const unsub = usePlacaStore.subscribe((state) => {
-      const { selectedLayer, sidebarLeftOpen, sidebarRightOpen, showGrid, ...persist } = state as any;
-      saveLastState(persist);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        const snapshot = {
+          format: state.format,
+          templateId: state.templateId,
+          variantId: state.variantId,
+          data: state.data,
+          layerOverrides: state.layerOverrides,
+          photos: state.photos,
+          activePhotoIdx: state.activePhotoIdx,
+          theme: state.theme,
+          agent: state.agent,
+          badges: state.badges,
+          qrUrl: state.qrUrl,
+          abbreviatePrice: state.abbreviatePrice,
+          snapToGrid: state.snapToGrid,
+        };
+        // Strip non-serializable safely
+        saveLastState(JSON.parse(JSON.stringify(snapshot)));
+      }, 600);
     });
-    return unsub;
+    return () => { unsub(); clearTimeout(saveTimer); };
   }, []);
 
   return (

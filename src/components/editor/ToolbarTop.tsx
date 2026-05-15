@@ -46,10 +46,10 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const templateId = usePlacaStore((s) => s.templateId);
   const photos = usePlacaStore((s) => s.photos);
 
-  const undo = useTemporalStore((s) => s.undo);
-  const redo = useTemporalStore((s) => s.redo);
-  const pastStates = useTemporalStore((s) => s.pastStates);
-  const futureStates = useTemporalStore((s) => s.futureStates);
+  const pastStates = useTemporalStore<any[]>((s) => s.pastStates);
+  const futureStates = useTemporalStore<any[]>((s) => s.futureStates);
+  const undo = () => useTemporalStore.getState().undo();
+  const redo = () => useTemporalStore.getState().redo();
 
   const [exporting, setExporting] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);

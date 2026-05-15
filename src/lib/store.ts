@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, useStore } from 'zustand';
 import { temporal } from 'zundo';
 import type {
   PlacaData,
@@ -92,7 +92,7 @@ const DEFAULT_THEME: ThemeState = {
   background: 'light',
   fontPrimary: 'Inter',
   fontSecondary: 'Cormorant Garamond',
-  logoUrl: '/logo-z.svg',
+  logoUrl: '/logo-z.png',
 };
 
 export const usePlacaStore = create<PlacaState>()(
@@ -215,13 +215,11 @@ export const usePlacaStore = create<PlacaState>()(
   )
 );
 
-// Hook-style temporal store accessor
-export const useTemporalStore = ((selector: (state: any) => any) =>
+// zundo attaches a Zustand store at usePlacaStore.temporal. Use it via useStore.
+export function useTemporalStore<T>(selector: (state: any) => T): T {
   // @ts-ignore
-  usePlacaStore.temporal(selector)) as ((selector: (state: any) => any) => any) & {
-  getState: () => any;
-};
-// @ts-ignore
+  return useStore(usePlacaStore.temporal, selector);
+}
 useTemporalStore.getState = () => (usePlacaStore as any).temporal.getState();
 
 export function getCurrentTemplate() {
