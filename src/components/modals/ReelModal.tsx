@@ -17,6 +17,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const format = usePlacaStore((s) => s.format);
   const data = usePlacaStore((s) => s.data);
 
+  const [content, setContent] = useState<'photos' | 'placa'>('photos');
   const [duration, setDuration] = useState(3); // seconds per photo
   const [fps, setFps] = useState<24 | 30 | 60>(30);
   const [zoom, setZoom] = useState(15); // 0–30 percent zoom
@@ -63,6 +64,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         kenBurnsZoom: 1 + zoom / 100,
         transition,
         transitionDuration: 0.5,
+        content,
         onProgress: (ph, cur, total) => {
           setPhase(ph);
           setProgress({ cur, total });
@@ -110,6 +112,29 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
 
         {photos.length > 0 && (
           <>
+            {/* Content mode */}
+            <div>
+              <label className="label">Contenido del reel</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  disabled={busy}
+                  onClick={() => setContent('photos')}
+                  className={`p-2.5 rounded border-2 text-left transition ${content === 'photos' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}
+                >
+                  <div className="text-xs font-bold mb-0.5">Solo fotos</div>
+                  <div className="text-[10px] text-neutral-500 leading-tight">Sin logo ni textos. Cover-fit al frame.</div>
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => setContent('placa')}
+                  className={`p-2.5 rounded border-2 text-left transition ${content === 'placa' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}
+                >
+                  <div className="text-xs font-bold mb-0.5">Con placa</div>
+                  <div className="text-[10px] text-neutral-500 leading-tight">Incluye logo, textos y stickers.</div>
+                </button>
+              </div>
+            </div>
+
             {/* Settings */}
             <div className="grid grid-cols-2 gap-3">
               <div>

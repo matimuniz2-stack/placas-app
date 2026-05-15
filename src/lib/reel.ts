@@ -7,9 +7,11 @@ export interface ReelOpts {
   format: 'story' | 'post';
   durationPerPhoto: number;
   fps: number;
-  kenBurnsZoom: number; // 1.15 means zoom from 1.0 to 1.15
+  kenBurnsZoom: number;
   transition: 'cut' | 'fade';
-  transitionDuration: number; // seconds
+  transitionDuration: number;
+  /** 'photos' = raw photos only (no placa overlay) · 'placa' = full placa with template */
+  content: 'photos' | 'placa';
   onProgress?: (phase: 'capturing' | 'encoding', current: number, total: number) => void;
   onAbort?: () => boolean;
 }
@@ -37,38 +39,62 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
   const W = 1080;
   const H = opts.format === 'story' ? 1920 : 1350;
 
-  // 1) Capture one placa bitmap per photo (sequentially, switching activePhotoIdx)
+  // 1) Build bitmaps array — either raw photos or placa-with-template captures
   const originalIdx = store.activePhotoIdx;
   const bitmaps: ImageBitmap[] = [];
+  // dims[i] = original photo width/height (used to compute cover-fit transforms)
+  const dims: Array<{ w: number; h: number }> = [];
+
   try {
     for (let i = 0; i < photos.length; i++) {
       if (opts.onAbort?.()) throw new Error('Cancelado');
       opts.onProgress?.('capturing', i + 1, photos.length);
-      usePlacaStore.setState({ activePhotoIdx: i });
-      // Let React + fonts settle
-      await new Promise((r) => setTimeout(r, 220));
-      if (document.fonts?.ready) {
-        try { await document.fonts.ready; } catch {}
-      }
-      const canvas = await toCanvas(opts.placaEl, {
-        width: W,
-        height: H,
-        pixelRatio: 1,
-        cacheBust: true,
-        filter: (el) => {
-          if (el.tagName === 'LINK') {
-            const href = (el as HTMLLinkElement).href;
-            if (href && /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(href)) return false;
+
+      if (opts.content === 'photos') {
+        // Load raw photo as bitmap
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = photos[i].url;
+        await new Promise<void>((resolve, reject) => {
+          if (img.complete && img.naturalWidth > 0) resolve();
+          else {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error('No se pudo cargar la foto ' + (i + 1)));
           }
-          return true;
-        },
-      });
-      const bitmap = await createImageBitmap(canvas);
-      bitmaps.push(bitmap);
+        });
+        const bm = await createImageBitmap(img);
+        bitmaps.push(bm);
+        dims.push({ w: img.naturalWidth, h: img.naturalHeight });
+      } else {
+        // Capture placa-with-template via html-to-image
+        usePlacaStore.setState({ activePhotoIdx: i });
+        await new Promise((r) => setTimeout(r, 220));
+        if (document.fonts?.ready) {
+          try { await document.fonts.ready; } catch {}
+        }
+        const canvas = await toCanvas(opts.placaEl, {
+          width: W,
+          height: H,
+          pixelRatio: 1,
+          cacheBust: true,
+          filter: (el) => {
+            if (el.tagName === 'LINK') {
+              const href = (el as HTMLLinkElement).href;
+              if (href && /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(href)) return false;
+            }
+            return true;
+          },
+        });
+        const bitmap = await createImageBitmap(canvas);
+        bitmaps.push(bitmap);
+        dims.push({ w: W, h: H });
+      }
     }
   } finally {
-    usePlacaStore.setState({ activePhotoIdx: originalIdx });
-    await new Promise((r) => setTimeout(r, 100));
+    if (opts.content === 'placa') {
+      usePlacaStore.setState({ activePhotoIdx: originalIdx });
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   // 2) Setup mp4-muxer + VideoEncoder
@@ -129,6 +155,26 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
   const totalFrames = bitmaps.length * framesPerPhoto;
   const microsecondsPerFrame = Math.round(1_000_000 / opts.fps);
 
+  // Helper: cover-fit drawing of a bitmap (or placa) into the W×H frame with optional Ken Burns
+  const drawCover = (bm: ImageBitmap, srcDims: { w: number; h: number }, zoom: number, panX: number, panY: number) => {
+    const srcAspect = srcDims.w / srcDims.h;
+    const dstAspect = W / H;
+    let baseW: number, baseH: number;
+    if (srcAspect > dstAspect) {
+      // source is wider → fit by height, crop sides
+      baseH = H;
+      baseW = H * srcAspect;
+    } else {
+      baseW = W;
+      baseH = W / srcAspect;
+    }
+    const drawW = baseW * zoom;
+    const drawH = baseH * zoom;
+    const dx = (W - drawW) / 2 + panX;
+    const dy = (H - drawH) / 2 + panY;
+    ctx.drawImage(bm, dx, dy, drawW, drawH);
+  };
+
   for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
     if (opts.onAbort?.()) {
       try { encoder.close(); } catch {}
@@ -139,21 +185,15 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     const frameInPhoto = frameIdx % framesPerPhoto;
     const t = frameInPhoto / Math.max(1, framesPerPhoto - 1); // 0..1
 
-    // Ken Burns: alternate zoom-in and zoom-out per photo, with subtle pan
     const direction = photoIdx % 2 === 0 ? 1 : -1;
     const zoomDelta = (opts.kenBurnsZoom - 1) * (direction === 1 ? t : 1 - t);
     const zoom = 1 + zoomDelta;
-    const panX = (direction === 1 ? -t : t - 1) * 0.04 * W; // ~4% pan
+    const panX = (direction === 1 ? -t : t - 1) * 0.04 * W;
     const panY = (direction === 1 ? -t : t - 1) * 0.02 * H;
-
-    const drawW = W * zoom;
-    const drawH = H * zoom;
-    const dx = (W - drawW) / 2 + panX;
-    const dy = (H - drawH) / 2 + panY;
 
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(bitmaps[photoIdx], dx, dy, drawW, drawH);
+    drawCover(bitmaps[photoIdx], dims[photoIdx], zoom, panX, panY);
 
     // Crossfade with next photo at the tail of each clip
     if (
@@ -163,10 +203,9 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       frameInPhoto >= framesPerPhoto - transitionFrames
     ) {
       const a = (frameInPhoto - (framesPerPhoto - transitionFrames)) / transitionFrames;
-      const next = bitmaps[photoIdx + 1];
       ctx.save();
       ctx.globalAlpha = a;
-      ctx.drawImage(next, 0, 0, W, H);
+      drawCover(bitmaps[photoIdx + 1], dims[photoIdx + 1], 1, 0, 0);
       ctx.restore();
     }
 
