@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand: #de1f1a;
+    --brand-600: #b81813;
+    --bg: #ffffff;
+    --panel: #fafafa;
+    --panel-2: #f4f4f4;
+    --border: #e5e5e5;
+    --text: #0a0a0a;
+    --text-2: #525252;
+    --text-3: #a3a3a3;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  * { box-sizing: border-box; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
+
+  input, select, textarea, button { font-family: inherit; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-neutral-200 bg-white text-neutral-900 transition hover:bg-neutral-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-brand text-white border-brand hover:bg-brand-600 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent hover:bg-neutral-100;
+  }
+  .btn-icon {
+    @apply h-7 w-7 p-0 inline-flex items-center justify-center;
+  }
+  .input {
+    @apply w-full h-8 px-2.5 text-[12.5px] bg-white border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 transition focus:border-brand focus:ring-2 focus:ring-brand/15;
+  }
+  .input-num { @apply h-8 px-2 text-[12px] w-full bg-white border border-neutral-200 rounded text-neutral-900 focus:border-brand focus:ring-1 focus:ring-brand/30; }
+  .select { @apply input cursor-pointer; }
+  .label { @apply text-[10px] font-semibold tracking-[1.3px] text-neutral-500 uppercase mb-1 block; }
+  .panel { @apply bg-panel border-neutral-200; }
+  .chip { @apply inline-flex items-center gap-1 h-6 px-2 text-[10px] uppercase tracking-[1.5px] font-semibold rounded bg-neutral-100 text-neutral-700; }
+  .divider { @apply h-px bg-neutral-200; }
+  .section-title { @apply text-[10px] font-bold tracking-[2px] uppercase text-neutral-400; }
+}
+
+/* Canvas-specific: hide scrollbar in canvas area */
+.canvas-area { background-image: radial-gradient(circle, #e5e5e5 1px, transparent 1px); background-size: 18px 18px; }
+
+/* Moveable overrides */
+.moveable-control { background: #de1f1a !important; border: 2px solid white !important; }
+.moveable-line { background: #de1f1a !important; }
+
+/* For html-to-image capture: ensure no scrollbars during render */
+.exporting { overflow: hidden !important; }
+.exporting * { overflow: hidden !important; }
