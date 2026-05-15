@@ -24,7 +24,8 @@ import { DraftsModal } from '@/components/modals/DraftsModal';
 import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
 import { ShareModal } from '@/components/modals/ShareModal';
 import { IGSimulator } from '@/components/modals/IGSimulator';
-import { Eye, FilePlus, RefreshCw } from 'lucide-react';
+import { ReelModal } from '@/components/modals/ReelModal';
+import { Eye, FilePlus, RefreshCw, Film } from 'lucide-react';
 import { del } from 'idb-keyval';
 
 interface Props {
@@ -61,6 +62,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [simulatorMode, setSimulatorMode] = useState<'story' | 'post' | null>(null);
+  const [reelOpen, setReelOpen] = useState(false);
 
   const sizeNow = FORMAT_SIZES[format];
 
@@ -197,6 +199,15 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         <div className="w-px h-6 bg-neutral-200 mx-1" />
 
         <button
+          onClick={() => setReelOpen(true)}
+          className="btn btn-ghost text-purple-600 hover:bg-purple-50"
+          title="Generar Reel MP4 con todas las fotos"
+        >
+          <Film className="w-3.5 h-3.5" />
+          <span className="text-xs">Reel</span>
+        </button>
+
+        <button
           onClick={handleReset}
           className="btn btn-ghost text-neutral-600 hover:text-brand"
           title="Empezar nueva placa (borra todo)"
@@ -219,6 +230,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
       {simulatorMode && (
         <IGSimulator open={true} onClose={() => setSimulatorMode(null)} mode={simulatorMode} />
       )}
+      <ReelModal open={reelOpen} onClose={() => setReelOpen(false)} placaRef={placaRef} />
     </>
   );
 };
