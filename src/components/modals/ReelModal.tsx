@@ -1,10 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
 import { usePlacaStore } from '@/lib/store';
-import { generateReel, isReelSupported, PRESETS, type Transition, type Preset, type ReelOpts } from '@/lib/reel';
+import {
+  generateReel,
+  isReelSupported,
+  PRESETS,
+  probeVideo,
+  captureVideoPoster,
+  type Transition,
+  type Preset,
+  type MediaItem,
+} from '@/lib/reel';
 import { downloadBlob } from '@/lib/export';
 import { slugify } from '@/lib/format';
 import { Film, Download, Play, Sparkles, Zap, Minus, Crown } from 'lucide-react';
+import { ReelTimeline } from './ReelTimeline';
 
 interface Props {
   open: boolean;
@@ -13,10 +23,10 @@ interface Props {
 }
 
 const PRESET_META: Record<Preset, { label: string; icon: any; desc: string; accent: string }> = {
-  cinematic: { label: 'Cinemático',  icon: Sparkles, desc: 'Slow + warm + vignette + intro/outro', accent: 'bg-purple-50 border-purple-300 text-purple-700' },
-  energetic: { label: 'Energético',  icon: Zap,      desc: 'Rápido, 60fps, slides agresivos',       accent: 'bg-orange-50 border-orange-300 text-orange-700' },
-  minimal:   { label: 'Minimal',     icon: Minus,    desc: 'Sin transiciones, sin efectos',         accent: 'bg-neutral-50 border-neutral-300 text-neutral-700' },
-  pro:       { label: 'Pro Studio',  icon: Crown,    desc: 'HD 2K + intro + outro + 14Mbps',        accent: 'bg-brand/10 border-brand text-brand' },
+  cinematic: { label: 'Cinemático',  icon: Sparkles, desc: 'Slow + warm + vignette', accent: 'bg-purple-50 border-purple-300 text-purple-700' },
+  energetic: { label: 'Energético',  icon: Zap,      desc: 'Rápido 60fps + slides',  accent: 'bg-orange-50 border-orange-300 text-orange-700' },
+  minimal:   { label: 'Minimal',     icon: Minus,    desc: 'Sin efectos',            accent: 'bg-neutral-50 border-neutral-300 text-neutral-700' },
+  pro:       { label: 'Pro Studio',  icon: Crown,    desc: 'HD 2K + intro+outro',    accent: 'bg-brand/10 border-brand text-brand' },
 };
 
 const TRANSITIONS: { id: Transition; label: string }[] = [
@@ -27,10 +37,23 @@ const TRANSITIONS: { id: Transition; label: string }[] = [
   { id: 'zoom-blur',  label: 'Zoom blur' },
 ];
 
+const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(file);
+  });
+
 export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const photos = usePlacaStore((s) => s.photos);
   const format = usePlacaStore((s) => s.format);
   const data = usePlacaStore((s) => s.data);
+
+  // Timeline state
+  const [items, setItems] = useState<MediaItem[]>([]);
+  const [posters, setPosters] = useState<Record<string, string>>({});
+  const [videoMeta, setVideoMeta] = useState<Record<string, { duration: number; w: number; h: number }>>({});
 
   // Settings
   const [content, setContent] = useState<'photos' | 'placa'>('photos');
@@ -45,16 +68,41 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const [intro, setIntro] = useState(true);
   const [outro, setOutro] = useState(true);
 
-  // State
+  // Run state
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'capturing' | 'encoding' | 'audio'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'capturing' | 'encoding'>('idle');
   const [progress, setProgress] = useState({ cur: 0, total: 0 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef(false);
 
-  // Apply preset
+  // Initialize items from store photos on open
+  useEffect(() => {
+    if (open && items.length === 0 && photos.length > 0) {
+      setItems(photos.map((p, i) => ({ id: 'p' + i + '_' + Date.now(), type: 'photo' as const, url: p.url })));
+    }
+  }, [open, photos]);
+
+  useEffect(() => {
+    if (!open) {
+      abortRef.current = false;
+      setBusy(false);
+      setPhase('idle');
+      setProgress({ cur: 0, total: 0 });
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
+      setResultBlob(null);
+      setElapsed(0);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!busy) return;
+    const start = Date.now();
+    const id = setInterval(() => setElapsed((Date.now() - start) / 1000), 100);
+    return () => clearInterval(id);
+  }, [busy]);
+
   const applyPreset = (p: Preset) => {
     setPreset(p);
     const cfg = PRESETS[p];
@@ -69,38 +117,89 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
     if (cfg.outro !== undefined) setOutro(cfg.outro);
   };
 
-  useEffect(() => {
-    if (!open) {
-      abortRef.current = false;
-      setBusy(false);
-      setPhase('idle');
-      setProgress({ cur: 0, total: 0 });
-      if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
-      setResultBlob(null);
-      setElapsed(0);
-    }
-  }, [open]);
+  const handleAddPhotos = async (files: FileList) => {
+    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (!arr.length) return;
+    const dataUrls = await Promise.all(arr.map(fileToDataUrl));
+    const newItems: MediaItem[] = dataUrls.map((url, i) => ({
+      id: 'pf' + Date.now() + '_' + i,
+      type: 'photo' as const,
+      url,
+    }));
+    setItems((prev) => [...prev, ...newItems]);
+  };
 
-  // elapsed timer while busy
-  useEffect(() => {
-    if (!busy) return;
-    const start = Date.now();
-    const id = setInterval(() => setElapsed(((Date.now() - start) / 1000)), 100);
-    return () => clearInterval(id);
-  }, [busy]);
+  const handleAddVideos = async (files: FileList) => {
+    const arr = Array.from(files).filter((f) => f.type.startsWith('video/'));
+    if (!arr.length) return;
+    for (const f of arr) {
+      const url = URL.createObjectURL(f);
+      try {
+        const meta = await probeVideo(url);
+        const id = 'vid' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+        const poster = await captureVideoPoster(url, 0.1).catch(() => '');
+        setItems((prev) => [
+          ...prev,
+          {
+            id,
+            type: 'video',
+            url,
+            videoDuration: meta.duration,
+            videoWidth: meta.width,
+            videoHeight: meta.height,
+            trimStart: 0,
+            trimEnd: Math.min(meta.duration, 10),
+          },
+        ]);
+        setVideoMeta((prev) => ({ ...prev, [id]: { duration: meta.duration, w: meta.width, h: meta.height } }));
+        if (poster) setPosters((prev) => ({ ...prev, [id]: poster }));
+      } catch (e: any) {
+        alert('No se pudo cargar el video: ' + (e?.message || e));
+        URL.revokeObjectURL(url);
+      }
+    }
+  };
+
+  const updateItem = (id: string, patch: Partial<MediaItem>) =>
+    setItems((prev) => prev.map((it) => (it.id === id ? ({ ...it, ...patch } as MediaItem) : it)));
+
+  const removeItem = (id: string) => {
+    setItems((prev) => {
+      const it = prev.find((x) => x.id === id);
+      if (it && it.type === 'video' && it.url.startsWith('blob:')) {
+        try { URL.revokeObjectURL(it.url); } catch {}
+      }
+      return prev.filter((x) => x.id !== id);
+    });
+    setPosters((p) => { const n = { ...p }; delete n[id]; return n; });
+    setVideoMeta((p) => { const n = { ...p }; delete n[id]; return n; });
+  };
 
   if (!open) return null;
 
-  const totalDuration =
-    photos.length * duration + (intro ? 1.2 : 0) + (outro ? 1.8 : 0);
   const supported = isReelSupported();
+
+  // Compute total duration with per-item overrides
+  const totalDuration =
+    items.reduce((s, it) => {
+      if (it.type === 'video') {
+        const vd = videoMeta[it.id]?.duration ?? (it as any).videoDuration ?? 0;
+        const ts = (it as any).trimStart ?? 0;
+        const te = (it as any).trimEnd ?? vd;
+        return s + (it.duration ?? Math.min(te - ts, duration));
+      }
+      return s + (it.duration ?? duration);
+    }, 0) +
+    (intro && content === 'photos' ? 1.2 : 0) +
+    (outro ? 1.8 : 0);
 
   const handleGenerate = async () => {
     if (!placaRef.current) return;
+    if (items.length === 0) { alert('Agregá al menos una foto o video.'); return; }
     abortRef.current = false;
     setBusy(true);
     setPhase('capturing');
-    setProgress({ cur: 0, total: photos.length });
+    setProgress({ cur: 0, total: items.length });
     if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
     setResultBlob(null);
     try {
@@ -118,8 +217,9 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         hd,
         intro: intro && content === 'photos',
         outro,
+        items,
         bitrate: hd ? 14_000_000 : 10_000_000,
-        onProgress: (ph, cur, total) => { setPhase(ph); setProgress({ cur, total }); },
+        onProgress: (ph, cur, total) => { setPhase(ph as any); setProgress({ cur, total }); },
         onAbort: () => abortRef.current,
       });
       setResultBlob(result.blob);
@@ -140,10 +240,10 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   };
 
   const progressPct = progress.total > 0 ? Math.round((progress.cur / progress.total) * 100) : 0;
-  const phaseLabel = phase === 'capturing' ? 'Capturando fotos' : phase === 'encoding' ? 'Encodeando H.264' : '';
+  const phaseLabel = phase === 'capturing' ? 'Cargando media' : phase === 'encoding' ? 'Encodeando H.264' : '';
 
   return (
-    <Modal open={open} onClose={onClose} title="Reel MP4 · Cinematic Studio" width={680}>
+    <Modal open={open} onClose={onClose} title="Reel MP4 · Studio" width={780}>
       <div className="p-5 space-y-4">
         {!supported && (
           <div className="bg-yellow-50 border border-yellow-300 rounded p-3 text-xs text-yellow-900">
@@ -151,149 +251,145 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
           </div>
         )}
 
-        {photos.length === 0 ? (
-          <div className="bg-neutral-50 border border-neutral-200 rounded p-4 text-sm text-neutral-600 text-center">
-            Subí al menos 2 fotos para generar el Reel.
+        {/* PRESETS */}
+        <div>
+          <label className="label">Preset</label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {(Object.keys(PRESET_META) as Preset[]).map((p) => {
+              const meta = PRESET_META[p];
+              const Icon = meta.icon;
+              const active = preset === p;
+              return (
+                <button
+                  key={p}
+                  disabled={busy}
+                  onClick={() => applyPreset(p)}
+                  className={`p-2 rounded border text-left transition ${active ? meta.accent : 'bg-white border-neutral-200 hover:border-neutral-300'}`}
+                >
+                  <Icon className="w-3.5 h-3.5 mb-1" />
+                  <div className="text-[11px] font-bold">{meta.label}</div>
+                  <div className="text-[9px] opacity-70 leading-tight mt-0.5">{meta.desc}</div>
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <>
-            {/* PRESETS */}
-            <div>
-              <label className="label">Preset</label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {(Object.keys(PRESET_META) as Preset[]).map((p) => {
-                  const meta = PRESET_META[p];
-                  const Icon = meta.icon;
-                  const active = preset === p;
-                  return (
-                    <button
-                      key={p}
-                      disabled={busy}
-                      onClick={() => applyPreset(p)}
-                      className={`p-2 rounded border text-left transition ${active ? meta.accent : 'bg-white border-neutral-200 hover:border-neutral-300'}`}
-                    >
-                      <Icon className="w-3.5 h-3.5 mb-1" />
-                      <div className="text-[11px] font-bold">{meta.label}</div>
-                      <div className="text-[9px] opacity-70 leading-tight mt-0.5 line-clamp-2">{meta.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
+        </div>
+
+        {/* TIMELINE */}
+        <ReelTimeline
+          items={items}
+          posters={posters}
+          videoMeta={videoMeta}
+          globalDuration={duration}
+          disabled={busy}
+          onReorder={setItems}
+          onUpdate={updateItem}
+          onRemove={removeItem}
+          onAddPhotos={handleAddPhotos}
+          onAddVideos={handleAddVideos}
+        />
+
+        {/* Content */}
+        <div>
+          <label className="label">Contenido</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={busy} onClick={() => setContent('photos')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'photos' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
+              <b>Solo fotos/videos</b>
+              <div className="text-[10px] text-neutral-500 leading-tight">Sin logo ni textos.</div>
+            </button>
+            <button disabled={busy} onClick={() => setContent('placa')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'placa' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
+              <b>Con placa</b>
+              <div className="text-[10px] text-neutral-500 leading-tight">Branding completo (fotos del store).</div>
+            </button>
+          </div>
+          <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
+            💡 Generá el reel sin música → subilo a Instagram → poné audio desde la biblioteca de Reels.
+          </p>
+        </div>
+
+        {/* Timing */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="label">Por foto · {duration}s</label>
+            <input type="range" min={1.5} max={6} step={0.5} value={duration} disabled={busy} onChange={(e) => setDuration(parseFloat(e.target.value))} className="w-full accent-brand" />
+          </div>
+          <div>
+            <label className="label">FPS</label>
+            <div className="grid grid-cols-3 gap-1">
+              {[24, 30, 60].map((f) => (
+                <button key={f} disabled={busy} onClick={() => setFps(f as any)} className={`h-7 text-[11px] rounded border ${fps === f ? 'bg-brand text-white border-brand' : 'bg-white border-neutral-200'}`}>{f}</button>
+              ))}
             </div>
+          </div>
+          <div>
+            <label className="label">Ken Burns · {zoom}%</label>
+            <input type="range" min={0} max={35} value={zoom} disabled={busy} onChange={(e) => setZoom(parseInt(e.target.value))} className="w-full accent-brand" />
+          </div>
+        </div>
 
-            {/* Content */}
-            <div>
-              <label className="label">Contenido</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button disabled={busy} onClick={() => setContent('photos')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'photos' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                  <b>Solo fotos</b>
-                  <div className="text-[10px] text-neutral-500 leading-tight">Sin logo ni textos. Cover-fit al frame.</div>
-                </button>
-                <button disabled={busy} onClick={() => setContent('placa')} className={`p-2.5 rounded border-2 text-left text-xs transition ${content === 'placa' ? 'border-brand bg-brand/5' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                  <b>Con placa</b>
-                  <div className="text-[10px] text-neutral-500 leading-tight">Branding + datos + stickers.</div>
-                </button>
-              </div>
-              <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
-                💡 El reel sale sin música. Subilo a Instagram y agregale audio desde la biblioteca de Reels (ahí están los hits virales licenciados).
-              </p>
+        <div>
+          <label className="label">Transición</label>
+          <div className="grid grid-cols-5 gap-1">
+            {TRANSITIONS.map((t) => (
+              <button key={t.id} disabled={busy} onClick={() => setTransition(t.id)} className={`h-8 text-[10.5px] rounded border ${transition === t.id ? 'bg-brand text-white border-brand' : 'bg-white border-neutral-200'}`}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-1.5">
+          <Toggle label="Vignette" active={vignette} onClick={() => setVignette(!vignette)} disabled={busy} />
+          <Toggle label="Cinematic" active={cinematicLook} onClick={() => setCinematicLook(!cinematicLook)} disabled={busy} />
+          <Toggle label="HD 2K" active={hd} onClick={() => setHd(!hd)} disabled={busy} />
+          <Toggle label="Intro" active={intro} onClick={() => setIntro(!intro)} disabled={busy || content !== 'photos'} />
+          <Toggle label="Outro placa" active={outro} onClick={() => setOutro(!outro)} disabled={busy} />
+        </div>
+
+        <div className="bg-neutral-50 border border-neutral-200 rounded p-2.5 text-[10.5px] font-mono text-neutral-600 flex justify-between">
+          <span>{items.length} clips · {totalDuration.toFixed(1)}s · {fps} fps</span>
+          <span>{format === 'story' ? '1080×1920' : '1080×1350'}{hd ? ' (HD 2K)' : ''} · H.264 · {hd ? '14' : '10'} Mbps</span>
+        </div>
+
+        {previewUrl && (
+          <div className="relative">
+            <video src={previewUrl} controls autoPlay loop muted playsInline className="w-full max-h-[55vh] bg-black rounded" />
+            <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-mono">
+              {(resultBlob ? resultBlob.size / 1024 / 1024 : 0).toFixed(1)} MB
             </div>
-
-            {/* Timing */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="label">Por foto · {duration}s</label>
-                <input type="range" min={1.5} max={6} step={0.5} value={duration} disabled={busy} onChange={(e) => setDuration(parseFloat(e.target.value))} className="w-full accent-brand" />
-              </div>
-              <div>
-                <label className="label">FPS</label>
-                <div className="grid grid-cols-3 gap-1">
-                  {[24, 30, 60].map((f) => (
-                    <button key={f} disabled={busy} onClick={() => setFps(f as any)} className={`h-7 text-[11px] rounded border ${fps === f ? 'bg-brand text-white border-brand' : 'bg-white border-neutral-200'}`}>{f}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="label">Ken Burns · {zoom}%</label>
-                <input type="range" min={0} max={35} value={zoom} disabled={busy} onChange={(e) => setZoom(parseInt(e.target.value))} className="w-full accent-brand" />
-              </div>
-            </div>
-
-            {/* Transition */}
-            <div>
-              <label className="label">Transición</label>
-              <div className="grid grid-cols-5 gap-1">
-                {TRANSITIONS.map((t) => (
-                  <button key={t.id} disabled={busy} onClick={() => setTransition(t.id)} className={`h-8 text-[10.5px] rounded border ${transition === t.id ? 'bg-brand text-white border-brand' : 'bg-white border-neutral-200'}`}>{t.label}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Toggles */}
-            <div className="grid grid-cols-5 gap-1.5">
-              <Toggle label="Vignette" active={vignette} onClick={() => setVignette(!vignette)} disabled={busy} />
-              <Toggle label="Cinematic" active={cinematicLook} onClick={() => setCinematicLook(!cinematicLook)} disabled={busy} />
-              <Toggle label="HD 2K" active={hd} onClick={() => setHd(!hd)} disabled={busy} />
-              <Toggle label="Intro" active={intro} onClick={() => setIntro(!intro)} disabled={busy || content !== 'photos'} />
-              <Toggle label="Outro placa" active={outro} onClick={() => setOutro(!outro)} disabled={busy} />
-            </div>
-
-            {/* Info bar */}
-            <div className="bg-neutral-50 border border-neutral-200 rounded p-2.5 text-[10.5px] font-mono text-neutral-600 flex justify-between">
-              <span>{photos.length} fotos · {totalDuration.toFixed(1)}s · {fps} fps</span>
-              <span>{format === 'story' ? '1080×1920' : '1080×1350'}{hd ? ' (HD 2K)' : ''} · H.264 / MP4 · {hd ? '14' : '10'} Mbps</span>
-            </div>
-
-            {/* Preview */}
-            {previewUrl && (
-              <div className="relative">
-                <video
-                  src={previewUrl}
-                  controls autoPlay loop muted playsInline
-                  className="w-full max-h-[55vh] bg-black rounded"
-                />
-                <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded font-mono">
-                  {(resultBlob ? resultBlob.size / 1024 / 1024 : 0).toFixed(1)} MB
-                </div>
-              </div>
-            )}
-
-            {/* Progress */}
-            {busy && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-[11px] text-neutral-600 font-mono">
-                  <span>{phaseLabel}…</span>
-                  <span>{progress.cur} / {progress.total} · {progressPct}% · {elapsed.toFixed(1)}s</span>
-                </div>
-                <div className="h-2 bg-neutral-100 rounded overflow-hidden">
-                  <div className="h-full bg-brand transition-all duration-100" style={{ width: `${progressPct}%` }} />
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex gap-2 justify-end">
-              {busy ? (
-                <button className="btn" onClick={handleCancel}>Cancelar</button>
-              ) : (
-                <>
-                  {resultBlob && (
-                    <button className="btn btn-primary" onClick={handleDownload}>
-                      <Download className="w-3.5 h-3.5" /> Descargar MP4
-                    </button>
-                  )}
-                  <button
-                    className={resultBlob ? 'btn' : 'btn btn-primary'}
-                    onClick={handleGenerate}
-                    disabled={!supported || photos.length === 0}
-                  >
-                    {resultBlob ? <><Play className="w-3.5 h-3.5" /> Regenerar</> : <><Film className="w-3.5 h-3.5" /> Generar Reel</>}
-                  </button>
-                </>
-              )}
-            </div>
-          </>
+          </div>
         )}
+
+        {busy && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-[11px] text-neutral-600 font-mono">
+              <span>{phaseLabel}…</span>
+              <span>{progress.cur} / {progress.total} · {progressPct}% · {elapsed.toFixed(1)}s</span>
+            </div>
+            <div className="h-2 bg-neutral-100 rounded overflow-hidden">
+              <div className="h-full bg-brand transition-all duration-100" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          {busy ? (
+            <button className="btn" onClick={handleCancel}>Cancelar</button>
+          ) : (
+            <>
+              {resultBlob && (
+                <button className="btn btn-primary" onClick={handleDownload}>
+                  <Download className="w-3.5 h-3.5" /> Descargar MP4
+                </button>
+              )}
+              <button
+                className={resultBlob ? 'btn' : 'btn btn-primary'}
+                onClick={handleGenerate}
+                disabled={!supported || items.length === 0}
+              >
+                {resultBlob ? <><Play className="w-3.5 h-3.5" /> Regenerar</> : <><Film className="w-3.5 h-3.5" /> Generar Reel</>}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </Modal>
   );

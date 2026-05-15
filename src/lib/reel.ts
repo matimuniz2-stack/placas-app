@@ -11,7 +11,8 @@ export type MotionStyle =
   | 'pan-up'
   | 'pan-down'
   | 'orbit-cw'
-  | 'orbit-ccw';
+  | 'orbit-ccw'
+  | 'static';
 
 const MOTION_BANK: MotionStyle[] = [
   'zoom-in',
@@ -27,74 +28,126 @@ const MOTION_BANK: MotionStyle[] = [
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
-const easeInQuart = (t: number) => t * t * t * t;
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 interface Motion { zoom: number; panX: number; panY: number; rot: number }
 
 function getMotion(style: MotionStyle, t: number, zoomAmount: number, w: number, h: number): Motion {
+  if (style === 'static') return { zoom: 1, panX: 0, panY: 0, rot: 0 };
   const e = easeInOutCubic(t);
   const halfZ = zoomAmount * 0.5;
   switch (style) {
-    case 'zoom-in':
-      return { zoom: 1 + zoomAmount * e, panX: 0, panY: 0, rot: 0 };
-    case 'zoom-out':
-      return { zoom: 1 + zoomAmount - zoomAmount * e, panX: 0, panY: 0, rot: 0 };
-    case 'pan-right':
-      return { zoom: 1 + halfZ, panX: -0.08 * w * e, panY: 0, rot: 0 };
-    case 'pan-left':
-      return { zoom: 1 + halfZ, panX: 0.08 * w * e, panY: 0, rot: 0 };
-    case 'pan-up':
-      return { zoom: 1 + halfZ, panX: 0, panY: 0.06 * h * e, rot: 0 };
-    case 'pan-down':
-      return { zoom: 1 + halfZ, panX: 0, panY: -0.06 * h * e, rot: 0 };
-    case 'orbit-cw':
-      return { zoom: 1 + halfZ, panX: -0.04 * w * e, panY: -0.03 * h * e, rot: 0.4 * e };
-    case 'orbit-ccw':
-      return { zoom: 1 + halfZ, panX: 0.04 * w * e, panY: -0.03 * h * e, rot: -0.4 * e };
+    case 'zoom-in':   return { zoom: 1 + zoomAmount * e, panX: 0, panY: 0, rot: 0 };
+    case 'zoom-out':  return { zoom: 1 + zoomAmount - zoomAmount * e, panX: 0, panY: 0, rot: 0 };
+    case 'pan-right': return { zoom: 1 + halfZ, panX: -0.08 * w * e, panY: 0, rot: 0 };
+    case 'pan-left':  return { zoom: 1 + halfZ, panX:  0.08 * w * e, panY: 0, rot: 0 };
+    case 'pan-up':    return { zoom: 1 + halfZ, panX: 0, panY:  0.06 * h * e, rot: 0 };
+    case 'pan-down':  return { zoom: 1 + halfZ, panX: 0, panY: -0.06 * h * e, rot: 0 };
+    case 'orbit-cw':  return { zoom: 1 + halfZ, panX: -0.04 * w * e, panY: -0.03 * h * e, rot:  0.4 * e };
+    case 'orbit-ccw': return { zoom: 1 + halfZ, panX:  0.04 * w * e, panY: -0.03 * h * e, rot: -0.4 * e };
   }
 }
 
-// ─── Public types ────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 export type Transition = 'cut' | 'fade' | 'slide-left' | 'slide-up' | 'zoom-blur';
 export type Preset = 'cinematic' | 'energetic' | 'minimal' | 'pro';
+
+export type MediaItem =
+  | { id: string; type: 'photo'; url: string; duration?: number; motion?: MotionStyle }
+  | { id: string; type: 'video'; url: string; duration?: number; motion?: MotionStyle; trimStart?: number; trimEnd?: number; videoDuration?: number; videoWidth?: number; videoHeight?: number };
 
 export interface ReelOpts {
   placaEl: HTMLElement;
   format: 'story' | 'post';
   durationPerPhoto: number;
   fps: number;
-  kenBurnsZoom: number;          // 1.0 + delta (e.g. 1.18 = 18% zoom)
+  kenBurnsZoom: number;
   transition: Transition;
-  transitionDuration: number;     // seconds
+  transitionDuration: number;
   content: 'photos' | 'placa';
-  vignette: boolean;              // dark corners
-  cinematicLook: boolean;         // contrast/saturation boost
-  hd: boolean;                    // 2x resolution capture+downscale for sharper output
-  intro: boolean;                 // 1.2s intro with logo
-  outro: boolean;                 // 1.8s outro with full placa (data summary)
-  audioFile?: File | null;
-  bitrate?: number;               // bits per second, default 10M
-  onProgress?: (phase: 'capturing' | 'encoding' | 'audio', current: number, total: number) => void;
+  vignette: boolean;
+  cinematicLook: boolean;
+  hd: boolean;
+  intro: boolean;
+  outro: boolean;
+  items?: MediaItem[];          // when omitted, falls back to store.photos as photo items
+  bitrate?: number;
+  onProgress?: (phase: 'capturing' | 'encoding', current: number, total: number) => void;
   onAbort?: () => boolean;
 }
 
-export interface ReelResult {
-  blob: Blob;
-  width: number;
-  height: number;
-  duration: number;
-}
+export interface ReelResult { blob: Blob; width: number; height: number; duration: number }
 
 export const PRESETS: Record<Preset, Partial<ReelOpts>> = {
-  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true, outro: true,  bitrate: 12_000_000 },
-  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true, bitrate: 10_000_000 },
-  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 8_000_000 },
-  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true, outro: true,  bitrate: 14_000_000 },
+  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 12_000_000 },
+  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true,  bitrate: 10_000_000 },
+  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 8_000_000  },
+  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 14_000_000 },
 };
 
 export function isReelSupported(): boolean {
   return typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined';
+}
+
+// ─── Asset loaders (with limits and cleanup) ─────────────────────────────────
+const MAX_BITMAP_SIDE = 2160;
+
+async function loadPhotoBitmap(url: string): Promise<{ bm: ImageBitmap; w: number; h: number }> {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.decoding = 'async';
+  img.src = url;
+  await new Promise<void>((res, rej) => {
+    if (img.complete && img.naturalWidth > 0) res();
+    else { img.onload = () => res(); img.onerror = () => rej(new Error('Foto no se pudo cargar')); }
+  });
+  // Down-scale large photos so we don't blow memory
+  const longer = Math.max(img.naturalWidth, img.naturalHeight);
+  let bm: ImageBitmap;
+  if (longer > MAX_BITMAP_SIDE) {
+    const scale = MAX_BITMAP_SIDE / longer;
+    bm = await createImageBitmap(img, {
+      resizeWidth: Math.round(img.naturalWidth * scale),
+      resizeHeight: Math.round(img.naturalHeight * scale),
+      resizeQuality: 'high',
+    });
+  } else {
+    bm = await createImageBitmap(img);
+  }
+  return { bm, w: bm.width, h: bm.height };
+}
+
+async function makeVideoElement(url: string): Promise<HTMLVideoElement> {
+  const v = document.createElement('video');
+  v.crossOrigin = 'anonymous';
+  v.muted = true;
+  (v as any).playsInline = true;
+  v.preload = 'auto';
+  v.src = url;
+  await new Promise<void>((res, rej) => {
+    const onMeta = () => { v.removeEventListener('loadedmetadata', onMeta); res(); };
+    const onErr  = () => { v.removeEventListener('error', onErr); rej(new Error('Video no se pudo cargar')); };
+    v.addEventListener('loadedmetadata', onMeta);
+    v.addEventListener('error', onErr);
+    setTimeout(() => rej(new Error('Timeout cargando video')), 30000);
+  });
+  return v;
+}
+
+async function seekVideoTo(v: HTMLVideoElement, t: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    // Prefer requestVideoFrameCallback when available (frame-accurate)
+    const rVfc = (v as any).requestVideoFrameCallback as undefined | ((cb: any) => number);
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    if (rVfc) {
+      rVfc.call(v, () => finish());
+    } else {
+      v.addEventListener('seeked', finish, { once: true });
+    }
+    try { v.currentTime = Math.max(0, Math.min(t, (v.duration || t) - 0.001)); } catch { finish(); }
+    setTimeout(finish, 250); // fallback so we never hang
+  });
 }
 
 // ─── Main generator ──────────────────────────────────────────────────────────
@@ -103,99 +156,114 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
 
   const store = usePlacaStore.getState();
   const photos = store.photos;
-  if (photos.length === 0) throw new Error('Subí al menos una foto para generar el Reel.');
 
-  // Output dimensions: 1080×1920 (story) or 1080×1350 (post). HD captures at 2x then downscales.
+  // Resolve items: explicit, or default to store photos as photo items
+  const baseItems: MediaItem[] =
+    opts.items && opts.items.length > 0
+      ? opts.items
+      : photos.map((p, i) => ({ id: 'p' + i, type: 'photo' as const, url: p.url }));
+
+  if (baseItems.length === 0) throw new Error('Agregá al menos una foto o video al timeline.');
+
   const W = 1080;
   const H = opts.format === 'story' ? 1920 : 1350;
   const captureScale = opts.hd ? 2 : 1;
   const CW = W * captureScale;
   const CH = H * captureScale;
 
-  // ─── Capture bitmaps ────────────────────────────────────────────────────────
+  // ─── Pre-load assets (photos → bitmaps · videos → HTMLVideoElement) ────────
+  type LoadedItem =
+    | { kind: 'photo'; item: MediaItem; bitmap: ImageBitmap; w: number; h: number }
+    | { kind: 'video'; item: MediaItem; video: HTMLVideoElement; w: number; h: number; trimStart: number; trimEnd: number };
+
+  const loaded: LoadedItem[] = [];
+  let placaCloseBitmap: ImageBitmap | null = null;
   const originalIdx = store.activePhotoIdx;
-  const bitmaps: ImageBitmap[] = [];
-  const dims: Array<{ w: number; h: number }> = [];
-  let placaCloseBitmap: ImageBitmap | null = null; // for outro
+  let cleaned = false;
+
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    for (const li of loaded) {
+      if (li.kind === 'photo') li.bitmap.close?.();
+      else { try { li.video.pause(); li.video.removeAttribute('src'); li.video.load(); } catch {} }
+    }
+    placaCloseBitmap?.close?.();
+    usePlacaStore.setState({ activePhotoIdx: originalIdx });
+  };
 
   try {
-    for (let i = 0; i < photos.length; i++) {
+    for (let i = 0; i < baseItems.length; i++) {
       if (opts.onAbort?.()) throw new Error('Cancelado');
-      opts.onProgress?.('capturing', i + 1, photos.length + (opts.outro ? 1 : 0));
+      opts.onProgress?.('capturing', i + 1, baseItems.length + (opts.outro ? 1 : 0));
 
-      if (opts.content === 'photos') {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = photos[i].url;
-        await new Promise<void>((res, rej) => {
-          if (img.complete && img.naturalWidth > 0) res();
-          else { img.onload = () => res(); img.onerror = () => rej(new Error('No se pudo cargar la foto ' + (i + 1))); }
-        });
-        const bm = await createImageBitmap(img);
-        bitmaps.push(bm);
-        dims.push({ w: img.naturalWidth, h: img.naturalHeight });
-      } else {
-        usePlacaStore.setState({ activePhotoIdx: i });
+      const item = baseItems[i];
+
+      if (opts.content === 'placa' && item.type === 'photo') {
+        // Capture full placa with this photo
+        const photoIdx = photos.findIndex((p) => p.url === item.url);
+        if (photoIdx >= 0) usePlacaStore.setState({ activePhotoIdx: photoIdx });
         await new Promise((r) => setTimeout(r, 200));
         if (document.fonts?.ready) { try { await document.fonts.ready; } catch {} }
         const canvas = await toCanvas(opts.placaEl, {
           width: W, height: H, pixelRatio: captureScale, cacheBust: true,
-          filter: (el) => el.tagName !== 'LINK' || !/fonts\.googleapis\.com|fonts\.gstatic\.com/.test(((el as HTMLLinkElement).href || '')),
+          filter: (el) => el.tagName !== 'LINK' || !/fonts\.googleapis\.com|fonts\.gstatic\.com/.test((el as HTMLLinkElement).href || ''),
         });
-        const bitmap = await createImageBitmap(canvas);
-        bitmaps.push(bitmap);
-        dims.push({ w: CW, h: CH });
+        const bm = await createImageBitmap(canvas);
+        loaded.push({ kind: 'photo', item, bitmap: bm, w: CW, h: CH });
+      } else if (item.type === 'photo') {
+        const { bm, w, h } = await loadPhotoBitmap(item.url);
+        loaded.push({ kind: 'photo', item, bitmap: bm, w, h });
+      } else {
+        const v = await makeVideoElement(item.url);
+        const duration = item.videoDuration ?? v.duration ?? 0;
+        const trimStart = Math.max(0, Math.min(duration, item.trimStart ?? 0));
+        const trimEnd = Math.max(trimStart + 0.1, Math.min(duration, item.trimEnd ?? duration));
+        loaded.push({
+          kind: 'video',
+          item,
+          video: v,
+          w: v.videoWidth || W,
+          h: v.videoHeight || H,
+          trimStart,
+          trimEnd,
+        });
       }
+
+      // Yield to the UI between heavy loads so it doesn't freeze
+      await new Promise((r) => setTimeout(r, 0));
     }
 
-    // Outro: capture the full placa (with all data + logo + stickers)
     if (opts.outro) {
-      opts.onProgress?.('capturing', photos.length + 1, photos.length + 1);
-      // ensure original photo is shown in outro
+      opts.onProgress?.('capturing', baseItems.length + 1, baseItems.length + 1);
       usePlacaStore.setState({ activePhotoIdx: originalIdx });
       await new Promise((r) => setTimeout(r, 200));
       if (document.fonts?.ready) { try { await document.fonts.ready; } catch {} }
       const canvas = await toCanvas(opts.placaEl, {
         width: W, height: H, pixelRatio: captureScale, cacheBust: true,
-        filter: (el) => el.tagName !== 'LINK' || !/fonts\.googleapis\.com|fonts\.gstatic\.com/.test(((el as HTMLLinkElement).href || '')),
+        filter: (el) => el.tagName !== 'LINK' || !/fonts\.googleapis\.com|fonts\.gstatic\.com/.test((el as HTMLLinkElement).href || ''),
       });
       placaCloseBitmap = await createImageBitmap(canvas);
     }
+  } catch (e) {
+    cleanup();
+    throw e;
   } finally {
     usePlacaStore.setState({ activePhotoIdx: originalIdx });
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 80));
   }
 
-  // ─── Audio decode (optional) ────────────────────────────────────────────────
-  let audioBuffer: AudioBuffer | null = null;
-  let audioCtx: AudioContext | null = null;
-  if (opts.audioFile) {
-    try {
-      opts.onProgress?.('audio', 0, 1);
-      audioCtx = new AudioContext({ sampleRate: 48000 });
-      const arr = await opts.audioFile.arrayBuffer();
-      audioBuffer = await audioCtx.decodeAudioData(arr);
-    } catch (e) {
-      console.warn('Audio decode failed, continuing without music', e);
-      audioBuffer = null;
-    }
-  }
-
-  // ─── Setup muxer + encoders ─────────────────────────────────────────────────
+  // ─── Setup muxer + video encoder ────────────────────────────────────────────
   const target = new ArrayBufferTarget();
   const muxer = new Muxer({
     target,
     video: { codec: 'avc', width: W, height: H, frameRate: opts.fps },
-    ...(audioBuffer
-      ? { audio: { codec: 'aac', numberOfChannels: Math.min(2, audioBuffer.numberOfChannels), sampleRate: 48000 } }
-      : {}),
     fastStart: 'in-memory',
   });
 
-  // Video encoder
   const videoEncoder = new VideoEncoder({
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-    error: (e) => console.error('VideoEncoder error', e),
+    error: (e) => console.error('VideoEncoder', e),
   });
   const bitrate = opts.bitrate || (opts.hd ? 14_000_000 : 10_000_000);
   const codecs = ['avc1.640032', 'avc1.640028', 'avc1.4d0028', 'avc1.42e028'];
@@ -210,32 +278,42 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       }
     } catch {}
   }
-  if (!configured) throw new Error('No se pudo configurar el encoder H.264.');
+  if (!configured) { cleanup(); throw new Error('No se pudo configurar el encoder H.264.'); }
 
-  // ─── Compute timing ─────────────────────────────────────────────────────────
+  // ─── Compute clip durations & frame counts ──────────────────────────────────
+  const usPerFrame = Math.round(1_000_000 / opts.fps);
   const introFrames = opts.intro ? Math.round(1.2 * opts.fps) : 0;
   const outroFrames = opts.outro ? Math.round(1.8 * opts.fps) : 0;
-  const framesPerPhoto = Math.round(opts.durationPerPhoto * opts.fps);
-  const transitionFrames = opts.transition !== 'cut' ? Math.round(opts.transitionDuration * opts.fps) : 0;
-  const totalFrames = introFrames + bitmaps.length * framesPerPhoto + outroFrames;
-  const usPerFrame = Math.round(1_000_000 / opts.fps);
 
-  // ─── Canvas ─────────────────────────────────────────────────────────────────
+  const clipFrames: number[] = loaded.map((li) => {
+    let dur: number;
+    if (li.kind === 'video') {
+      const cap = li.trimEnd - li.trimStart;
+      dur = Math.max(0.5, li.item.duration ?? cap);
+      // never longer than the trimmed range
+      dur = Math.min(dur, cap || dur);
+    } else {
+      dur = Math.max(0.5, li.item.duration ?? opts.durationPerPhoto);
+    }
+    return Math.max(1, Math.round(dur * opts.fps));
+  });
+  const totalClipFrames = clipFrames.reduce((s, n) => s + n, 0);
+  const totalFrames = introFrames + totalClipFrames + outroFrames;
+  const transitionFrames = opts.transition !== 'cut' ? Math.round(opts.transitionDuration * opts.fps) : 0;
+
+  // Canvas
   const canvas: HTMLCanvasElement | OffscreenCanvas =
     typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : document.createElement('canvas');
-  if (!(canvas instanceof OffscreenCanvas)) {
-    canvas.width = W; canvas.height = H;
-  }
+  if (!(canvas instanceof OffscreenCanvas)) { canvas.width = W; canvas.height = H; }
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
-  if (!ctx) throw new Error('Canvas 2D context no disponible');
+  if (!ctx) { cleanup(); throw new Error('Canvas 2D context no disponible'); }
 
-  // ─── Drawing helpers ────────────────────────────────────────────────────────
-  const drawCover = (bm: ImageBitmap, srcDims: { w: number; h: number }, m: Motion) => {
-    const srcA = srcDims.w / srcDims.h;
+  // ─── Draw helpers ───────────────────────────────────────────────────────────
+  const drawCoverImg = (src: CanvasImageSource, sw: number, sh: number, m: Motion) => {
+    const srcA = sw / sh;
     const dstA = W / H;
     let baseW: number, baseH: number;
-    if (srcA > dstA) { baseH = H; baseW = H * srcA; }
-    else { baseW = W; baseH = W / srcA; }
+    if (srcA > dstA) { baseH = H; baseW = H * srcA; } else { baseW = W; baseH = W / srcA; }
     const drawW = baseW * m.zoom;
     const drawH = baseH * m.zoom;
     const dx = (W - drawW) / 2 + m.panX;
@@ -245,17 +323,15 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       ctx.translate(W / 2, H / 2);
       ctx.rotate((m.rot * Math.PI) / 180);
       ctx.translate(-W / 2, -H / 2);
-      ctx.drawImage(bm, dx, dy, drawW, drawH);
+      ctx.drawImage(src, dx, dy, drawW, drawH);
       ctx.restore();
     } else {
-      ctx.drawImage(bm, dx, dy, drawW, drawH);
+      ctx.drawImage(src, dx, dy, drawW, drawH);
     }
   };
 
-  // Cinematic look LUT applied via composite + overlays
   const applyCinematicLook = () => {
     if (!opts.cinematicLook) return;
-    // Subtle warm tint + contrast lift
     ctx.save();
     ctx.globalCompositeOperation = 'overlay';
     ctx.fillStyle = 'rgba(255, 240, 220, 0.06)';
@@ -276,38 +352,59 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     ctx.fillRect(0, 0, W, H);
   };
 
+  const motionFor = (idx: number): MotionStyle => loaded[idx].item.motion || MOTION_BANK[idx % MOTION_BANK.length];
+
+  // Helper: render a single clip's source at progress t (0..1)
+  const renderClipAt = async (clipIdx: number, t: number, alpha = 1, motionOverride?: MotionStyle) => {
+    const li = loaded[clipIdx];
+    const motion = motionOverride ?? motionFor(clipIdx);
+    const m = getMotion(motion, t, opts.kenBurnsZoom - 1, W, H);
+    if (li.kind === 'photo') {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawCoverImg(li.bitmap, li.w, li.h, m);
+      ctx.restore();
+    } else {
+      const targetTime = li.trimStart + (li.trimEnd - li.trimStart) * t;
+      await seekVideoTo(li.video, targetTime);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawCoverImg(li.video, li.w, li.h, m);
+      ctx.restore();
+    }
+  };
+
   // ─── Frame loop ─────────────────────────────────────────────────────────────
-  const motionPerPhoto: MotionStyle[] = bitmaps.map((_, i) => MOTION_BANK[i % MOTION_BANK.length]);
+  // Precompute cumulative frame offsets per clip
+  const clipStartFrame: number[] = [];
+  {
+    let acc = 0;
+    for (const n of clipFrames) { clipStartFrame.push(acc); acc += n; }
+  }
 
   for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
     if (opts.onAbort?.()) {
       try { videoEncoder.close(); } catch {}
+      cleanup();
       throw new Error('Cancelado');
     }
 
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
 
-    // INTRO (logo Z animado + fade in foto 1)
+    // INTRO
     if (frameIdx < introFrames) {
       const t = frameIdx / Math.max(1, introFrames - 1);
       const eased = easeOutQuart(t);
-      // Pre-fade: first photo with slow zoom
-      const firstM = getMotion('zoom-out', 1 - eased * 0.4, opts.kenBurnsZoom - 1, W, H);
-      ctx.save();
-      ctx.globalAlpha = eased;
-      drawCover(bitmaps[0], dims[0], firstM);
-      ctx.restore();
+      await renderClipAt(0, 1 - eased * 0.4, eased, 'zoom-out');
 
-      // Logo Z big in center, animated scale
+      // Logo Z big
       const logoScale = 0.6 + 0.4 * easeInOutCubic(t);
       const logoSize = Math.min(W, H) * 0.32 * logoScale;
       ctx.save();
       ctx.globalAlpha = 1 - smoothstep(Math.max(0, (t - 0.6) / 0.4));
       ctx.fillStyle = '#de1f1a';
-      // Draw a stylized Z shape (matches logo aesthetic)
-      const cx = W / 2; const cy = H / 2;
-      const ls = logoSize;
+      const cx = W / 2; const cy = H / 2; const ls = logoSize;
       ctx.beginPath();
       ctx.moveTo(cx - ls * 0.45, cy - ls * 0.5);
       ctx.lineTo(cx + ls * 0.45, cy - ls * 0.5);
@@ -326,69 +423,61 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       applyCinematicLook();
       drawVignette();
     }
-    // OUTRO (placa full con datos)
+    // OUTRO
     else if (frameIdx >= totalFrames - outroFrames) {
-      const outroIdx = frameIdx - (totalFrames - outroFrames);
-      const t = outroIdx / Math.max(1, outroFrames - 1);
+      const oIdx = frameIdx - (totalFrames - outroFrames);
+      const t = oIdx / Math.max(1, outroFrames - 1);
       const eased = easeOutQuart(t);
 
-      // crossfade from last photo to placa
-      if (eased < 1 && bitmaps.length > 0) {
-        const lastM = getMotion(motionPerPhoto[bitmaps.length - 1], 1, opts.kenBurnsZoom - 1, W, H);
-        ctx.save();
-        ctx.globalAlpha = 1 - eased;
-        drawCover(bitmaps[bitmaps.length - 1], dims[bitmaps.length - 1], lastM);
-        ctx.restore();
+      // Fade out from last clip
+      if (eased < 1 && loaded.length > 0) {
+        await renderClipAt(loaded.length - 1, 1, 1 - eased);
       }
       if (placaCloseBitmap) {
+        const m: Motion = { zoom: 1 + 0.04 * easeInOutCubic(t), panX: 0, panY: 0, rot: 0 };
         ctx.save();
         ctx.globalAlpha = eased;
-        // slight zoom on outro placa for life
-        const m: Motion = { zoom: 1 + 0.04 * easeInOutCubic(t), panX: 0, panY: 0, rot: 0 };
-        drawCover(placaCloseBitmap, { w: CW, h: CH }, m);
+        drawCoverImg(placaCloseBitmap, CW, CH, m);
         ctx.restore();
       }
     }
-    // MAIN CLIPS (Ken Burns sobre cada foto)
+    // MAIN
     else {
       const seqIdx = frameIdx - introFrames;
-      const photoIdx = Math.floor(seqIdx / framesPerPhoto);
-      const frameInPhoto = seqIdx % framesPerPhoto;
-      const t = frameInPhoto / Math.max(1, framesPerPhoto - 1);
-      const motion = motionPerPhoto[photoIdx];
+      // Find which clip
+      let clipIdx = 0;
+      for (let i = 0; i < clipStartFrame.length; i++) {
+        if (seqIdx >= clipStartFrame[i] && seqIdx < clipStartFrame[i] + clipFrames[i]) {
+          clipIdx = i; break;
+        }
+      }
+      const localFrame = seqIdx - clipStartFrame[clipIdx];
+      const localTotal = clipFrames[clipIdx];
+      const t = localFrame / Math.max(1, localTotal - 1);
 
-      const m = getMotion(motion, t, opts.kenBurnsZoom - 1, W, H);
-      drawCover(bitmaps[photoIdx], dims[photoIdx], m);
+      await renderClipAt(clipIdx, t);
 
-      // Transitions
-      if (transitionFrames > 0 && photoIdx < bitmaps.length - 1 && frameInPhoto >= framesPerPhoto - transitionFrames) {
-        const a = (frameInPhoto - (framesPerPhoto - transitionFrames)) / transitionFrames;
-        const nextMotion = motionPerPhoto[photoIdx + 1];
-        const nextM = getMotion(nextMotion, 0, opts.kenBurnsZoom - 1, W, H);
-
+      // Transition into next clip at tail
+      if (transitionFrames > 0 && clipIdx < loaded.length - 1 && localFrame >= localTotal - transitionFrames) {
+        const a = (localFrame - (localTotal - transitionFrames)) / transitionFrames;
         if (opts.transition === 'fade') {
-          ctx.save();
-          ctx.globalAlpha = easeInOutCubic(a);
-          drawCover(bitmaps[photoIdx + 1], dims[photoIdx + 1], nextM);
-          ctx.restore();
+          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a));
         } else if (opts.transition === 'slide-left') {
           const offset = (1 - easeOutQuart(a)) * W;
           ctx.save();
           ctx.translate(offset, 0);
-          drawCover(bitmaps[photoIdx + 1], dims[photoIdx + 1], nextM);
+          await renderClipAt(clipIdx + 1, 0, 1);
           ctx.restore();
         } else if (opts.transition === 'slide-up') {
           const offset = (1 - easeOutQuart(a)) * H;
           ctx.save();
           ctx.translate(0, offset);
-          drawCover(bitmaps[photoIdx + 1], dims[photoIdx + 1], nextM);
+          await renderClipAt(clipIdx + 1, 0, 1);
           ctx.restore();
         } else if (opts.transition === 'zoom-blur') {
           ctx.save();
-          ctx.globalAlpha = easeInOutCubic(a);
           ctx.filter = `blur(${(1 - a) * 8}px)`;
-          const zoomM: Motion = { ...nextM, zoom: nextM.zoom * (1 + 0.15 * (1 - a)) };
-          drawCover(bitmaps[photoIdx + 1], dims[photoIdx + 1], zoomM);
+          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a));
           ctx.filter = 'none';
           ctx.restore();
         }
@@ -398,96 +487,42 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       drawVignette();
     }
 
-    const frame = new VideoFrame(canvas as any, {
-      timestamp: frameIdx * usPerFrame,
-      duration: usPerFrame,
-    });
-    videoEncoder.encode(frame, { keyFrame: frameIdx === 0 || frameIdx % opts.fps === 0 });
-    frame.close();
+    // Encode frame
+    let frame: VideoFrame;
+    try {
+      frame = new VideoFrame(canvas as any, {
+        timestamp: frameIdx * usPerFrame,
+        duration: usPerFrame,
+      });
+    } catch (e) {
+      // Skip frame on error rather than crash entire encode
+      console.warn('VideoFrame create failed at', frameIdx, e);
+      continue;
+    }
+    try {
+      videoEncoder.encode(frame, { keyFrame: frameIdx === 0 || frameIdx % opts.fps === 0 });
+    } finally {
+      frame.close();
+    }
 
     opts.onProgress?.('encoding', frameIdx + 1, totalFrames);
 
-    if (videoEncoder.encodeQueueSize > 10) {
-      while (videoEncoder.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 4));
+    // Aggressive backpressure: never let encoder queue grow unbounded
+    if (videoEncoder.encodeQueueSize > 6) {
+      while (videoEncoder.encodeQueueSize > 2) {
+        await new Promise((r) => setTimeout(r, 4));
+      }
+    } else if (frameIdx % 12 === 0) {
+      // periodic yield so UI stays responsive
+      await new Promise((r) => setTimeout(r, 0));
     }
   }
 
   await videoEncoder.flush();
   videoEncoder.close();
-
-  // ─── Audio encoding (parallel-ish, after video) ─────────────────────────────
-  if (audioBuffer && opts.audioFile) {
-    try {
-      const totalVideoDurSec = totalFrames / opts.fps;
-      const numChannels = Math.min(2, audioBuffer.numberOfChannels);
-      const sampleRate = 48000;
-      const totalSamples = Math.floor(totalVideoDurSec * sampleRate);
-      const FRAME_SIZE = 1024;
-
-      const audioEncoder = new AudioEncoder({
-        output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
-        error: (e) => console.error('AudioEncoder error', e),
-      });
-      audioEncoder.configure({
-        codec: 'mp4a.40.2',
-        numberOfChannels: numChannels,
-        sampleRate,
-        bitrate: 192_000,
-      });
-
-      // Resample to 48k mix-down to numChannels if needed (simple linear)
-      const srcRate = audioBuffer.sampleRate;
-      const srcLen = audioBuffer.length;
-      const ratio = srcRate / sampleRate;
-
-      const get = (ch: number, t: number) => {
-        const idx = Math.min(srcLen - 1, Math.max(0, t * ratio));
-        const i0 = Math.floor(idx);
-        const i1 = Math.min(srcLen - 1, i0 + 1);
-        const frac = idx - i0;
-        const data = audioBuffer!.getChannelData(Math.min(ch, audioBuffer!.numberOfChannels - 1));
-        return data[i0] * (1 - frac) + data[i1] * frac;
-      };
-
-      let sampleIdx = 0;
-      while (sampleIdx < totalSamples) {
-        const n = Math.min(FRAME_SIZE, totalSamples - sampleIdx);
-        const buf = new Float32Array(n * numChannels);
-        for (let s = 0; s < n; s++) {
-          for (let c = 0; c < numChannels; c++) {
-            buf[s * numChannels + c] = get(c, sampleIdx + s);
-          }
-        }
-        const ad = new AudioData({
-          format: 'f32',
-          sampleRate,
-          numberOfFrames: n,
-          numberOfChannels: numChannels,
-          timestamp: Math.round((sampleIdx / sampleRate) * 1_000_000),
-          data: buf,
-        });
-        audioEncoder.encode(ad);
-        ad.close();
-        sampleIdx += n;
-        if (sampleIdx % (FRAME_SIZE * 50) === 0) {
-          if (audioEncoder.encodeQueueSize > 16) {
-            while (audioEncoder.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 4));
-          }
-        }
-      }
-      await audioEncoder.flush();
-      audioEncoder.close();
-    } catch (e) {
-      console.warn('Audio encoding failed, finishing without it', e);
-    }
-  }
-  if (audioCtx) try { audioCtx.close(); } catch {}
-
   muxer.finalize();
 
-  // Release bitmaps
-  for (const b of bitmaps) b.close?.();
-  placaCloseBitmap?.close?.();
+  cleanup();
 
   return {
     blob: new Blob([target.buffer], { type: 'video/mp4' }),
@@ -495,4 +530,28 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     height: H,
     duration: totalFrames / opts.fps,
   };
+}
+
+// ─── Helpers exposed for the UI ──────────────────────────────────────────────
+export async function probeVideo(url: string): Promise<{ duration: number; width: number; height: number }> {
+  const v = document.createElement('video');
+  v.muted = true; (v as any).playsInline = true; v.preload = 'metadata'; v.src = url;
+  await new Promise<void>((res, rej) => {
+    v.addEventListener('loadedmetadata', () => res(), { once: true });
+    v.addEventListener('error', () => rej(new Error('Video metadata failed')), { once: true });
+    setTimeout(() => rej(new Error('Timeout video metadata')), 15000);
+  });
+  return { duration: v.duration || 0, width: v.videoWidth, height: v.videoHeight };
+}
+
+export async function captureVideoPoster(url: string, t = 0.1): Promise<string> {
+  const v = await makeVideoElement(url);
+  await seekVideoTo(v, Math.min(t, (v.duration || 1) - 0.05));
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth || 320; c.height = v.videoHeight || 480;
+  const cx = c.getContext('2d')!;
+  cx.drawImage(v, 0, 0, c.width, c.height);
+  const url2 = c.toDataURL('image/jpeg', 0.7);
+  try { v.pause(); v.removeAttribute('src'); v.load(); } catch {}
+  return url2;
 }
