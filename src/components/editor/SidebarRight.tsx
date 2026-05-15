@@ -251,12 +251,10 @@ const TemplatesTab: React.FC = () => {
 };
 
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
-  // Real mini-renderer of the placa at scale: 1080x1920 → ~140x250
   const THUMB_W = 130;
-  const THUMB_H = (THUMB_W * 1920) / 1080;
   const scale = THUMB_W / 1080;
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+    <div className="tpl-thumb-static" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       <div
         style={{
           width: 1080,

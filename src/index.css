@@ -67,6 +67,14 @@
 /* Canvas-specific: hide scrollbar in canvas area */
 .canvas-area { background-image: radial-gradient(circle, #e5e5e5 1px, transparent 1px); background-size: 18px 18px; }
 
+/* Template thumbnails: kill clicks/hover inside the mini-render so the parent button receives them */
+.tpl-thumb-static,
+.tpl-thumb-static * {
+  pointer-events: none !important;
+  cursor: default !important;
+  outline: none !important;
+}
+
 /* Moveable overrides */
 .moveable-control { background: #de1f1a !important; border: 2px solid white !important; }
 .moveable-line { background: #de1f1a !important; }
