@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { usePlacaStore } from '@/lib/store';
 import { PlacaRenderer } from '@/components/templates/Renderer';
 import { priceString } from '@/lib/format';
-import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, Wifi, Battery, Signal } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -11,75 +11,181 @@ interface Props {
   mode: 'story' | 'post';
 }
 
-const STORY_W = 320;
-const POST_W = 340;
-const STORY_H = (STORY_W * 1920) / 1080;
-const POST_PLACA_H = (POST_W * 1350) / 1080;
+// iPhone 15 Pro reference: 1290x2796 logical, ~3 aspect screen
+// We render the device at a fixed pixel width; screen is inset by the bezel.
+const DEVICE_W = 320;
+const DEVICE_H = 660;            // visible body height
+const BEZEL = 11;                // outer bezel thickness
+const OUTER_RADIUS = 52;
+const INNER_RADIUS = 42;
+
+// Resulting screen dimensions
+const SCREEN_W = DEVICE_W - BEZEL * 2;
+const SCREEN_H = DEVICE_H - BEZEL * 2;
 
 export const IGSimulator: React.FC<Props> = ({ open, onClose, mode }) => {
-  const data = usePlacaStore((s) => s.data);
   const formatNow = usePlacaStore((s) => s.format);
   const setFormat = usePlacaStore((s) => s.setFormat);
-  const photos = usePlacaStore((s) => s.photos);
-  const [storyProgress, setStoryProgress] = useState(0.35);
   const prevFormatRef = useRef<'story' | 'post'>(formatNow);
 
-  // Switch format to match mode when modal opens
   useEffect(() => {
     if (!open) return;
     prevFormatRef.current = usePlacaStore.getState().format;
     setFormat(mode);
-    return () => {
-      // restore previous format on close
-      setFormat(prevFormatRef.current);
-    };
+    return () => setFormat(prevFormatRef.current);
   }, [open, mode, setFormat]);
-
-  // story progress animation
-  useEffect(() => {
-    if (!open || mode !== 'story') return;
-    setStoryProgress(0.05);
-    const start = Date.now();
-    const id = setInterval(() => {
-      const t = Math.min(1, (Date.now() - start) / 6000);
-      setStoryProgress(t);
-      if (t >= 1) clearInterval(id);
-    }, 60);
-    return () => clearInterval(id);
-  }, [open, mode]);
 
   if (!open) return null;
 
   return (
-    <Modal open={open} onClose={onClose} width={mode === 'story' ? 380 : 420}>
-      <div className="bg-neutral-950 p-4 pt-3 rounded-b-lg">
-        {mode === 'story' ? <StoryView width={STORY_W} progress={storyProgress} data={data} /> : <PostView width={POST_W} data={data} photos={photos} />}
-        <div className="text-center text-[10px] text-neutral-500 mt-3 tracking-wider uppercase">
-          {mode === 'story' ? '1080 × 1920' : '1080 × 1350'} · preview Instagram
+    <Modal open={open} onClose={onClose} width={DEVICE_W + 96}>
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
+          padding: '36px 28px 28px',
+          borderRadius: '0 0 8px 8px',
+        }}
+      >
+        <IPhoneFrame>
+          {mode === 'story' ? <StoryContent /> : <PostContent />}
+        </IPhoneFrame>
+        <div className="text-center text-[10px] text-neutral-500 mt-5 tracking-[2px] uppercase font-mono">
+          {mode === 'story' ? '1080 × 1920 · Story' : '1080 × 1350 · Post'} · iPhone preview
         </div>
       </div>
     </Modal>
   );
 };
 
-const StoryView: React.FC<{ width: number; progress: number; data: any }> = ({ width, progress, data }) => {
-  const scale = width / 1080;
+// ─────────────────────────────────────────────────────────────────────────────
+// iPhone frame with Dynamic Island, side buttons, realistic shadow
+// ─────────────────────────────────────────────────────────────────────────────
+const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div
       style={{
-        width,
-        height: width * (1920 / 1080),
-        background: '#000',
-        borderRadius: 28,
-        overflow: 'hidden',
-        position: 'relative',
+        width: DEVICE_W,
+        height: DEVICE_H,
         margin: '0 auto',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.5), 0 0 0 8px #111',
+        position: 'relative',
+        background: 'linear-gradient(145deg, #2a2a2c 0%, #1a1a1c 50%, #2a2a2c 100%)',
+        borderRadius: OUTER_RADIUS,
+        padding: BEZEL,
+        boxShadow:
+          '0 0 0 1.5px #3a3a3c, 0 30px 70px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.04)',
       }}
     >
-      {/* Scaled placa */}
+      {/* Side buttons */}
+      <div style={{ position: 'absolute', left: -2, top: 110, width: 3, height: 32, background: '#1a1a1c', borderRadius: 2 }} />
+      <div style={{ position: 'absolute', left: -2, top: 160, width: 3, height: 54, background: '#1a1a1c', borderRadius: 2 }} />
+      <div style={{ position: 'absolute', left: -2, top: 220, width: 3, height: 54, background: '#1a1a1c', borderRadius: 2 }} />
+      <div style={{ position: 'absolute', right: -2, top: 160, width: 3, height: 82, background: '#1a1a1c', borderRadius: 2 }} />
+
+      {/* Screen */}
       <div
         style={{
+          width: SCREEN_W,
+          height: SCREEN_H,
+          background: '#000',
+          borderRadius: INNER_RADIUS,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {children}
+
+        {/* Dynamic Island */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 92,
+            height: 26,
+            background: '#000',
+            borderRadius: 14,
+            zIndex: 30,
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.04)',
+          }}
+        />
+
+        {/* Status bar (clock + signal + wifi + battery) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 42,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 22px',
+            zIndex: 25,
+            pointerEvents: 'none',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+          }}
+        >
+          <span style={{ marginTop: 4 }}>9:41</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+            <Signal className="w-3 h-3" />
+            <Wifi className="w-3 h-3" />
+            <Battery className="w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Home indicator bar */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 6,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 110,
+            height: 4,
+            borderRadius: 2,
+            background: 'rgba(255,255,255,0.4)',
+            zIndex: 30,
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORY content (fills screen edge-to-edge, IG story chrome overlaid)
+// ─────────────────────────────────────────────────────────────────────────────
+const StoryContent: React.FC = () => {
+  const [progress, setProgress] = useState(0.05);
+
+  useEffect(() => {
+    setProgress(0.05);
+    const start = Date.now();
+    const id = setInterval(() => {
+      const t = Math.min(1, (Date.now() - start) / 6000);
+      setProgress(t);
+      if (t >= 1) clearInterval(id);
+    }, 60);
+    return () => clearInterval(id);
+  }, []);
+
+  const scale = SCREEN_W / 1080;
+  const placaH = 1920 * scale;
+  const offsetY = (SCREEN_H - placaH) / 2;
+
+  return (
+    <>
+      {/* Scaled placa, fills screen */}
+      <div
+        style={{
+          position: 'absolute',
+          top: Math.max(0, offsetY),
+          left: 0,
           width: 1080,
           height: 1920,
           transform: `scale(${scale})`,
@@ -89,17 +195,23 @@ const StoryView: React.FC<{ width: number; progress: number; data: any }> = ({ w
         <PlacaRenderer />
       </div>
 
-      {/* Top progress bar */}
-      <div style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 5 }}>
+      {/* Top chrome: progress bars + header (under Dynamic Island & status) */}
+      <div style={{ position: 'absolute', top: 50, left: 10, right: 10, zIndex: 20 }}>
         <div style={{ display: 'flex', gap: 3 }}>
-          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 1, overflow: 'hidden' }}>
-            <div style={{ width: `${progress * 100}%`, height: '100%', background: '#fff', transition: 'width 0.05s linear' }} />
+          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${progress * 100}%`,
+                height: '100%',
+                background: '#fff',
+                transition: 'width 0.05s linear',
+              }}
+            />
           </div>
-          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 1 }} />
-          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.5)', borderRadius: 1 }} />
+          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1 }} />
+          <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1 }} />
         </div>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, color: '#fff' }}>
           <div
             style={{
@@ -113,123 +225,134 @@ const StoryView: React.FC<{ width: number; progress: number; data: any }> = ({ w
               fontFamily: 'Bebas Neue',
               fontSize: 16,
               fontWeight: 700,
+              boxShadow: '0 0 0 1.5px #fff, 0 0 0 3px #de1f1a',
             }}
           >
             Z
           </div>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>zamboni.inmobiliaria</span>
-          <span style={{ fontSize: 11, opacity: 0.7 }}>2 h</span>
-          <span style={{ marginLeft: 'auto', fontSize: 16 }}>⋯</span>
-          <span style={{ fontSize: 14 }}>✕</span>
+          <span style={{ fontSize: 11, fontWeight: 600 }}>zamboni.inmobiliaria</span>
+          <span style={{ fontSize: 10, opacity: 0.75 }}>2 h</span>
+          <span style={{ marginLeft: 'auto', fontSize: 14, lineHeight: 1 }}>⋯</span>
+          <span style={{ fontSize: 13 }}>✕</span>
         </div>
       </div>
 
-      {/* Bottom reply bar */}
+      {/* Bottom: reply bar */}
       <div
         style={{
           position: 'absolute',
-          bottom: 12,
+          bottom: 18,
           left: 10,
           right: 10,
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          zIndex: 5,
+          gap: 8,
+          zIndex: 20,
         }}
       >
         <div
           style={{
             flex: 1,
-            padding: '9px 14px',
-            border: '1.5px solid rgba(255,255,255,0.5)',
+            padding: '8px 14px',
+            border: '1.5px solid rgba(255,255,255,0.55)',
             borderRadius: 22,
             color: 'rgba(255,255,255,0.85)',
             fontSize: 11,
+            background: 'rgba(0,0,0,0.18)',
+            backdropFilter: 'blur(8px)',
           }}
         >
           Enviar mensaje
         </div>
-        <Heart className="w-5 h-5 text-white" />
-        <Send className="w-5 h-5 text-white" />
+        <Heart className="w-5 h-5 text-white" strokeWidth={2.2} />
+        <Send className="w-5 h-5 text-white" strokeWidth={2.2} />
       </div>
-    </div>
+    </>
   );
 };
 
-const PostView: React.FC<{ width: number; data: any; photos: any[] }> = ({ width, data, photos }) => {
-  const scale = width / 1080;
+// ─────────────────────────────────────────────────────────────────────────────
+// POST content (IG feed: top bar + header + placa + actions + likes + caption)
+// ─────────────────────────────────────────────────────────────────────────────
+const PostContent: React.FC = () => {
+  const data = usePlacaStore((s) => s.data);
+  const scale = SCREEN_W / 1080;
+  const placaH = 1350 * scale;
+
   return (
-    <div
-      style={{
-        width,
-        background: '#000',
-        borderRadius: 28,
-        overflow: 'hidden',
-        margin: '0 auto',
-        color: '#fff',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.5), 0 0 0 8px #111',
-      }}
-    >
-      {/* Status bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 14px 4px', fontSize: 11, fontWeight: 600 }}>
-        <span>9:41</span>
-        <span>• 📶 🔋</span>
-      </div>
+    <div style={{ width: SCREEN_W, height: SCREEN_H, background: '#000', color: '#fff', overflow: 'hidden' }}>
+      {/* Spacer for status + Dynamic Island */}
+      <div style={{ height: 50 }} />
 
       {/* IG top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px 8px' }}>
-        <span style={{ fontFamily: 'Italianno, "Brush Script MT", cursive', fontSize: 22, color: '#fff' }}>Instagram</span>
-        <div style={{ display: 'flex', gap: 14, fontSize: 18 }}>
-          <Heart className="w-5 h-5" />
-          <Send className="w-5 h-5" />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '4px 14px 8px',
+        }}
+      >
+        <span style={{ fontFamily: '"Brush Script MT", cursive', fontSize: 22, color: '#fff', lineHeight: 1 }}>
+          Instagram
+        </span>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <Heart className="w-5 h-5" strokeWidth={2} />
+          <Send className="w-5 h-5" strokeWidth={2} />
         </div>
       </div>
 
       {/* Post header */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', gap: 9 }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 9 }}>
         <div
           style={{
-            width: 30,
-            height: 30,
+            width: 28,
+            height: 28,
             borderRadius: '50%',
             background: '#de1f1a',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontFamily: 'Bebas Neue',
-            fontSize: 18,
+            fontSize: 17,
+            color: '#fff',
+            boxShadow: '0 0 0 1.5px #fff, 0 0 0 3px #de1f1a',
           }}
         >
           Z
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 600 }}>zamboni.inmobiliaria</div>
-          <div style={{ fontSize: 10, opacity: 0.7 }}>{data.barrio || 'Buenos Aires'}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 600 }}>zamboni.inmobiliaria</div>
+          <div style={{ fontSize: 9.5, opacity: 0.7 }}>{data.barrio || 'Buenos Aires'}</div>
         </div>
-        <span style={{ fontSize: 18 }}>⋯</span>
+        <span style={{ fontSize: 16, opacity: 0.9 }}>⋯</span>
       </div>
 
-      {/* Placa scaled */}
-      <div style={{ width, height: width * (1350 / 1080), overflow: 'hidden', position: 'relative' }}>
+      {/* Placa scaled into the post area */}
+      <div style={{ width: SCREEN_W, height: placaH, overflow: 'hidden', position: 'relative', background: '#0a0a0a' }}>
         <div style={{ width: 1080, height: 1350, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
           <PlacaRenderer />
         </div>
       </div>
 
-      {/* Action bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px 6px' }}>
+      {/* Actions */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px 4px' }}>
         <div style={{ display: 'flex', gap: 14 }}>
-          <Heart className="w-6 h-6" />
-          <MessageCircle className="w-6 h-6" />
-          <Send className="w-6 h-6" />
+          <Heart className="w-6 h-6" strokeWidth={1.8} />
+          <MessageCircle className="w-6 h-6" strokeWidth={1.8} />
+          <Send className="w-6 h-6" strokeWidth={1.8} />
         </div>
-        <Bookmark className="w-6 h-6" />
+        <Bookmark className="w-6 h-6" strokeWidth={1.8} />
       </div>
 
-      <div style={{ padding: '0 12px', fontSize: 12, fontWeight: 600 }}>247 Me gusta</div>
-      <div style={{ padding: '4px 12px 14px', fontSize: 12, lineHeight: 1.4 }}>
-        <b>zamboni.inmobiliaria</b> {data.addr || ''}{data.barrio ? ' · ' + data.barrio : ''} — {priceString(data)}
-        <div style={{ color: '#777', marginTop: 4, fontSize: 11 }}>Ver los 12 comentarios</div>
+      <div style={{ padding: '2px 12px', fontSize: 12, fontWeight: 600 }}>247 Me gusta</div>
+      <div style={{ padding: '4px 12px', fontSize: 12, lineHeight: 1.35 }}>
+        <b>zamboni.inmobiliaria</b>{' '}
+        <span style={{ opacity: 0.95 }}>
+          {data.addr || ''}
+          {data.barrio ? ' · ' + data.barrio : ''} — {priceString(data)}
+        </span>
+        <div style={{ color: '#737373', marginTop: 3, fontSize: 11 }}>Ver los 12 comentarios</div>
       </div>
     </div>
   );
