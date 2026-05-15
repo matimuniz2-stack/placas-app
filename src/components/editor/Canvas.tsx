@@ -28,6 +28,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const [scale, setScale] = useState(0.3);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [moveableKey, setMoveableKey] = useState(0);
+  const [elementGuidelines, setElementGuidelines] = useState<HTMLElement[]>([]);
   const moveableRef = useRef<Moveable | null>(null);
 
   const size = FORMAT_SIZES[format];
@@ -64,21 +65,26 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
     return () => clearTimeout(t);
   }, [sidebarLeftOpen, sidebarRightOpen]);
 
-  // Resolve target whenever selected/template/overrides change
+  // Resolve target whenever selected/template/overrides change. Also collect
+  // all other layers as snap guidelines so dragging shows alignment lines.
   useEffect(() => {
     if (!selected || !placaRef.current) {
       setTarget(null);
+      setElementGuidelines([]);
       return;
     }
     const findTarget = () => {
-      const el = placaRef.current!.querySelector(`[data-layer="${selected}"]`) as HTMLElement;
+      const root = placaRef.current!;
+      const el = root.querySelector(`[data-layer="${selected}"]`) as HTMLElement;
       if (el && el !== target) {
         setTarget(el);
         setMoveableKey((k) => k + 1);
       } else if (el && el === target) {
-        // same element, just refresh rect
         moveableRef.current?.updateRect();
       }
+      // Build guideline list: every other visible layer
+      const all = Array.from(root.querySelectorAll('[data-layer]')) as HTMLElement[];
+      setElementGuidelines(all.filter((n) => n !== el));
     };
     findTarget();
     const t = setTimeout(findTarget, 50);
@@ -245,6 +251,20 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
             onDrag={handleDrag}
             onResize={handleResize}
             onRotate={handleRotate}
+            /* Smart snap guides (Figma-style) */
+            snappable
+            snapDirections={{ top: true, right: true, bottom: true, left: true, center: true, middle: true }}
+            elementSnapDirections={{ top: true, right: true, bottom: true, left: true, center: true, middle: true }}
+            snapThreshold={6}
+            snapGridWidth={0}
+            snapGridHeight={0}
+            elementGuidelines={elementGuidelines}
+            verticalGuidelines={[0, size.w / 2, size.w]}
+            horizontalGuidelines={[0, size.h / 2, size.h]}
+            isDisplaySnapDigit
+            isDisplayInnerSnapDigit
+            snapGap
+            snapDistFormat={(v: number) => `${Math.round(v)}px`}
           />
         )}
       </div>
