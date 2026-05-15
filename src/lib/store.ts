@@ -69,6 +69,8 @@ interface PlacaState {
   toggleSidebarRight: () => void;
   toggleGrid: () => void;
   toggleSnap: () => void;
+
+  resetAll: () => void;
 }
 
 const DEFAULT_DATA: PlacaData = {
@@ -195,6 +197,24 @@ export const usePlacaStore = create<PlacaState>()(
       toggleSidebarRight: () => set((s) => ({ sidebarRightOpen: !s.sidebarRightOpen })),
       toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
       toggleSnap: () => set((s) => ({ snapToGrid: !s.snapToGrid })),
+
+      resetAll: () =>
+        set({
+          format: 'story',
+          templateId: 't01',
+          variantId: 'default',
+          data: { ...DEFAULT_DATA, addr: '', barrio: '', amb: '', m2: '', baths: '', cochera: 'Sí', price: '', currency: 'USD', op: 'Venta', expensas: '', antiguedad: '', desc: '', listingUrl: '' },
+          layerOverrides: {},
+          selectedLayer: null,
+          photos: [],
+          activePhotoIdx: 0,
+          theme: DEFAULT_THEME,
+          agent: null,
+          badges: [],
+          qrUrl: '',
+          abbreviatePrice: false,
+          showGrid: false,
+        }),
     }),
     {
       limit: 50,

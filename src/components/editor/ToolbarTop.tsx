@@ -24,7 +24,8 @@ import { DraftsModal } from '@/components/modals/DraftsModal';
 import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
 import { ShareModal } from '@/components/modals/ShareModal';
 import { IGSimulator } from '@/components/modals/IGSimulator';
-import { Eye } from 'lucide-react';
+import { Eye, FilePlus, RefreshCw } from 'lucide-react';
+import { del } from 'idb-keyval';
 
 interface Props {
   placaRef: React.RefObject<HTMLDivElement>;
@@ -109,6 +110,12 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
     }
   };
 
+  const handleReset = async () => {
+    if (!confirm('¿Empezar de cero? Se borrarán todas las fotos, datos y customizaciones (los borradores guardados siguen).')) return;
+    usePlacaStore.getState().resetAll();
+    try { await del('last_state'); } catch {}
+  };
+
   const doShare = () => {
     const url = getShareUrl({
       data,
@@ -188,6 +195,15 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         <button onClick={() => setShortcutsOpen(true)} className="btn btn-ghost btn-icon" title="Atajos"><Keyboard className="w-4 h-4" /></button>
 
         <div className="w-px h-6 bg-neutral-200 mx-1" />
+
+        <button
+          onClick={handleReset}
+          className="btn btn-ghost text-neutral-600 hover:text-brand"
+          title="Empezar nueva placa (borra todo)"
+        >
+          <FilePlus className="w-3.5 h-3.5" />
+          <span className="text-xs">Nueva</span>
+        </button>
 
         <ExportMenu onExport={doExport} disabled={exporting} />
 
