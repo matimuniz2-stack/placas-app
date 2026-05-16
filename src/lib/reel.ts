@@ -14,27 +14,25 @@ export type MotionStyle =
   | 'orbit-ccw'
   | 'static';
 
-const MOTION_BANK: MotionStyle[] = [
-  'zoom-in',
-  'pan-right',
-  'zoom-out',
-  'pan-left',
-  'pan-down',
-  'orbit-cw',
-  'zoom-in',
-  'pan-up',
-  'orbit-ccw',
-];
+// Will be reassigned below once MOTION_BANK_CONTINUOUS is declared (forward reference workaround).
+// We re-export the same array so existing code continues to use MOTION_BANK as the source of truth.
+let MOTION_BANK: MotionStyle[] = [];
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 interface Motion { zoom: number; panX: number; panY: number; rot: number }
 
 function getMotion(style: MotionStyle, t: number, zoomAmount: number, w: number, h: number): Motion {
   if (style === 'static') return { zoom: 1, panX: 0, panY: 0, rot: 0 };
-  const e = easeInOutCubic(t);
+  // Stretch the t range so we never hit the very slow extremes (no "pause" at the
+  // start or end of clips). t now maps [0,1] → [0.08, 0.92] which keeps motion
+  // perceptually constant across the whole clip.
+  const tStretched = 0.08 + t * 0.84;
+  // easeInOutSine is more uniform than cubic → no "freeze" at the edges
+  const e = easeInOutSine(tStretched);
   const halfZ = zoomAmount * 0.5;
   switch (style) {
     case 'zoom-in':   return { zoom: 1 + zoomAmount * e, panX: 0, panY: 0, rot: 0 };
@@ -47,6 +45,18 @@ function getMotion(style: MotionStyle, t: number, zoomAmount: number, w: number,
     case 'orbit-ccw': return { zoom: 1 + halfZ, panX:  0.04 * w * e, panY: -0.03 * h * e, rot: -0.4 * e };
   }
 }
+
+// Motion pattern that pairs each clip with its inverse for visual continuity.
+// Zoom-in (ends zoomed) → Zoom-out (starts zoomed) → no visual jump.
+// Pan-right (ends shifted) → Pan-left (starts shifted) → continuous.
+const MOTION_BANK_CONTINUOUS: MotionStyle[] = [
+  'zoom-in', 'zoom-out',
+  'pan-right', 'pan-left',
+  'zoom-in', 'zoom-out',
+  'pan-up', 'pan-down',
+  'orbit-cw', 'orbit-ccw',
+];
+MOTION_BANK = MOTION_BANK_CONTINUOUS;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type Transition = 'cut' | 'fade' | 'slide-left' | 'slide-up' | 'zoom-blur';
@@ -755,29 +765,32 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
 
       await renderClipAt(clipIdx, t, 1, undefined, extraZoom);
 
-      // Transition into next clip at tail
+      // Transition into next clip at tail. Crucially: the next clip's motion
+      // ALSO progresses during the fade, so the second photo isn't frozen.
       let transA = 0;
       if (transitionFrames > 0 && clipIdx < loaded.length - 1 && localFrame >= localTotal - transitionFrames) {
         const a = (localFrame - (localTotal - transitionFrames)) / transitionFrames;
         transA = a;
+        const nextLocalFrame = a * transitionFrames; // how far into the next clip we are
+        const nextT = Math.min(1, nextLocalFrame / Math.max(1, clipFrames[clipIdx + 1] - 1));
         if (opts.transition === 'fade') {
-          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a), undefined, 0);
+          await renderClipAt(clipIdx + 1, nextT, easeInOutCubic(a), undefined, 0);
         } else if (opts.transition === 'slide-left') {
           const offset = (1 - easeOutQuart(a)) * W;
           ctx.save();
           ctx.translate(offset, 0);
-          await renderClipAt(clipIdx + 1, 0, 1);
+          await renderClipAt(clipIdx + 1, nextT, 1);
           ctx.restore();
         } else if (opts.transition === 'slide-up') {
           const offset = (1 - easeOutQuart(a)) * H;
           ctx.save();
           ctx.translate(0, offset);
-          await renderClipAt(clipIdx + 1, 0, 1);
+          await renderClipAt(clipIdx + 1, nextT, 1);
           ctx.restore();
         } else if (opts.transition === 'zoom-blur') {
           ctx.save();
           ctx.filter = `blur(${(1 - a) * 8}px)`;
-          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a));
+          await renderClipAt(clipIdx + 1, nextT, easeInOutCubic(a));
           ctx.filter = 'none';
           ctx.restore();
         }

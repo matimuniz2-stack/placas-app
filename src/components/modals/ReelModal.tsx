@@ -13,9 +13,10 @@ import {
 } from '@/lib/reel';
 import { downloadBlob } from '@/lib/export';
 import { slugify } from '@/lib/format';
-import { Film, Download, Play, Sparkles, Zap, Minus, Crown, Flame, Palette } from 'lucide-react';
+import { Film, Download, Play, Sparkles, Zap, Minus, Crown, Flame, Palette, Wand2 } from 'lucide-react';
 import { ReelTimeline } from './ReelTimeline';
 import type { ColorGrade, EffectsLevel, TextStyle } from '@/lib/reel';
+import { VIRAL_TEMPLATES, applyTemplateToItems, type ViralTemplate } from '@/lib/viralTemplates';
 
 interface Props {
   open: boolean;
@@ -97,6 +98,36 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const [rgbSplit, setRgbSplit] = useState(false);
   const [glitchFlash, setGlitchFlash] = useState(false);
   const [textOverlays, setTextOverlays] = useState<TextStyle>('elegant');
+
+  // Viral template applied
+  const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
+
+  const applyViralTemplate = (tpl: ViralTemplate) => {
+    setAppliedTemplate(tpl.id);
+    // Apply per-slot durations and motions to items
+    setItems((prev) => applyTemplateToItems(tpl, prev));
+    // Apply global settings
+    setFps(tpl.fps);
+    setZoom(Math.round((tpl.kenBurnsZoom - 1) * 100));
+    setVignette(tpl.vignette);
+    setCinematicLook(tpl.cinematicLook);
+    setHd(tpl.hd);
+    setIntro(tpl.intro);
+    setOutro(tpl.outro);
+    setEffectsLevel(tpl.effectsLevel);
+    setColorGrade(tpl.colorGrade);
+    setSpeedRamp(tpl.speedRamp);
+    setZoomPunch(tpl.zoomPunch);
+    setLightLeak(tpl.lightLeak);
+    setFilmGrain(tpl.filmGrain);
+    setRgbSplit(tpl.rgbSplit);
+    setGlitchFlash(tpl.glitchFlash);
+    setTextOverlays(tpl.textOverlays);
+    // Transition derived from first slot
+    if (tpl.slots[0]) {
+      setTransition(tpl.slots[0].transition);
+    }
+  };
 
   // Run state
   const [busy, setBusy] = useState(false);
@@ -310,9 +341,55 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
           </div>
         )}
 
+        {/* VIRAL TEMPLATES */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Wand2 className="w-3.5 h-3.5 text-brand" />
+            <span className="text-[10.5px] font-bold tracking-[1.5px] uppercase text-brand">Templates virales</span>
+            <span className="text-[10px] text-neutral-400 ml-2">Click → aplica todo (timing, motion, transición, efectos)</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1.5">
+            {VIRAL_TEMPLATES.map((t) => {
+              const active = appliedTemplate === t.id;
+              return (
+                <button
+                  key={t.id}
+                  disabled={busy}
+                  onClick={() => applyViralTemplate(t)}
+                  className={`flex-shrink-0 w-[140px] rounded border-2 overflow-hidden text-left transition ${active ? 'border-brand shadow-md shadow-brand/20' : 'border-neutral-200 hover:border-neutral-400'}`}
+                  title={t.description}
+                >
+                  <div
+                    className="h-16 flex items-center justify-center text-white font-bold text-xs"
+                    style={{
+                      background:
+                        t.colorGrade === 'cinematic-teal' ? 'linear-gradient(135deg,#1d5e6e,#ff9a55)' :
+                        t.colorGrade === 'warm-sunset' ? 'linear-gradient(135deg,#ff7e3d,#ffd5a8)' :
+                        t.colorGrade === 'cold-blue' ? 'linear-gradient(135deg,#1c3a7a,#6a8dd5)' :
+                        t.colorGrade === 'vintage-film' ? 'linear-gradient(135deg,#b8825d,#f3d8a8)' :
+                        t.colorGrade === 'punchy-estate' ? 'linear-gradient(135deg,#0a0a0a,#fff)' :
+                        t.colorGrade === 'premium-gold' ? 'linear-gradient(135deg,#1c1715,#c9a86b)' :
+                        'linear-gradient(135deg,#404040,#737373)',
+                    }}
+                  >
+                    <span className="px-1 text-center leading-tight" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{t.name}</span>
+                  </div>
+                  <div className="p-1.5">
+                    <div className="text-[9px] text-neutral-500 leading-tight line-clamp-2 mb-0.5">{t.description}</div>
+                    <div className="flex justify-between text-[8px] font-mono text-neutral-400">
+                      <span>{t.slots.length} slots</span>
+                      <span>{t.slots.reduce((s, sl) => s + sl.duration, 0).toFixed(1)}s</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* PRESETS */}
         <div>
-          <label className="label">Preset</label>
+          <label className="label">Preset base</label>
           <div className="grid grid-cols-5 gap-1.5">
             {(Object.keys(PRESET_META) as Preset[]).map((p) => {
               const meta = PRESET_META[p];
