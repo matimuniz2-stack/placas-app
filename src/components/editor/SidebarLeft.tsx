@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { usePlacaStore } from '@/lib/store';
-import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
+import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop, Eraser } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
+import { removeWatermarkZ } from '@/lib/watermark';
 import { extractFromUrl } from '@/lib/urlExtract';
 import { CropModal } from '@/components/modals/CropModal';
 
@@ -212,6 +213,8 @@ const FotosTab: React.FC = () => {
   const patchActive = usePlacaStore((s) => s.patchActivePhoto);
   const replaceUrl = usePlacaStore((s) => s.replacePhotoUrl);
   const [bgLoading, setBgLoading] = useState(false);
+  const [wmLoading, setWmLoading] = useState(false);
+  const [wmBulkProgress, setWmBulkProgress] = useState<{ cur: number; total: number } | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const active = photos[activeIdx];
 
@@ -240,6 +243,38 @@ const FotosTab: React.FC = () => {
       alert('Error: ' + (e.message || e));
     } finally {
       setBgLoading(false);
+    }
+  };
+
+  const handleWatermarkRemove = async () => {
+    if (!active) return;
+    setWmLoading(true);
+    try {
+      const newUrl = await removeWatermarkZ(active.url);
+      replaceUrl(activeIdx, newUrl);
+    } catch (e: any) {
+      alert('Error quitando marca: ' + (e.message || e));
+    } finally {
+      setWmLoading(false);
+    }
+  };
+
+  const handleWatermarkRemoveAll = async () => {
+    if (photos.length === 0) return;
+    if (!confirm(`¿Quitar marca Z de ${photos.length} fotos? Puede tardar unos segundos.`)) return;
+    setWmBulkProgress({ cur: 0, total: photos.length });
+    try {
+      for (let i = 0; i < photos.length; i++) {
+        setWmBulkProgress({ cur: i + 1, total: photos.length });
+        try {
+          const newUrl = await removeWatermarkZ(photos[i].url);
+          replaceUrl(i, newUrl);
+        } catch (e) {
+          console.warn('failed wm remove on photo', i, e);
+        }
+      }
+    } finally {
+      setWmBulkProgress(null);
     }
   };
 
@@ -283,6 +318,26 @@ const FotosTab: React.FC = () => {
                 </button>
                 <button className="btn justify-center" onClick={handleBgRemove} disabled={bgLoading}>
                   <Wand2 className="w-3.5 h-3.5" /> {bgLoading ? '…' : 'Quitar fondo'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  className="btn justify-center bg-brand/5 border-brand/30 text-brand hover:bg-brand/10"
+                  onClick={handleWatermarkRemove}
+                  disabled={wmLoading || !!wmBulkProgress}
+                  title="Quita la marca Z roja del centro de la foto"
+                >
+                  <Eraser className="w-3.5 h-3.5" /> {wmLoading ? 'Procesando…' : 'Quitar marca Z'}
+                </button>
+                <button
+                  className="btn justify-center"
+                  onClick={handleWatermarkRemoveAll}
+                  disabled={!!wmBulkProgress || wmLoading || photos.length < 2}
+                  title="Aplica el remove a TODAS las fotos del strip"
+                >
+                  <Eraser className="w-3.5 h-3.5" />
+                  {wmBulkProgress ? `${wmBulkProgress.cur}/${wmBulkProgress.total}` : 'Marca Z (todas)'}
                 </button>
               </div>
 
