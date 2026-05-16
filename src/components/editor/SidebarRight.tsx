@@ -264,7 +264,7 @@ const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
           pointerEvents: 'none',
         }}
       >
-        <PlacaRenderer overrideTemplateId={templateId} formatOverride="story" noOverrides />
+        <PlacaRenderer overrideTemplateId={templateId} formatOverride="story" noOverrides interactive={false} />
       </div>
     </div>
   );

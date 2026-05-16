@@ -5,6 +5,10 @@ import { ALL_TEMPLATES } from '@/components/templates/registry';
 export function useGlobalShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // If any modal is open, defer to the modal's own keyboard handlers.
+      // This prevents Esc / arrows / shortcuts from clashing with modal UX.
+      if (document.querySelector('.fixed.inset-0.z-50')) return;
+
       const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       const isInput = tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable;
       const meta = e.metaKey || e.ctrlKey;

@@ -174,9 +174,9 @@ const StoryContent: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
-  // Cover-fit: placa fills the whole iPhone screen edge-to-edge.
-  // iPhone is ~9:19.5, story is 9:16, so we scale by the larger ratio to cover.
-  const scale = Math.max(SCREEN_W / 1080, SCREEN_H / 1920);
+  // Contain-fit: scale by min so the WHOLE placa is visible (logos in corners
+  // won't overflow). Adds small top/bottom bands but fidelity > full-bleed.
+  const scale = Math.min(SCREEN_W / 1080, SCREEN_H / 1920);
   const placaW = 1080 * scale;
   const placaH = 1920 * scale;
   const offsetX = (SCREEN_W - placaW) / 2;

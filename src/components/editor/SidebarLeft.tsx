@@ -67,6 +67,11 @@ const DatosTab: React.FC = () => {
 
   const handlePaste = async () => {
     if (!pasteUrl) return;
+    // Confirm before overwriting existing data
+    const hasExisting = !!(data.addr || data.barrio || data.price);
+    if (hasExisting && !confirm('Esto va a reemplazar los datos actuales del placa y las fotos cargadas. ¿Continuar?')) {
+      return;
+    }
     setPasting(true);
     setProgress('Extrayendo datos…');
     try {

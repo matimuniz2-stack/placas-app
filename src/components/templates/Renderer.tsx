@@ -24,9 +24,10 @@ interface Props {
   overrideTemplateId?: string;
   formatOverride?: 'story' | 'post';
   noOverrides?: boolean; // skip layer overrides (for thumbnails)
+  interactive?: boolean; // false → no selection outline, no clicks (for thumbs/exports)
 }
 
-export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId, formatOverride, noOverrides }) => {
+export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId, formatOverride, noOverrides, interactive = true }) => {
   const storeFormat = usePlacaStore((s) => s.format);
   const data = usePlacaStore((s) => s.data);
   const storeTemplateId = usePlacaStore((s) => s.templateId);
@@ -70,14 +71,18 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
   const getContent = (id: LayerId): React.ReactNode => {
     switch (id) {
       case 'addr':
+        if (!data.addr && !data.barrio) return '';
         return `${data.addr}${data.barrio && tpl.id !== 't14' ? '\n' + data.barrio : ''}`;
       case 'barrio':
         return data.barrio;
       case 'price':
+        // Hide entirely if no price entered (avoid orphan "USD")
+        if (!data.price || !data.price.trim()) return '';
         return priceString(data, { abbreviate });
       case 'amen':
         return amenString(data);
       case 'op': {
+        if (!data.op) return '';
         const opTxt = tpl.id === 't04' ? '' : tpl.id === 't10' ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
@@ -137,21 +142,21 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
         if (DATA_LAYERS.includes(lid)) {
           const content = getContent(lid);
-          if (!content && lid === 'desc') return null;
-          if (!content && lid === 'extras') return null;
+          // Hide the layer entirely if there's no content (avoid orphan "USD", "COCHERA", etc.)
+          if (!content && (lid === 'desc' || lid === 'extras' || lid === 'price' || lid === 'op' || lid === 'addr' || lid === 'amen')) return null;
           return (
-            <TextLayer key={lid} id={lid} defaults={defaults}>
+            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive}>
               {content}
             </TextLayer>
           );
         }
 
         // Decorative layers (line, dot) - no content
-        return <TextLayer key={lid} id={lid} defaults={defaults}>{null}</TextLayer>;
+        return <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive}>{null}</TextLayer>;
       })}
 
       {/* Logo */}
-      {tpl.defaultLayers.logo && <Logo defaults={tpl.defaultLayers.logo as any} />}
+      {tpl.defaultLayers.logo && <Logo defaults={tpl.defaultLayers.logo as any} interactive={interactive} />}
 
       {/* Badges (stickers) */}
       <Badges />

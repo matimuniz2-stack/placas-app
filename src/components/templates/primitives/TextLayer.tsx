@@ -7,15 +7,18 @@ interface Props {
   defaults: LayerConfig;
   children: React.ReactNode;
   className?: string;
+  interactive?: boolean;
 }
 
-export const TextLayer: React.FC<Props> = ({ id, defaults, children, className }) => {
+export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, interactive = true }) => {
   const override = usePlacaStore((s) => s.layerOverrides[id]) || {};
   const selected = usePlacaStore((s) => s.selectedLayer === id);
   const select = usePlacaStore((s) => s.selectLayer);
   const layer = { ...defaults, ...override };
 
   if (!layer.visible && layer.visible !== undefined) return null;
+
+  const showOutline = interactive && selected;
 
   const style: React.CSSProperties = {
     position: 'absolute',
@@ -39,10 +42,10 @@ export const TextLayer: React.FC<Props> = ({ id, defaults, children, className }
     borderTop: layer.borderTop,
     padding: layer.padding ? `${layer.padding}px` : undefined,
     zIndex: layer.z ?? 5,
-    outline: selected ? '2px dashed #de1f1a' : undefined,
-    outlineOffset: selected ? 4 : undefined,
-    cursor: 'pointer',
-    pointerEvents: 'auto',
+    outline: showOutline ? '2px dashed #de1f1a' : undefined,
+    outlineOffset: showOutline ? 4 : undefined,
+    cursor: interactive ? 'pointer' : 'default',
+    pointerEvents: interactive ? 'auto' : 'none',
     whiteSpace: 'pre-wrap',
   };
 
@@ -51,10 +54,7 @@ export const TextLayer: React.FC<Props> = ({ id, defaults, children, className }
       data-layer={id}
       className={className}
       style={style}
-      onClick={(e) => {
-        e.stopPropagation();
-        select(id);
-      }}
+      onClick={interactive ? (e) => { e.stopPropagation(); select(id); } : undefined}
     >
       {children}
     </div>
