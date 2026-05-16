@@ -66,8 +66,24 @@ export type EffectsLevel = 'off' | 'subtle' | 'viral' | 'cinematic';
 export type TextStyle = 'off' | 'bold' | 'minimal' | 'elegant';
 
 export type MediaItem =
-  | { id: string; type: 'photo'; url: string; duration?: number; motion?: MotionStyle }
-  | { id: string; type: 'video'; url: string; duration?: number; motion?: MotionStyle; trimStart?: number; trimEnd?: number; videoDuration?: number; videoWidth?: number; videoHeight?: number };
+  | {
+      id: string; type: 'photo'; url: string;
+      duration?: number; motion?: MotionStyle;
+      speed?: number;            // 1 = normal (only meaningful for videos but harmless on photos)
+      reverse?: boolean;         // only meaningful for videos
+      volume?: number;           // 0..100
+      transitionIn?: { type: Transition; duration: number };  // override per-gap (before this clip)
+    }
+  | {
+      id: string; type: 'video'; url: string;
+      duration?: number; motion?: MotionStyle;
+      trimStart?: number; trimEnd?: number;
+      videoDuration?: number; videoWidth?: number; videoHeight?: number;
+      speed?: number;
+      reverse?: boolean;
+      volume?: number;
+      transitionIn?: { type: Transition; duration: number };
+    };
 
 export interface PlacaData {
   addr?: string;

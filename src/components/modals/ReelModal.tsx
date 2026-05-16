@@ -13,8 +13,9 @@ import {
 } from '@/lib/reel';
 import { downloadBlob } from '@/lib/export';
 import { slugify } from '@/lib/format';
-import { Film, Download, Play, Sparkles, Zap, Minus, Crown, Flame, Palette, Wand2 } from 'lucide-react';
+import { Film, Download, Play, Sparkles, Zap, Minus, Crown, Flame, Palette, Wand2, Scissors } from 'lucide-react';
 import { ReelTimeline } from './ReelTimeline';
+import { VideoEditorModal } from './VideoEditorModal';
 import type { ColorGrade, EffectsLevel, TextStyle } from '@/lib/reel';
 import { VIRAL_TEMPLATES, applyTemplateToItems, type ViralTemplate } from '@/lib/viralTemplates';
 
@@ -101,6 +102,8 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
 
   // Viral template applied
   const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
+  // Advanced editor
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const applyViralTemplate = (tpl: ViralTemplate) => {
     setAppliedTemplate(tpl.id);
@@ -423,6 +426,48 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
           onRemove={removeItem}
           onAddPhotos={handleAddPhotos}
           onAddVideos={handleAddVideos}
+        />
+
+        {/* Advanced editor entry */}
+        <button
+          onClick={() => setEditorOpen(true)}
+          disabled={busy || items.length === 0}
+          className="btn w-full justify-center bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          <Scissors className="w-3.5 h-3.5" /> Abrir editor avanzado (split · speed · trim · transición por gap)
+        </button>
+
+        <VideoEditorModal
+          open={editorOpen}
+          onClose={() => setEditorOpen(false)}
+          items={items}
+          setItems={setItems}
+          posters={posters}
+          settings={{
+            format,
+            kenBurnsZoom: 1 + zoom / 100,
+            transition,
+            transitionDuration: transition === 'cut' ? 0 : 0.55,
+            globalDurationPerPhoto: duration,
+            colorGrade,
+            vignette,
+            cinematicLook,
+            lightLeak,
+            filmGrain,
+            textOverlays,
+            textData: {
+              addr: data.addr,
+              barrio: data.barrio,
+              price: data.price,
+              currency: data.currency,
+              amb: data.amb,
+              m2: data.m2,
+              baths: data.baths,
+              op: data.op,
+              handle: '@zamboni.inmobiliaria',
+            },
+            content,
+          }}
         />
 
         {/* Content */}
