@@ -25,7 +25,8 @@ import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
 import { ShareModal } from '@/components/modals/ShareModal';
 import { IGSimulator } from '@/components/modals/IGSimulator';
 import { ReelModal } from '@/components/modals/ReelModal';
-import { Eye, FilePlus, RefreshCw, Film } from 'lucide-react';
+import { TokkoModal } from '@/components/modals/TokkoModal';
+import { Eye, FilePlus, RefreshCw, Film, Database } from 'lucide-react';
 import { del } from 'idb-keyval';
 
 interface Props {
@@ -63,6 +64,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const [shareUrl, setShareUrl] = useState('');
   const [simulatorMode, setSimulatorMode] = useState<'story' | 'post' | null>(null);
   const [reelOpen, setReelOpen] = useState(false);
+  const [tokkoOpen, setTokkoOpen] = useState(false);
 
   const sizeNow = FORMAT_SIZES[format];
 
@@ -177,6 +179,14 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
 
         {/* Right actions */}
         <button
+          onClick={() => setTokkoOpen(true)}
+          className="btn btn-ghost text-emerald-600 hover:bg-emerald-50"
+          title="Importar propiedad desde Tokko Broker"
+        >
+          <Database className="w-3.5 h-3.5" />
+          <span className="text-xs">Tokko</span>
+        </button>
+        <button
           onClick={() => setSimulatorMode('story')}
           className="btn btn-ghost"
           title="Ver como Story de Instagram"
@@ -231,6 +241,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         <IGSimulator open={true} onClose={() => setSimulatorMode(null)} mode={simulatorMode} />
       )}
       <ReelModal open={reelOpen} onClose={() => setReelOpen(false)} placaRef={placaRef} />
+      <TokkoModal open={tokkoOpen} onClose={() => setTokkoOpen(false)} />
     </>
   );
 };
