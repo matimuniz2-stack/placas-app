@@ -13,8 +13,9 @@ import {
 } from '@/lib/reel';
 import { downloadBlob } from '@/lib/export';
 import { slugify } from '@/lib/format';
-import { Film, Download, Play, Sparkles, Zap, Minus, Crown } from 'lucide-react';
+import { Film, Download, Play, Sparkles, Zap, Minus, Crown, Flame, Palette } from 'lucide-react';
 import { ReelTimeline } from './ReelTimeline';
+import type { ColorGrade, EffectsLevel, TextStyle } from '@/lib/reel';
 
 interface Props {
   open: boolean;
@@ -23,11 +24,29 @@ interface Props {
 }
 
 const PRESET_META: Record<Preset, { label: string; icon: any; desc: string; accent: string }> = {
-  cinematic: { label: 'Cinemático',  icon: Sparkles, desc: 'Slow + warm + vignette', accent: 'bg-purple-50 border-purple-300 text-purple-700' },
-  energetic: { label: 'Energético',  icon: Zap,      desc: 'Rápido 60fps + slides',  accent: 'bg-orange-50 border-orange-300 text-orange-700' },
-  minimal:   { label: 'Minimal',     icon: Minus,    desc: 'Sin efectos',            accent: 'bg-neutral-50 border-neutral-300 text-neutral-700' },
-  pro:       { label: 'Pro Studio',  icon: Crown,    desc: 'HD 2K + intro+outro',    accent: 'bg-brand/10 border-brand text-brand' },
+  cinematic: { label: 'Cinemático',  icon: Sparkles, desc: 'Slow + teal grade + grain',  accent: 'bg-purple-50 border-purple-300 text-purple-700' },
+  energetic: { label: 'Energético',  icon: Zap,      desc: 'Rápido + punch + RGB split', accent: 'bg-orange-50 border-orange-300 text-orange-700' },
+  viral:     { label: 'Viral',       icon: Flame,    desc: 'Speed ramp + cuts + glitch', accent: 'bg-pink-50 border-pink-300 text-pink-700' },
+  minimal:   { label: 'Minimal',     icon: Minus,    desc: 'Sin efectos',                accent: 'bg-neutral-50 border-neutral-300 text-neutral-700' },
+  pro:       { label: 'Pro Studio',  icon: Crown,    desc: 'HD 2K + gold + outro',       accent: 'bg-brand/10 border-brand text-brand' },
 };
+
+const COLOR_GRADES: { id: ColorGrade; label: string; preview: string }[] = [
+  { id: 'none',            label: 'Original',      preview: 'linear-gradient(135deg,#7a7a7a,#3a3a3a)' },
+  { id: 'cinematic-teal',  label: 'Cinema Teal',   preview: 'linear-gradient(135deg,#1d5e6e,#ff9a55)' },
+  { id: 'warm-sunset',     label: 'Warm Sunset',   preview: 'linear-gradient(135deg,#ff7e3d,#ffd5a8)' },
+  { id: 'cold-blue',       label: 'Cold Blue',     preview: 'linear-gradient(135deg,#1c3a7a,#6a8dd5)' },
+  { id: 'vintage-film',    label: 'Vintage Film',  preview: 'linear-gradient(135deg,#b8825d,#f3d8a8)' },
+  { id: 'punchy-estate',   label: 'Punchy',        preview: 'linear-gradient(135deg,#0a0a0a,#ffffff)' },
+  { id: 'premium-gold',    label: 'Premium Gold',  preview: 'linear-gradient(135deg,#1c1715,#c9a86b)' },
+];
+
+const TEXT_STYLES: { id: TextStyle; label: string }[] = [
+  { id: 'off',     label: 'Off' },
+  { id: 'bold',    label: 'Bold' },
+  { id: 'elegant', label: 'Elegant' },
+  { id: 'minimal', label: 'Minimal' },
+];
 
 const TRANSITIONS: { id: Transition; label: string }[] = [
   { id: 'cut',        label: 'Corte' },
@@ -67,6 +86,17 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const [hd, setHd] = useState(true);
   const [intro, setIntro] = useState(true);
   const [outro, setOutro] = useState(true);
+
+  // Effects pack
+  const [effectsLevel, setEffectsLevel] = useState<EffectsLevel>('cinematic');
+  const [colorGrade, setColorGrade] = useState<ColorGrade>('cinematic-teal');
+  const [speedRamp, setSpeedRamp] = useState(false);
+  const [zoomPunch, setZoomPunch] = useState(true);
+  const [lightLeak, setLightLeak] = useState(true);
+  const [filmGrain, setFilmGrain] = useState(true);
+  const [rgbSplit, setRgbSplit] = useState(false);
+  const [glitchFlash, setGlitchFlash] = useState(false);
+  const [textOverlays, setTextOverlays] = useState<TextStyle>('elegant');
 
   // Run state
   const [busy, setBusy] = useState(false);
@@ -115,6 +145,15 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
     if (cfg.hd !== undefined) setHd(cfg.hd);
     if (cfg.intro !== undefined) setIntro(cfg.intro);
     if (cfg.outro !== undefined) setOutro(cfg.outro);
+    if (cfg.effectsLevel !== undefined) setEffectsLevel(cfg.effectsLevel);
+    if (cfg.colorGrade !== undefined) setColorGrade(cfg.colorGrade);
+    if (cfg.speedRamp !== undefined) setSpeedRamp(cfg.speedRamp);
+    if (cfg.zoomPunch !== undefined) setZoomPunch(cfg.zoomPunch);
+    if (cfg.lightLeak !== undefined) setLightLeak(cfg.lightLeak);
+    if (cfg.filmGrain !== undefined) setFilmGrain(cfg.filmGrain);
+    if (cfg.rgbSplit !== undefined) setRgbSplit(cfg.rgbSplit);
+    if (cfg.glitchFlash !== undefined) setGlitchFlash(cfg.glitchFlash);
+    if (cfg.textOverlays !== undefined) setTextOverlays(cfg.textOverlays);
   };
 
   const handleAddPhotos = async (files: FileList) => {
@@ -219,6 +258,26 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         outro,
         items,
         bitrate: hd ? 14_000_000 : 10_000_000,
+        effectsLevel,
+        colorGrade,
+        speedRamp,
+        zoomPunch,
+        lightLeak,
+        filmGrain,
+        rgbSplit,
+        glitchFlash,
+        textOverlays,
+        textData: {
+          addr: data.addr,
+          barrio: data.barrio,
+          price: data.price,
+          currency: data.currency,
+          amb: data.amb,
+          m2: data.m2,
+          baths: data.baths,
+          op: data.op,
+          handle: '@zamboni.inmobiliaria',
+        },
         onProgress: (ph, cur, total) => { setPhase(ph as any); setProgress({ cur, total }); },
         onAbort: () => abortRef.current,
       });
@@ -254,7 +313,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         {/* PRESETS */}
         <div>
           <label className="label">Preset</label>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-5 gap-1.5">
             {(Object.keys(PRESET_META) as Preset[]).map((p) => {
               const meta = PRESET_META[p];
               const Icon = meta.icon;
@@ -342,6 +401,63 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
           <Toggle label="HD 2K" active={hd} onClick={() => setHd(!hd)} disabled={busy} />
           <Toggle label="Intro" active={intro} onClick={() => setIntro(!intro)} disabled={busy || content !== 'photos'} />
           <Toggle label="Outro placa" active={outro} onClick={() => setOutro(!outro)} disabled={busy} />
+        </div>
+
+        {/* EFFECTS PACK */}
+        <div className="border-t border-neutral-200 pt-3 space-y-3">
+          <div className="flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5 text-brand" />
+            <span className="text-[10.5px] font-bold tracking-[1.5px] uppercase text-brand">Effects pack</span>
+          </div>
+
+          {/* Color grade */}
+          <div>
+            <label className="label">Color grade</label>
+            <div className="grid grid-cols-7 gap-1">
+              {COLOR_GRADES.map((g) => (
+                <button
+                  key={g.id}
+                  disabled={busy}
+                  onClick={() => setColorGrade(g.id)}
+                  className={`rounded border-2 transition overflow-hidden ${colorGrade === g.id ? 'border-brand' : 'border-neutral-200'}`}
+                  title={g.label}
+                >
+                  <div className="aspect-square" style={{ background: g.preview }} />
+                  <div className="text-[8px] py-0.5 text-center text-neutral-600 truncate px-0.5">{g.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Effect toggles */}
+          <div className="grid grid-cols-6 gap-1.5">
+            <Toggle label="Speed ramp" active={speedRamp} onClick={() => setSpeedRamp(!speedRamp)} disabled={busy} />
+            <Toggle label="Zoom punch" active={zoomPunch} onClick={() => setZoomPunch(!zoomPunch)} disabled={busy} />
+            <Toggle label="Light leak" active={lightLeak} onClick={() => setLightLeak(!lightLeak)} disabled={busy} />
+            <Toggle label="Film grain" active={filmGrain} onClick={() => setFilmGrain(!filmGrain)} disabled={busy} />
+            <Toggle label="RGB split" active={rgbSplit} onClick={() => setRgbSplit(!rgbSplit)} disabled={busy} />
+            <Toggle label="Glitch" active={glitchFlash} onClick={() => setGlitchFlash(!glitchFlash)} disabled={busy} />
+          </div>
+
+          {/* Text overlays */}
+          <div>
+            <label className="label">Texto animado sobre fotos</label>
+            <div className="grid grid-cols-4 gap-1">
+              {TEXT_STYLES.map((s) => (
+                <button
+                  key={s.id}
+                  disabled={busy || content === 'placa'}
+                  onClick={() => setTextOverlays(s.id)}
+                  className={`h-8 text-[11px] rounded border ${textOverlays === s.id ? 'bg-brand text-white border-brand' : 'bg-white border-neutral-200'} disabled:opacity-40`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            {content === 'placa' && (
+              <p className="text-[10px] text-neutral-400 mt-1">Sólo aplica al modo "Solo fotos/videos".</p>
+            )}
+          </div>
         </div>
 
         <div className="bg-neutral-50 border border-neutral-200 rounded p-2.5 text-[10.5px] font-mono text-neutral-600 flex justify-between">

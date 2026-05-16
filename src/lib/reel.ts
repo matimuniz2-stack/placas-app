@@ -50,11 +50,26 @@ function getMotion(style: MotionStyle, t: number, zoomAmount: number, w: number,
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type Transition = 'cut' | 'fade' | 'slide-left' | 'slide-up' | 'zoom-blur';
-export type Preset = 'cinematic' | 'energetic' | 'minimal' | 'pro';
+export type Preset = 'cinematic' | 'energetic' | 'minimal' | 'pro' | 'viral';
+export type ColorGrade = 'none' | 'cinematic-teal' | 'warm-sunset' | 'cold-blue' | 'vintage-film' | 'punchy-estate' | 'premium-gold';
+export type EffectsLevel = 'off' | 'subtle' | 'viral' | 'cinematic';
+export type TextStyle = 'off' | 'bold' | 'minimal' | 'elegant';
 
 export type MediaItem =
   | { id: string; type: 'photo'; url: string; duration?: number; motion?: MotionStyle }
   | { id: string; type: 'video'; url: string; duration?: number; motion?: MotionStyle; trimStart?: number; trimEnd?: number; videoDuration?: number; videoWidth?: number; videoHeight?: number };
+
+export interface PlacaData {
+  addr?: string;
+  barrio?: string;
+  price?: string;
+  currency?: string;
+  amb?: string;
+  m2?: string;
+  baths?: string;
+  op?: string;
+  handle?: string;
+}
 
 export interface ReelOpts {
   placaEl: HTMLElement;
@@ -70,8 +85,23 @@ export interface ReelOpts {
   hd: boolean;
   intro: boolean;
   outro: boolean;
-  items?: MediaItem[];          // when omitted, falls back to store.photos as photo items
+  items?: MediaItem[];
   bitrate?: number;
+
+  // New effects
+  effectsLevel: EffectsLevel;     // master switch for the effects pack
+  colorGrade: ColorGrade;         // LUT-style color grading
+  speedRamp: boolean;             // varied per-clip durations for viral pacing
+  zoomPunch: boolean;             // extra zoom at the tail of each clip
+  lightLeak: boolean;             // moving warm gradient overlay
+  filmGrain: boolean;             // grain texture
+  rgbSplit: boolean;              // RGB split on transitions
+  glitchFlash: boolean;           // short white flashes on cuts
+
+  // Animated text overlays (only meaningful when content === 'photos')
+  textOverlays: TextStyle;
+  textData?: PlacaData;           // data shown in the overlays
+
   onProgress?: (phase: 'capturing' | 'encoding', current: number, total: number) => void;
   onAbort?: () => boolean;
 }
@@ -79,10 +109,11 @@ export interface ReelOpts {
 export interface ReelResult { blob: Blob; width: number; height: number; duration: number }
 
 export const PRESETS: Record<Preset, Partial<ReelOpts>> = {
-  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 12_000_000 },
-  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true,  bitrate: 10_000_000 },
-  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 8_000_000  },
-  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 14_000_000 },
+  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 12_000_000, effectsLevel: 'cinematic', colorGrade: 'cinematic-teal', speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
+  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true,  bitrate: 10_000_000, effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: false, filmGrain: false, rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
+  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 8_000_000 , effectsLevel: 'off',       colorGrade: 'none',           speedRamp: false, zoomPunch: false, lightLeak: false, filmGrain: false, rgbSplit: false, glitchFlash: false, textOverlays: 'minimal' },
+  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 14_000_000, effectsLevel: 'cinematic', colorGrade: 'premium-gold',   speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
+  viral:     { durationPerPhoto: 1.5,fps: 30, kenBurnsZoom: 1.30, transition: 'cut',        transitionDuration: 0.0, vignette: true,  cinematicLook: false, hd: true,  intro: false, outro: true,  bitrate: 14_000_000, effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
 };
 
 export function isReelSupported(): boolean {
@@ -285,15 +316,19 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
   const introFrames = opts.intro ? Math.round(1.2 * opts.fps) : 0;
   const outroFrames = opts.outro ? Math.round(1.8 * opts.fps) : 0;
 
-  const clipFrames: number[] = loaded.map((li) => {
+  // Speed ramp pattern: short-short-LONG-short-short-LONG... viral pacing
+  const SPEED_RAMP = [0.6, 0.55, 1.6, 0.7, 0.6, 1.5, 0.55, 0.7, 1.4];
+
+  const clipFrames: number[] = loaded.map((li, i) => {
     let dur: number;
     if (li.kind === 'video') {
       const cap = li.trimEnd - li.trimStart;
       dur = Math.max(0.5, li.item.duration ?? cap);
-      // never longer than the trimmed range
       dur = Math.min(dur, cap || dur);
     } else {
-      dur = Math.max(0.5, li.item.duration ?? opts.durationPerPhoto);
+      const base = Math.max(0.5, li.item.duration ?? opts.durationPerPhoto);
+      const factor = opts.speedRamp ? SPEED_RAMP[i % SPEED_RAMP.length] : 1;
+      dur = Math.max(0.4, base * factor);
     }
     return Math.max(1, Math.round(dur * opts.fps));
   });
@@ -352,13 +387,242 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     ctx.fillRect(0, 0, W, H);
   };
 
+  // ─── Effects pack ───────────────────────────────────────────────────────────
+  const applyColorGrade = () => {
+    if (!opts.colorGrade || opts.colorGrade === 'none') return;
+    ctx.save();
+    switch (opts.colorGrade) {
+      case 'cinematic-teal':
+        // shadows → teal, highlights → orange (Hollywood look)
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(20, 80, 100, 0.18)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = 'rgba(255, 160, 80, 0.14)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+      case 'warm-sunset':
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(255, 150, 80, 0.16)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = 'rgba(255, 220, 200, 0.06)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+      case 'cold-blue':
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(60, 90, 180, 0.18)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.10)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+      case 'vintage-film':
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(180, 130, 90, 0.18)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = 'rgba(255, 240, 200, 0.06)';
+        ctx.fillRect(0, 0, W, H);
+        // faded highlights
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = 'rgba(30, 20, 10, 0.08)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+      case 'punchy-estate':
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.20)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+      case 'premium-gold':
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.fillStyle = 'rgba(201, 168, 107, 0.14)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = 'rgba(20, 10, 0, 0.20)';
+        ctx.fillRect(0, 0, W, H);
+        break;
+    }
+    ctx.restore();
+  };
+
+  // Pre-baked film grain — created once, reused every frame with translation
+  let grainCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
+  if (opts.filmGrain) {
+    const GS = 512;
+    grainCanvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(GS, GS) : (() => { const c = document.createElement('canvas'); c.width = GS; c.height = GS; return c; })();
+    const gctx = grainCanvas.getContext('2d') as any;
+    const img = gctx.createImageData(GS, GS);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const n = (Math.random() * 255) | 0;
+      img.data[i] = n; img.data[i + 1] = n; img.data[i + 2] = n; img.data[i + 3] = 255;
+    }
+    gctx.putImageData(img, 0, 0);
+  }
+
+  const drawFilmGrain = (frameIdx: number) => {
+    if (!opts.filmGrain || !grainCanvas) return;
+    // shift grain every frame so it animates
+    const ox = ((frameIdx * 17) % grainCanvas.width) - grainCanvas.width / 2;
+    const oy = ((frameIdx * 31) % grainCanvas.height) - grainCanvas.height / 2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.07;
+    // tile grain across the whole frame
+    for (let y = oy; y < H; y += grainCanvas.height) {
+      for (let x = ox; x < W; x += grainCanvas.width) {
+        ctx.drawImage(grainCanvas as any, x, y);
+      }
+    }
+    ctx.restore();
+  };
+
+  const drawLightLeak = (globalT: number) => {
+    if (!opts.lightLeak) return;
+    // Diagonal warm gradient that travels across the frame slowly
+    const phase = (globalT * 0.5) % 1;
+    const cx = W * (0.2 + 0.6 * phase);
+    const cy = H * (0.3 + 0.4 * phase);
+    const radius = Math.max(W, H) * 0.6;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0, 'rgba(255, 200, 130, 0.22)');
+    grad.addColorStop(0.4, 'rgba(255, 160, 90, 0.10)');
+    grad.addColorStop(1, 'rgba(255, 100, 50, 0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  };
+
+  const drawGlitchFlash = (intensity: number) => {
+    if (!opts.glitchFlash || intensity <= 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = `rgba(255,255,255,${intensity})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  };
+
+  // Smart text overlays — driven by clip index over time
+  const fitText = (text: string, maxWidth: number, baseSize: number, font: string): number => {
+    let size = baseSize;
+    ctx.font = `${size}px ${font}`;
+    while (ctx.measureText(text).width > maxWidth && size > 18) {
+      size -= 4;
+      ctx.font = `${size}px ${font}`;
+    }
+    return size;
+  };
+
+  const drawTextOverlay = (clipIdx: number, t: number) => {
+    if (opts.textOverlays === 'off' || opts.content === 'placa') return;
+    const data = opts.textData;
+    if (!data) return;
+
+    const style = opts.textOverlays;
+    const isBold = style === 'bold';
+    const isElegant = style === 'elegant';
+    const fontHeader = isBold ? "'Anton'" : isElegant ? "'Italiana'" : "'Inter'";
+    const fontMain = isBold ? "'Bebas Neue'" : isElegant ? "'Cormorant Garamond'" : "'Inter'";
+    const fontData = "'IBM Plex Mono'";
+
+    // Choose what to show on each clip
+    let header = '';
+    let main = '';
+    let footer = '';
+    const op = (data.op || 'VENTA').toUpperCase();
+    const opLabel = op === 'ALQUILER' ? 'EN ALQUILER' : 'EN VENTA';
+
+    if (clipIdx === 0) {
+      header = opLabel;
+      main = (data.barrio || data.addr || '').toUpperCase();
+    } else if (clipIdx === 1) {
+      header = 'DIRECCIÓN';
+      main = data.addr || '';
+    } else if (clipIdx === 2) {
+      const parts: string[] = [];
+      if (data.amb) parts.push(`${data.amb} amb`);
+      if (data.m2) parts.push(`${data.m2} m²`);
+      if (data.baths) parts.push(`${data.baths} baños`);
+      header = 'DETALLES';
+      main = parts.join(' · ').toUpperCase();
+    } else if (data.price) {
+      header = data.currency || 'USD';
+      main = data.price;
+    } else {
+      footer = data.handle || '@zamboni.inmobiliaria';
+    }
+
+    // Entrance: 0..0.18 slide+fade in. Hold. Exit: 0.85..1 fade out.
+    let alpha = 1;
+    let yOffset = 0;
+    let scale = 1;
+    if (t < 0.18) {
+      const k = t / 0.18;
+      const eased = easeOutQuart(k);
+      alpha = eased;
+      yOffset = (1 - eased) * 30;
+      scale = 0.92 + 0.08 * eased;
+    } else if (t > 0.85) {
+      const k = (t - 0.85) / 0.15;
+      alpha = 1 - easeInOutCubic(k);
+    }
+    if (alpha <= 0.01) return;
+
+    // Position: lower-left third for cinematic feel
+    const padding = W * 0.06;
+    const baseY = H * 0.78;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(padding, baseY + yOffset);
+    ctx.scale(scale, scale);
+
+    // Subtle backdrop (only on photo content)
+    if (isBold || isElegant) {
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      const padW = W * 0.6;
+      const padH = H * 0.12;
+      ctx.fillRect(-padding * 0.3, -padH * 0.7, padW + padding * 0.6, padH * 1.4);
+      ctx.restore();
+    }
+
+    if (header) {
+      ctx.fillStyle = '#de1f1a';
+      const hs = isBold ? 32 : 26;
+      ctx.font = `700 ${hs}px ${fontHeader}`;
+      ctx.fillText(header.toUpperCase(), 0, 0);
+    }
+    if (main) {
+      ctx.fillStyle = '#ffffff';
+      const baseSize = isBold ? 128 : 84;
+      const size = fitText(main, W * 0.85, baseSize, fontMain);
+      ctx.font = `${isBold ? 700 : 500} ${size}px ${fontMain}`;
+      ctx.fillText(main, 0, size * 1.05);
+    }
+    if (footer) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `500 38px ${fontData}`;
+      ctx.fillText(footer, 0, 38);
+    }
+
+    ctx.restore();
+  };
+
   const motionFor = (idx: number): MotionStyle => loaded[idx].item.motion || MOTION_BANK[idx % MOTION_BANK.length];
 
   // Helper: render a single clip's source at progress t (0..1)
-  const renderClipAt = async (clipIdx: number, t: number, alpha = 1, motionOverride?: MotionStyle) => {
+  const renderClipAt = async (clipIdx: number, t: number, alpha = 1, motionOverride?: MotionStyle, extraZoom = 0) => {
     const li = loaded[clipIdx];
     const motion = motionOverride ?? motionFor(clipIdx);
     const m = getMotion(motion, t, opts.kenBurnsZoom - 1, W, H);
+    if (extraZoom !== 0) m.zoom += extraZoom;
     if (li.kind === 'photo') {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -372,6 +636,37 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       drawCoverImg(li.video, li.w, li.h, m);
       ctx.restore();
     }
+  };
+
+  // Zoom punch: subtle extra zoom at the tail of each clip for that "TikTok cut" feel
+  const punchAt = (localFrame: number, total: number): number => {
+    if (!opts.zoomPunch) return 0;
+    const window = Math.min(8, Math.floor(total * 0.25));
+    if (localFrame < total - window) return 0;
+    const k = (localFrame - (total - window)) / window; // 0..1 over the punch window
+    return 0.06 * easeOutQuart(k);
+  };
+
+  // RGB split during last frames of a transition (subtle chromatic aberration)
+  const drawRGBSplit = async (clipIdx: number, t: number, intensity: number) => {
+    if (!opts.rgbSplit || intensity <= 0) return;
+    const off = 4 * intensity;
+    const li = loaded[clipIdx];
+    const motion = motionFor(clipIdx);
+    const m = getMotion(motion, t, opts.kenBurnsZoom - 1, W, H);
+    const src: CanvasImageSource = li.kind === 'photo' ? li.bitmap : li.video;
+    const sw = li.kind === 'photo' ? li.w : li.w;
+    const sh = li.kind === 'photo' ? li.h : li.h;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.35;
+    // red channel offset right
+    ctx.filter = 'url(#__none) saturate(2) hue-rotate(0deg)'; // best-effort, browsers may ignore
+    ctx.translate(off, 0);
+    drawCoverImg(src, sw, sh, { ...m, zoom: m.zoom });
+    ctx.translate(-2 * off, 0);
+    drawCoverImg(src, sw, sh, { ...m, zoom: m.zoom });
+    ctx.restore();
   };
 
   // ─── Frame loop ─────────────────────────────────────────────────────────────
@@ -396,7 +691,7 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     if (frameIdx < introFrames) {
       const t = frameIdx / Math.max(1, introFrames - 1);
       const eased = easeOutQuart(t);
-      await renderClipAt(0, 1 - eased * 0.4, eased, 'zoom-out');
+      await renderClipAt(0, 1 - eased * 0.4, eased, 'zoom-out', 0);
 
       // Logo Z big
       const logoScale = 0.6 + 0.4 * easeInOutCubic(t);
@@ -420,7 +715,10 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       ctx.fill();
       ctx.restore();
 
+      applyColorGrade();
+      drawLightLeak(frameIdx / Math.max(1, totalFrames - 1));
       applyCinematicLook();
+      drawFilmGrain(frameIdx);
       drawVignette();
     }
     // OUTRO
@@ -444,7 +742,6 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     // MAIN
     else {
       const seqIdx = frameIdx - introFrames;
-      // Find which clip
       let clipIdx = 0;
       for (let i = 0; i < clipStartFrame.length; i++) {
         if (seqIdx >= clipStartFrame[i] && seqIdx < clipStartFrame[i] + clipFrames[i]) {
@@ -454,14 +751,17 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
       const localFrame = seqIdx - clipStartFrame[clipIdx];
       const localTotal = clipFrames[clipIdx];
       const t = localFrame / Math.max(1, localTotal - 1);
+      const extraZoom = punchAt(localFrame, localTotal);
 
-      await renderClipAt(clipIdx, t);
+      await renderClipAt(clipIdx, t, 1, undefined, extraZoom);
 
       // Transition into next clip at tail
+      let transA = 0;
       if (transitionFrames > 0 && clipIdx < loaded.length - 1 && localFrame >= localTotal - transitionFrames) {
         const a = (localFrame - (localTotal - transitionFrames)) / transitionFrames;
+        transA = a;
         if (opts.transition === 'fade') {
-          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a));
+          await renderClipAt(clipIdx + 1, 0, easeInOutCubic(a), undefined, 0);
         } else if (opts.transition === 'slide-left') {
           const offset = (1 - easeOutQuart(a)) * W;
           ctx.save();
@@ -483,8 +783,23 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
         }
       }
 
+      // RGB split on cuts: kicks in only when zoomPunch peaks (tail of clip)
+      if (extraZoom > 0 && opts.rgbSplit) {
+        await drawRGBSplit(clipIdx, t, extraZoom / 0.06);
+      }
+
+      // Glitch flash at the very start of a clip
+      if (opts.glitchFlash && localFrame < 2 && clipIdx > 0) {
+        drawGlitchFlash(0.85 * (1 - localFrame / 2));
+      }
+
+      // Effects stack (order matters: grade → leak → look → grain → vignette → text)
+      applyColorGrade();
+      drawLightLeak(frameIdx / Math.max(1, totalFrames - 1));
       applyCinematicLook();
+      drawFilmGrain(frameIdx);
       drawVignette();
+      drawTextOverlay(clipIdx, t);
     }
 
     // Encode frame
