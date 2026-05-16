@@ -27,7 +27,8 @@ import { IGSimulator } from '@/components/modals/IGSimulator';
 import { ReelModal } from '@/components/modals/ReelModal';
 import { TokkoModal } from '@/components/modals/TokkoModal';
 import { BrandKitModal } from '@/components/modals/BrandKitModal';
-import { Eye, FilePlus, RefreshCw, Film, Database, Briefcase, Send } from 'lucide-react';
+import { BatchModal } from '@/components/modals/BatchModal';
+import { Eye, FilePlus, RefreshCw, Film, Database, Briefcase, Send, FileSpreadsheet } from 'lucide-react';
 import { del } from 'idb-keyval';
 
 interface Props {
@@ -67,6 +68,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const [reelOpen, setReelOpen] = useState(false);
   const [tokkoOpen, setTokkoOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
 
   const sizeNow = FORMAT_SIZES[format];
 
@@ -189,6 +191,14 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
           <span className="text-xs">Marcas</span>
         </button>
         <button
+          onClick={() => setBatchOpen(true)}
+          className="btn btn-ghost text-amber-600 hover:bg-amber-50"
+          title="Generar lote desde CSV/Excel"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+          <span className="text-xs">Batch</span>
+        </button>
+        <button
           onClick={() => setTokkoOpen(true)}
           className="btn btn-ghost text-emerald-600 hover:bg-emerald-50"
           title="Importar propiedad desde Tokko Broker"
@@ -253,6 +263,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
       <ReelModal open={reelOpen} onClose={() => setReelOpen(false)} placaRef={placaRef} />
       <TokkoModal open={tokkoOpen} onClose={() => setTokkoOpen(false)} />
       <BrandKitModal open={brandOpen} onClose={() => setBrandOpen(false)} />
+      <BatchModal open={batchOpen} onClose={() => setBatchOpen(false)} placaRef={placaRef} />
     </>
   );
 };
