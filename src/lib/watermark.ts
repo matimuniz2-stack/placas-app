@@ -28,29 +28,25 @@ export interface WatermarkRemoveOpts {
 /**
  * Public: take a photo URL/dataURL, remove the central red watermark,
  * return a new dataURL (JPEG 0.92).
+ * Robust against CORS-tainted external URLs: tries fetch→blob path first.
  */
 export async function removeWatermarkZ(imageUrl: string, opts: WatermarkRemoveOpts = {}): Promise<string> {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.decoding = 'async';
-  img.src = imageUrl;
-  await new Promise<void>((res, rej) => {
-    if (img.complete && img.naturalWidth > 0) res();
-    else {
-      img.onload = () => res();
-      img.onerror = () => rej(new Error('No se pudo cargar la foto'));
-    }
-  });
+  const { source, w: W, h: H } = await loadAsBitmap(imageUrl);
 
-  const W = img.naturalWidth;
-  const H = img.naturalHeight;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(source as any, 0, 0);
+  // Free the bitmap right away if it's one
+  if ((source as any).close) (source as any).close();
 
-  const imgData = ctx.getImageData(0, 0, W, H);
+  let imgData: ImageData;
+  try {
+    imgData = ctx.getImageData(0, 0, W, H);
+  } catch (e: any) {
+    throw new Error('Canvas tainted (CORS). La foto no permite procesamiento. URL: ' + imageUrl.slice(0, 80));
+  }
   const pixels = imgData.data;
 
   // Build mask (1 = watermark, 0 = keep)
@@ -287,6 +283,42 @@ function blurMaskedRegion(data: Uint8ClampedArray, mask: Uint8Array, W: number, 
       }
     }
     data.set(out);
+  }
+}
+
+// ─── Loader robusto: maneja dataURL, blob URL, y URLs externas (CORS) ──────
+async function loadAsBitmap(url: string): Promise<{ source: ImageBitmap | HTMLImageElement; w: number; h: number }> {
+  // Fast path: dataURL / blob URL → use HTMLImageElement directly (no CORS issue)
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    await new Promise<void>((res, rej) => {
+      if (img.complete && img.naturalWidth > 0) res();
+      else { img.onload = () => res(); img.onerror = () => rej(new Error('No se pudo cargar la foto (dataURL)')); }
+    });
+    return { source: img, w: img.naturalWidth, h: img.naturalHeight };
+  }
+
+  // External URL: try fetch → blob → ImageBitmap (bypasses canvas taint when server allows CORS)
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('fetch failed ' + res.status);
+    const blob = await res.blob();
+    const bm = await createImageBitmap(blob);
+    return { source: bm, w: bm.width, h: bm.height };
+  } catch (e) {
+    // Fallback: HTMLImageElement with crossOrigin='anonymous'.
+    // Will produce tainted canvas if the server doesn't send ACAO header, but worth trying.
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    img.src = url;
+    await new Promise<void>((res, rej) => {
+      if (img.complete && img.naturalWidth > 0) res();
+      else { img.onload = () => res(); img.onerror = () => rej(new Error('No se pudo cargar la foto (URL): ' + e)); }
+    });
+    return { source: img, w: img.naturalWidth, h: img.naturalHeight };
   }
 }
 

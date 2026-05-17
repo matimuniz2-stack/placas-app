@@ -265,18 +265,40 @@ const FotosTab: React.FC = () => {
   };
 
   const handleWatermarkRemoveAll = async () => {
-    if (photos.length === 0) return;
-    if (!confirm(`¿Quitar marca Z de ${photos.length} fotos? Puede tardar unos segundos.`)) return;
-    setWmBulkProgress({ cur: 0, total: photos.length });
+    // Read fresh photos from the store at click time (not stale closure)
+    const startPhotos = usePlacaStore.getState().photos;
+    if (startPhotos.length === 0) return;
+    if (!confirm(`¿Quitar marca Z de ${startPhotos.length} fotos? Puede tardar unos segundos.`)) return;
+
+    const originalActiveIdx = usePlacaStore.getState().activePhotoIdx;
+    setWmBulkProgress({ cur: 0, total: startPhotos.length });
+    const failures: number[] = [];
     try {
-      for (let i = 0; i < photos.length; i++) {
-        setWmBulkProgress({ cur: i + 1, total: photos.length });
+      for (let i = 0; i < startPhotos.length; i++) {
+        setWmBulkProgress({ cur: i + 1, total: startPhotos.length });
+        // Show the photo being processed (visual feedback)
+        usePlacaStore.getState().setActivePhoto(i);
+        await new Promise((r) => setTimeout(r, 50));
+        // Read CURRENT url from the store (may have been updated by prior iterations or other actions)
+        const currentPhoto = usePlacaStore.getState().photos[i];
+        if (!currentPhoto) continue;
         try {
-          const newUrl = await removeWatermarkZ(photos[i].url);
-          replaceUrl(i, newUrl);
-        } catch (e) {
-          console.warn('failed wm remove on photo', i, e);
+          const newUrl = await removeWatermarkZ(currentPhoto.url);
+          usePlacaStore.getState().replacePhotoUrl(i, newUrl);
+        } catch (e: any) {
+          console.warn('Watermark remove FAIL on photo', i, '→', e?.message || e);
+          failures.push(i + 1);
         }
+      }
+      // Restore the originally active photo
+      usePlacaStore.getState().setActivePhoto(originalActiveIdx);
+      if (failures.length > 0) {
+        alert(
+          `Se quitó la marca de ${startPhotos.length - failures.length}/${startPhotos.length} fotos. ` +
+          `Fallaron: ${failures.join(', ')}.\n\n` +
+          'Probable causa: CORS — el servidor de origen no permite procesar la foto en el browser. ' +
+          'Para fotos de Tokko esto no debería pasar (se descargan como dataURL). Si pasa con paste-URL, las imágenes externas hay que pre-descargarlas primero.',
+        );
       }
     } finally {
       setWmBulkProgress(null);
