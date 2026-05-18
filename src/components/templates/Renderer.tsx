@@ -8,6 +8,7 @@ import { Logo } from './primitives/Logo';
 import { Badges } from './primitives/Badge';
 import { QRLayer } from './primitives/QRLayer';
 import { AgentLayer } from './primitives/AgentLayer';
+import { MapLayer } from './primitives/MapLayer';
 import { amenString, extrasString, priceString } from '@/lib/format';
 import type { LayerId } from '@/types';
 
@@ -133,7 +134,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
       {/* Render each layer in defaultLayers (excluding photo + special ones) */}
       {(Object.keys(tpl.defaultLayers) as LayerId[]).map((lid) => {
-        if (lid === 'photo' || lid === 'logo' || lid === 'badge' || lid === 'qr' || lid === 'agent') return null;
+        if (lid === 'photo' || lid === 'logo' || lid === 'badge' || lid === 'qr' || lid === 'agent' || lid === 'map') return null;
         const baseDefaults = tpl.defaultLayers[lid]!;
         const defaults = applyVariant(baseDefaults, lid);
         const ov = overrides[lid];
@@ -163,6 +164,9 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
       {/* QR */}
       <QRLayer />
+
+      {/* Map of barrio */}
+      <MapLayer interactive={interactive} />
 
       {/* Agent watermark */}
       <AgentLayer />

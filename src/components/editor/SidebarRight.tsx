@@ -5,7 +5,8 @@ import { VARIANTS } from '@/lib/variants';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { BADGE_PRESETS } from '@/components/templates/primitives/Badge';
 import { HexColorPicker } from 'react-colorful';
-import { Eye, EyeOff, RotateCcw, Upload, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Upload, Sparkles, MapPin, Loader2, X } from 'lucide-react';
+import { renderStaticMap, geocodeAddress, type MapStyle } from '@/lib/map';
 import { PlacaRenderer } from '@/components/templates/Renderer';
 import type { LayerId } from '@/types';
 
@@ -26,6 +27,7 @@ const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   num: 'Número',
   badge: 'Sticker',
   qr: 'QR',
+  map: 'Mapa',
   agent: 'Agente',
   line: 'Línea',
   dot: 'Punto',
@@ -344,6 +346,50 @@ const ExtrasTab: React.FC = () => {
   const toggleBadge = usePlacaStore((s) => s.toggleBadge);
   const qrUrl = usePlacaStore((s) => s.qrUrl);
   const setQrUrl = usePlacaStore((s) => s.setQrUrl);
+  const mapUrl = usePlacaStore((s) => s.mapUrl);
+  const setMapUrl = usePlacaStore((s) => s.setMapUrl);
+  const data = usePlacaStore((s) => s.data);
+
+  // Map controls
+  const [mapAddress, setMapAddress] = useState('');
+  const [mapZoom, setMapZoom] = useState(15);
+  const [mapStyle, setMapStyle] = useState<MapStyle>('voyager');
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState('');
+
+  // Prefill map address from current placa data
+  React.useEffect(() => {
+    if (!mapAddress) {
+      const fromPlaca = [data.addr, data.barrio].filter(Boolean).join(', ');
+      if (fromPlaca) setMapAddress(fromPlaca);
+    }
+  }, [data.addr, data.barrio]);
+
+  const generateMap = async () => {
+    if (!mapAddress.trim()) { setMapError('Pon una dirección'); return; }
+    setMapLoading(true);
+    setMapError('');
+    try {
+      const geo = await geocodeAddress(mapAddress);
+      if (!geo) {
+        setMapError('No se encontró esa dirección. Probá con más detalle (Calle + Número + Ciudad).');
+        return;
+      }
+      const url = await renderStaticMap({
+        lat: geo.lat,
+        lng: geo.lng,
+        zoom: mapZoom,
+        width: 600,
+        height: 600,
+        style: mapStyle,
+      });
+      setMapUrl(url);
+    } catch (e: any) {
+      setMapError(e?.message || 'Error generando mapa');
+    } finally {
+      setMapLoading(false);
+    }
+  };
 
   return (
     <div className="px-3 py-3 space-y-4">
@@ -372,6 +418,71 @@ const ExtrasTab: React.FC = () => {
         <div className="section-title mb-2">QR Code</div>
         <input className="input" placeholder="https://link al listing…" value={qrUrl} onChange={(e) => setQrUrl(e.target.value)} />
         <p className="text-[10px] text-neutral-400 mt-1">El QR aparece en esquina inferior derecha. Movible/resize como cualquier layer.</p>
+      </div>
+
+      <div className="divider" />
+
+      {/* Mapa del barrio */}
+      <div>
+        <div className="section-title mb-2 flex items-center gap-1.5">
+          <MapPin className="w-3 h-3" />Mapa del barrio
+        </div>
+        <div className="space-y-1.5">
+          <input
+            className="input"
+            placeholder="Dirección · ej: Cabildo 2900, Belgrano"
+            value={mapAddress}
+            onChange={(e) => setMapAddress(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && generateMap()}
+            disabled={mapLoading}
+          />
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[9px] text-neutral-500 tracking-[1.2px] uppercase font-semibold block mb-0.5">Zoom · {mapZoom}</label>
+              <input
+                type="range" min={11} max={18} value={mapZoom}
+                onChange={(e) => setMapZoom(parseInt(e.target.value))}
+                disabled={mapLoading}
+                className="w-full accent-brand h-1"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] text-neutral-500 tracking-[1.2px] uppercase font-semibold block mb-0.5">Estilo</label>
+              <select
+                className="select"
+                value={mapStyle}
+                onChange={(e) => setMapStyle(e.target.value as MapStyle)}
+                disabled={mapLoading}
+              >
+                <option value="voyager">Voyager (color)</option>
+                <option value="light">Claro</option>
+                <option value="positron">Claro sin labels</option>
+                <option value="dark">Oscuro</option>
+              </select>
+            </div>
+          </div>
+          <button className="btn btn-primary w-full justify-center" onClick={generateMap} disabled={mapLoading}>
+            {mapLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Geocodeando…</> : mapUrl ? 'Regenerar mapa' : 'Generar mapa'}
+          </button>
+          {mapError && (
+            <div className="text-[10px] text-brand">{mapError}</div>
+          )}
+          {mapUrl && (
+            <div className="relative">
+              <img src={mapUrl} alt="" className="w-full rounded border border-neutral-200" />
+              <button
+                className="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full p-1 shadow"
+                onClick={() => setMapUrl('')}
+                title="Quitar mapa del placa"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          <p className="text-[10px] text-neutral-400 leading-snug">
+            El mapa aparece como layer en el placa (mové/redimensioná desde el inspector). Datos © OSM · tiles © Carto.
+          </p>
+        </div>
       </div>
 
       <div className="divider" />

@@ -135,11 +135,11 @@ export interface ReelOpts {
 export interface ReelResult { blob: Blob; width: number; height: number; duration: number }
 
 export const PRESETS: Record<Preset, Partial<ReelOpts>> = {
-  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 12_000_000, effectsLevel: 'cinematic', colorGrade: 'cinematic-teal', speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
-  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true,  bitrate: 10_000_000, effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: false, filmGrain: false, rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
-  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 8_000_000 , effectsLevel: 'off',       colorGrade: 'none',           speedRamp: false, zoomPunch: false, lightLeak: false, filmGrain: false, rgbSplit: false, glitchFlash: false, textOverlays: 'minimal' },
-  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 14_000_000, effectsLevel: 'cinematic', colorGrade: 'premium-gold',   speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
-  viral:     { durationPerPhoto: 1.5,fps: 30, kenBurnsZoom: 1.30, transition: 'cut',        transitionDuration: 0.0, vignette: true,  cinematicLook: false, hd: true,  intro: false, outro: true,  bitrate: 14_000_000, effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
+  cinematic: { durationPerPhoto: 4, fps: 30, kenBurnsZoom: 1.14, transition: 'fade',       transitionDuration: 0.7, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 10_000_000, effectsLevel: 'cinematic', colorGrade: 'cinematic-teal', speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
+  energetic: { durationPerPhoto: 2, fps: 60, kenBurnsZoom: 1.28, transition: 'slide-left', transitionDuration: 0.3, vignette: false, cinematicLook: true,  hd: false, intro: false, outro: true,  bitrate: 8_000_000,  effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: false, filmGrain: false, rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
+  minimal:   { durationPerPhoto: 5, fps: 30, kenBurnsZoom: 1.08, transition: 'cut',        transitionDuration: 0.0, vignette: false, cinematicLook: false, hd: false, intro: false, outro: false, bitrate: 6_000_000 , effectsLevel: 'off',       colorGrade: 'none',           speedRamp: false, zoomPunch: false, lightLeak: false, filmGrain: false, rgbSplit: false, glitchFlash: false, textOverlays: 'minimal' },
+  pro:       { durationPerPhoto: 3, fps: 30, kenBurnsZoom: 1.18, transition: 'fade',       transitionDuration: 0.5, vignette: true,  cinematicLook: true,  hd: true,  intro: true,  outro: true,  bitrate: 12_000_000, effectsLevel: 'cinematic', colorGrade: 'premium-gold',   speedRamp: false, zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: false, glitchFlash: false, textOverlays: 'elegant' },
+  viral:     { durationPerPhoto: 1.5,fps: 30, kenBurnsZoom: 1.30, transition: 'cut',        transitionDuration: 0.0, vignette: true,  cinematicLook: false, hd: true,  intro: false, outro: true,  bitrate: 12_000_000, effectsLevel: 'viral',     colorGrade: 'punchy-estate',  speedRamp: true,  zoomPunch: true,  lightLeak: true,  filmGrain: true,  rgbSplit: true,  glitchFlash: true,  textOverlays: 'bold'    },
 };
 
 export function isReelSupported(): boolean {
@@ -322,7 +322,8 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
     error: (e) => console.error('VideoEncoder', e),
   });
-  const bitrate = opts.bitrate || (opts.hd ? 14_000_000 : 10_000_000);
+  // Default 10 Mbps SD / 12 Mbps HD — IG re-encodes anyway, no need for huge files
+  const bitrate = opts.bitrate || (opts.hd ? 12_000_000 : 8_000_000);
   const codecs = ['avc1.640032', 'avc1.640028', 'avc1.4d0028', 'avc1.42e028'];
   let configured = false;
   for (const codec of codecs) {

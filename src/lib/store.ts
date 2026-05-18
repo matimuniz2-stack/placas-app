@@ -31,6 +31,7 @@ interface PlacaState {
   // optional layers
   badges: string[]; // ids of stickers active
   qrUrl: string;
+  mapUrl: string;   // dataURL of the rendered mini-map (or empty if not enabled)
 
   // ui state (not in undo)
   abbreviatePrice: boolean;
@@ -63,6 +64,7 @@ interface PlacaState {
 
   toggleBadge: (id: string) => void;
   setQrUrl: (url: string) => void;
+  setMapUrl: (url: string) => void;
 
   setAbbreviate: (b: boolean) => void;
   toggleSidebarLeft: () => void;
@@ -115,6 +117,7 @@ export const usePlacaStore = create<PlacaState>()(
 
       badges: [],
       qrUrl: '',
+      mapUrl: '',
 
       abbreviatePrice: false,
       showGrid: false,
@@ -191,6 +194,7 @@ export const usePlacaStore = create<PlacaState>()(
           badges: s.badges.includes(id) ? s.badges.filter((b) => b !== id) : [...s.badges, id],
         })),
       setQrUrl: (url) => set({ qrUrl: url }),
+      setMapUrl: (url) => set({ mapUrl: url }),
 
       setAbbreviate: (b) => set({ abbreviatePrice: b }),
       toggleSidebarLeft: () => set((s) => ({ sidebarLeftOpen: !s.sidebarLeftOpen })),
@@ -212,6 +216,7 @@ export const usePlacaStore = create<PlacaState>()(
           agent: null,
           badges: [],
           qrUrl: '',
+          mapUrl: '',
           abbreviatePrice: false,
           showGrid: false,
         }),

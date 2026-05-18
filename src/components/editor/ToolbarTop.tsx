@@ -28,7 +28,8 @@ import { ReelModal } from '@/components/modals/ReelModal';
 import { TokkoModal } from '@/components/modals/TokkoModal';
 import { BrandKitModal } from '@/components/modals/BrandKitModal';
 import { BatchModal } from '@/components/modals/BatchModal';
-import { Eye, FilePlus, RefreshCw, Film, Database, Briefcase, Send, FileSpreadsheet } from 'lucide-react';
+import { IGFeedMockup } from '@/components/modals/IGFeedMockup';
+import { Eye, FilePlus, RefreshCw, Film, Database, Briefcase, Send, FileSpreadsheet, LayoutGrid } from 'lucide-react';
 import { del } from 'idb-keyval';
 
 interface Props {
@@ -69,6 +70,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   const [tokkoOpen, setTokkoOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [feedMockupOpen, setFeedMockupOpen] = useState(false);
 
   const sizeNow = FORMAT_SIZES[format];
 
@@ -220,6 +222,13 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         >
           <Eye className="w-3.5 h-3.5" /><span className="text-xs">Preview Post</span>
         </button>
+        <button
+          onClick={() => setFeedMockupOpen(true)}
+          className="btn btn-ghost"
+          title="Mockup del feed de Instagram con 8 placas alrededor"
+        >
+          <LayoutGrid className="w-3.5 h-3.5" /><span className="text-xs">Feed</span>
+        </button>
         <div className="w-px h-6 bg-neutral-200 mx-1" />
         <button onClick={() => setDraftsOpen(true)} className="btn btn-ghost" title="Borradores"><FolderOpen className="w-3.5 h-3.5" /><span className="text-xs">Drafts</span></button>
         <button onClick={() => setCaptionOpen(true)} className="btn btn-ghost" title="Caption IG"><MessageSquare className="w-3.5 h-3.5" /><span className="text-xs">Caption</span></button>
@@ -264,6 +273,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
       <TokkoModal open={tokkoOpen} onClose={() => setTokkoOpen(false)} />
       <BrandKitModal open={brandOpen} onClose={() => setBrandOpen(false)} />
       <BatchModal open={batchOpen} onClose={() => setBatchOpen(false)} placaRef={placaRef} />
+      <IGFeedMockup open={feedMockupOpen} onClose={() => setFeedMockupOpen(false)} placaRef={placaRef} />
     </>
   );
 };

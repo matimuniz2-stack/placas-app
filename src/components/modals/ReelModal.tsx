@@ -291,7 +291,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
         intro: intro && content === 'photos',
         outro,
         items,
-        bitrate: hd ? 14_000_000 : 10_000_000,
+        bitrate: hd ? 12_000_000 : 8_000_000,
         effectsLevel,
         colorGrade,
         speedRamp,
@@ -584,7 +584,7 @@ export const ReelModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
 
         <div className="bg-neutral-50 border border-neutral-200 rounded p-2.5 text-[10.5px] font-mono text-neutral-600 flex justify-between">
           <span>{items.length} clips · {totalDuration.toFixed(1)}s · {fps} fps</span>
-          <span>{format === 'story' ? '1080×1920' : '1080×1350'}{hd ? ' (HD 2K)' : ''} · H.264 · {hd ? '14' : '10'} Mbps</span>
+          <span>{format === 'story' ? '1080×1920' : '1080×1350'}{hd ? ' (HD 2K)' : ''} · H.264 · {hd ? '12' : '8'} Mbps</span>
         </div>
 
         {previewUrl && (

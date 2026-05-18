@@ -13,6 +13,7 @@ export type LayerId =
   | 'badge'
   | 'qr'
   | 'agent'
+  | 'map'
   | 'tag'
   | 'lbl'
   | 'num'
