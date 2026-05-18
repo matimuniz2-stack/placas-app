@@ -9,7 +9,6 @@ import {
 } from '@/lib/batch';
 import { usePlacaStore } from '@/lib/store';
 import { extractFromUrl } from '@/lib/urlExtract';
-import { removeWatermarkZ } from '@/lib/watermark';
 import { captureToDataUrl, buildFilename, downloadBlob } from '@/lib/export';
 import { buildCaption, slugify } from '@/lib/format';
 import JSZip from 'jszip';
@@ -42,7 +41,6 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
   const [includeCaption, setIncludeCaption] = useState(true);
   const [captionStyle, setCaptionStyle] = useState<'casual_emoji' | 'casual' | 'formal' | 'premium' | 'urgente'>('casual_emoji');
   const [autoFetchPhotos, setAutoFetchPhotos] = useState(true);
-  const [autoRemoveWm, setAutoRemoveWm] = useState(true);
 
   // Progress
   const [busy, setBusy] = useState(false);
@@ -155,11 +153,7 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
                 r.onerror = () => rej(r.error);
                 r.readAsDataURL(blob);
               });
-              let final = dataUrl;
-              if (autoRemoveWm) {
-                try { final = await removeWatermarkZ(dataUrl); } catch {}
-              }
-              downloaded.push(final);
+              downloaded.push(dataUrl);
             } catch {
               continue;
             }
@@ -366,10 +360,6 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" checked={autoFetchPhotos} onChange={(e) => setAutoFetchPhotos(e.target.checked)} className="accent-brand" />
                   <span>Bajar fotos auto desde listingUrl</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer col-span-2">
-                  <input type="checkbox" checked={autoRemoveWm} onChange={(e) => setAutoRemoveWm(e.target.checked)} className="accent-brand" />
-                  <span>Quitar marca Z auto a todas las fotos descargadas</span>
                 </label>
               </div>
 

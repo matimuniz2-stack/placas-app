@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { usePlacaStore } from '@/lib/store';
-import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop, Eraser } from 'lucide-react';
+import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
-import { removeWatermarkZ } from '@/lib/watermark';
 import { extractFromUrl } from '@/lib/urlExtract';
 import { CropModal } from '@/components/modals/CropModal';
 
@@ -218,8 +217,6 @@ const FotosTab: React.FC = () => {
   const patchActive = usePlacaStore((s) => s.patchActivePhoto);
   const replaceUrl = usePlacaStore((s) => s.replacePhotoUrl);
   const [bgLoading, setBgLoading] = useState(false);
-  const [wmLoading, setWmLoading] = useState(false);
-  const [wmBulkProgress, setWmBulkProgress] = useState<{ cur: number; total: number } | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const active = photos[activeIdx];
 
@@ -248,60 +245,6 @@ const FotosTab: React.FC = () => {
       alert('Error: ' + (e.message || e));
     } finally {
       setBgLoading(false);
-    }
-  };
-
-  const handleWatermarkRemove = async () => {
-    if (!active) return;
-    setWmLoading(true);
-    try {
-      const newUrl = await removeWatermarkZ(active.url);
-      replaceUrl(activeIdx, newUrl);
-    } catch (e: any) {
-      alert('Error quitando marca: ' + (e.message || e));
-    } finally {
-      setWmLoading(false);
-    }
-  };
-
-  const handleWatermarkRemoveAll = async () => {
-    // Read fresh photos from the store at click time (not stale closure)
-    const startPhotos = usePlacaStore.getState().photos;
-    if (startPhotos.length === 0) return;
-    if (!confirm(`¿Quitar marca Z de ${startPhotos.length} fotos? Puede tardar unos segundos.`)) return;
-
-    const originalActiveIdx = usePlacaStore.getState().activePhotoIdx;
-    setWmBulkProgress({ cur: 0, total: startPhotos.length });
-    const failures: number[] = [];
-    try {
-      for (let i = 0; i < startPhotos.length; i++) {
-        setWmBulkProgress({ cur: i + 1, total: startPhotos.length });
-        // Show the photo being processed (visual feedback)
-        usePlacaStore.getState().setActivePhoto(i);
-        await new Promise((r) => setTimeout(r, 50));
-        // Read CURRENT url from the store (may have been updated by prior iterations or other actions)
-        const currentPhoto = usePlacaStore.getState().photos[i];
-        if (!currentPhoto) continue;
-        try {
-          const newUrl = await removeWatermarkZ(currentPhoto.url);
-          usePlacaStore.getState().replacePhotoUrl(i, newUrl);
-        } catch (e: any) {
-          console.warn('Watermark remove FAIL on photo', i, '→', e?.message || e);
-          failures.push(i + 1);
-        }
-      }
-      // Restore the originally active photo
-      usePlacaStore.getState().setActivePhoto(originalActiveIdx);
-      if (failures.length > 0) {
-        alert(
-          `Se quitó la marca de ${startPhotos.length - failures.length}/${startPhotos.length} fotos. ` +
-          `Fallaron: ${failures.join(', ')}.\n\n` +
-          'Probable causa: CORS — el servidor de origen no permite procesar la foto en el browser. ' +
-          'Para fotos de Tokko esto no debería pasar (se descargan como dataURL). Si pasa con paste-URL, las imágenes externas hay que pre-descargarlas primero.',
-        );
-      }
-    } finally {
-      setWmBulkProgress(null);
     }
   };
 
@@ -345,26 +288,6 @@ const FotosTab: React.FC = () => {
                 </button>
                 <button className="btn justify-center" onClick={handleBgRemove} disabled={bgLoading}>
                   <Wand2 className="w-3.5 h-3.5" /> {bgLoading ? '…' : 'Quitar fondo'}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  className="btn justify-center bg-brand/5 border-brand/30 text-brand hover:bg-brand/10"
-                  onClick={handleWatermarkRemove}
-                  disabled={wmLoading || !!wmBulkProgress}
-                  title="Quita la marca Z roja del centro de la foto"
-                >
-                  <Eraser className="w-3.5 h-3.5" /> {wmLoading ? 'Procesando…' : 'Quitar marca Z'}
-                </button>
-                <button
-                  className="btn justify-center"
-                  onClick={handleWatermarkRemoveAll}
-                  disabled={!!wmBulkProgress || wmLoading || photos.length < 2}
-                  title="Aplica el remove a TODAS las fotos del strip"
-                >
-                  <Eraser className="w-3.5 h-3.5" />
-                  {wmBulkProgress ? `${wmBulkProgress.cur}/${wmBulkProgress.total}` : 'Marca Z (todas)'}
                 </button>
               </div>
 

@@ -11,8 +11,7 @@ import {
   type TokkoSearchFilters,
 } from '@/lib/tokko';
 import { usePlacaStore } from '@/lib/store';
-import { removeWatermarkZ } from '@/lib/watermark';
-import { Search, Settings, Trash2, Key, CheckCircle, XCircle, Loader2, MapPin, Bed, Bath, Square as SquareIcon, ExternalLink, Eraser } from 'lucide-react';
+import { Search, Settings, Trash2, Key, CheckCircle, XCircle, Loader2, MapPin, Bed, Bath, Square as SquareIcon, ExternalLink } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -38,7 +37,6 @@ export const TokkoModal: React.FC<Props> = ({ open, onClose }) => {
   const [error, setError] = useState('');
   const [importingId, setImportingId] = useState<number | null>(null);
   const [importProgress, setImportProgress] = useState('');
-  const [autoRemoveWm, setAutoRemoveWm] = useState(true);
 
   useEffect(() => {
     if (!open) return;
@@ -125,17 +123,6 @@ export const TokkoModal: React.FC<Props> = ({ open, onClose }) => {
         } catch (e) {
           // CORS may block; try as plain URL fallback
           newDataUrls.push(urls[i]);
-        }
-      }
-
-      if (autoRemoveWm && newDataUrls.length > 0) {
-        for (let i = 0; i < newDataUrls.length; i++) {
-          setImportProgress(`Quitando marca Z ${i + 1}/${newDataUrls.length}…`);
-          try {
-            newDataUrls[i] = await removeWatermarkZ(newDataUrls[i]);
-          } catch (e) {
-            console.warn('watermark removal failed on', i, e);
-          }
         }
       }
 
@@ -266,11 +253,6 @@ export const TokkoModal: React.FC<Props> = ({ open, onClose }) => {
 
             <div className="flex items-center justify-between text-[11px] text-neutral-500">
               <span>{total > 0 ? `${total} propiedades encontradas` : results.length > 0 ? `${results.length} resultados` : 'Hacé click en buscar'}</span>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" checked={autoRemoveWm} onChange={(e) => setAutoRemoveWm(e.target.checked)} className="accent-brand" />
-                <Eraser className="w-3 h-3 text-brand" />
-                <span>Quitar marca Z auto al importar</span>
-              </label>
             </div>
 
             {error && (
