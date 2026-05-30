@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zamboni · 100 placas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;500;600&family=Bebas+Neue&family=Marcellus&family=Tenor+Sans&family=Italiana&family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9e9ec;color:#1a1a1a;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+
+  header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+    border-bottom:1px solid #dcdce0;padding:14px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  header h1{font-family:'Cinzel',serif;font-size:18px;font-weight:600;letter-spacing:.18em}
+  header .sub{font-size:12px;color:#888;letter-spacing:.04em}
+  .controls{margin-left:auto;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .toggle{display:flex;gap:6px;background:#f0f0f3;padding:4px;border-radius:99px}
+  .toggle button{border:0;background:transparent;padding:6px 16px;border-radius:99px;font-size:12px;font-weight:600;
+    letter-spacing:.05em;cursor:pointer;color:#666}
+  .toggle button.on{background:#1a1a1a;color:#fff}
+  .chk{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#444;cursor:pointer;user-select:none}
+  .chk input{accent-color:#de1f1a;width:15px;height:15px}
+
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:22px;padding:28px 24px 80px}
+
+  figure{display:flex;flex-direction:column;gap:8px}
+  /* SAFE ZONES (story 9:16): top ~13% / bottom ~16% del alto quedan tapados por IG */
+  .placa{container-type:inline-size;position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;
+    border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.14);background:#1a1a1a;--st:23cqw;--sb:29cqw}
+  .gallery.post .placa{aspect-ratio:4/5;--st:6cqw;--sb:6cqw}
+  figcaption{font-size:11px;color:#777;letter-spacing:.02em;padding:0 2px;display:flex;gap:6px}
+  figcaption b{color:#1a1a1a;font-weight:600}
+
+  /* ---- shared bits (sizes in cqw → escalan con la tarjeta) ---- */
+  .ph{position:absolute;background-size:cover;background-position:center}
+  .ov{position:absolute;inset:0}
+  /* wrap = área útil: respeta la zona segura arriba y abajo */
+  .wrap{position:absolute;left:0;right:0;top:var(--st);bottom:var(--sb);display:flex;padding:0 7cqw}
+
+  .logo{display:inline-flex;align-items:center;gap:.55em;line-height:1}
+  .logo .mono{border:.1em solid currentColor;width:1.75em;height:1.75em;display:flex;align-items:center;
+    justify-content:center;font-family:'Cinzel',serif;font-weight:600;font-size:1em}
+  .logo .wm{font-family:'Inter',sans-serif;font-weight:600;letter-spacing:.34em}
+
+  .lbl{font-family:var(--body);font-weight:500;letter-spacing:.32em;text-transform:uppercase;font-size:3.1cqw;opacity:.85}
+  .zona{font-family:var(--disp);line-height:1.05}
+  .price{font-family:var(--disp);line-height:1}
+  .price .cur{font-size:.42em;letter-spacing:.12em;vertical-align:.35em;opacity:.8;font-family:var(--body);font-weight:600}
+  .amb{font-family:var(--body);font-weight:400;letter-spacing:.04em;font-size:3.3cqw;opacity:.9}
+  .rule{background:var(--acc);border:0}
+
+  /* ---- guía de zona segura ---- */
+  .guides{position:absolute;inset:0;pointer-events:none;display:none;z-index:30}
+  .gallery.safe .guides{display:block}
+  .g-band{position:absolute;left:0;right:0;
+    background:repeating-linear-gradient(45deg,rgba(222,31,26,.16) 0 7px,rgba(222,31,26,.30) 7px 14px)}
+  .g-top{top:0;height:var(--st);border-bottom:1.5px dashed rgba(222,31,26,.85)}
+  .g-bot{bottom:0;height:var(--sb);border-top:1.5px dashed rgba(222,31,26,.85)}
+  .g-tag{position:absolute;left:50%;transform:translateX(-50%);font-size:2.6cqw;font-weight:700;
+    letter-spacing:.12em;color:#fff;background:rgba(222,31,26,.9);padding:.4em .8em;border-radius:.4em;white-space:nowrap}
+  .g-top .g-tag{bottom:1.2cqw}
+  .g-bot .g-tag{top:1.2cqw}
+</style>
+</head>
+<body>
+<header>
+  <h1>ZAMBONI</h1>
+  <span class="sub">100 placas · zona segura para historias</span>
+  <div class="controls">
+    <label class="chk"><input type="checkbox" id="safeChk" checked onchange="toggleSafe(this.checked)"> Ver zona segura</label>
+    <div class="toggle">
+      <button id="bStory" class="on" onclick="setFmt('story')">Story 9:16</button>
+      <button id="bPost" onclick="setFmt('post')">Post 4:5</button>
+    </div>
+  </div>
+</header>
+
+<div class="gallery safe" id="gallery"></div>
+
+<script>
+// ---------------- data ----------------
+const PHOTOS = [
+  'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=700&q=80',
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=700&q=80',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700&q=80',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=700&q=80',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=700&q=80',
+  'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=700&q=80',
+  'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=700&q=80',
+  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=700&q=80',
+];
+
+const LISTINGS = [
+  { zona:'Palermo',  cur:'USD', val:'245.000', amb:'3 amb · 84 m² · 2 baños · Cochera' },
+  { zona:'Belgrano', cur:'USD', val:'320.000', amb:'4 amb · 110 m² · 3 baños' },
+  { zona:'Recoleta', cur:'USD', val:'198.000', amb:'2 amb · 62 m² · 1 baño' },
+  { zona:'Núñez',    cur:'USD', val:'410.000', amb:'4 amb · 135 m² · Cochera' },
+  { zona:'Caballito',cur:'USD', val:'165.000', amb:'2 amb · 55 m²' },
+];
+
+const THEMES = [
+  { name:'Noir',      disp:'Cormorant Garamond', body:'Inter',         bg:'#0f0f0f', txt:'#f4f4f4', acc:'#c9a86b' },
+  { name:'Cream',     disp:'Cormorant Garamond', body:'Inter',         bg:'#f4ede0', txt:'#2a1810', acc:'#b07a3c' },
+  { name:'Swiss',     disp:'Inter',              body:'Inter',         bg:'#ffffff', txt:'#111111', acc:'#de1f1a' },
+  { name:'Editorial', disp:'Playfair Display',   body:'IBM Plex Mono', bg:'#f7f4ec', txt:'#1c1715', acc:'#8a7a55' },
+  { name:'Gold',      disp:'Italiana',           body:'Inter',         bg:'#1c1715', txt:'#f0e6d2', acc:'#c9a86b' },
+  { name:'Bebas',     disp:'Bebas Neue',         body:'Inter',         bg:'#141414', txt:'#ffffff', acc:'#de1f1a' },
+  { name:'Sand',      disp:'Marcellus',          body:'Inter',         bg:'#ece8e1', txt:'#3a3530', acc:'#9a8f7a' },
+  { name:'Cinema',    disp:'Tenor Sans',         body:'IBM Plex Mono', bg:'#000000', txt:'#ffffff', acc:'#bfa980' },
+  { name:'Architect', disp:'Space Grotesk',      body:'IBM Plex Mono', bg:'#fafafa', txt:'#0a0a0a', acc:'#0a0a0a' },
+  { name:'Classic',   disp:'Cinzel',             body:'Inter',         bg:'#13211c', txt:'#eef2ee', acc:'#c9a86b' },
+];
+
+// ---------------- helpers ----------------
+const logo = (color, size=3.6) =>
+  `<div class="logo" style="color:${color};font-size:${size}cqw">
+     <span class="mono">Z</span><span class="wm">ZAMBONI</span>
+   </div>`;
+
+const priceHTML = (L) => `<span class="cur">${L.cur}</span> ${L.val}`;
+
+const phFull = (photo, grad) =>
+  `<div class="ph" style="inset:0;background-image:${grad?grad+',':''}url('${photo}')"></div>`;
+
+const GUIDES =
+  `<div class="guides"><div class="g-band g-top"><span class="g-tag">perfil</span></div>` +
+  `<div class="g-band g-bot"><span class="g-tag">responder · enviar</span></div></div>`;
+
+// ---------------- 10 layouts (todo el contenido clave vive dentro de la zona segura) ----------------
+const LAYOUTS = [
+
+  // 1 — Centrado
+  { name:'Centrado', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(rgba(0,0,0,.46),rgba(0,0,0,.46))')}
+    <div class="wrap" style="flex-direction:column;align-items:center;text-align:center;justify-content:center;color:#fff">
+      <div style="position:absolute;top:0">${logo('#fff',3.4)}</div>
+      <div class="lbl" style="color:${t.acc}">${L.zona}</div>
+      <hr class="rule" style="width:8cqw;height:.4cqw;margin:4cqw 0 5cqw">
+      <div class="price" style="font-size:18cqw">${priceHTML(L)}</div>
+      <div class="amb" style="margin-top:4cqw">${L.amb}</div>
+    </div>`},
+
+  // 2 — Pie izquierda (apoyado en el borde de la zona segura)
+  { name:'Pie', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.8) 78%,rgba(0,0,0,.8) 100%)')}
+    <div class="wrap" style="flex-direction:column;justify-content:flex-end;color:#fff">
+      <div style="position:absolute;top:0;left:7cqw">${logo('#fff',3.2)}</div>
+      <div class="lbl" style="color:${t.acc};margin-bottom:2.5cqw">${L.zona}</div>
+      <div class="price" style="font-size:17cqw">${priceHTML(L)}</div>
+      <div class="amb" style="margin-top:3cqw">${L.amb}</div>
+    </div>`},
+
+  // 3 — Barra: panel inferior, pero el texto vive arriba del panel (sobre la barra de responder)
+  { name:'Barra', render:(p,t,L)=>`
+    <div class="ph" style="top:0;left:0;right:0;height:60%;background-image:url('${p}')"></div>
+    <div style="position:absolute;top:var(--st);right:7cqw">${logo('#fff',3)}</div>
+    <div style="position:absolute;left:0;right:0;top:60%;bottom:0;background:${t.bg};color:${t.txt};
+      display:flex;align-items:flex-start;justify-content:space-between;padding:6cqw 7cqw">
+      <div>
+        <div class="lbl" style="color:${t.acc};margin-bottom:2cqw">${L.zona}</div>
+        <div class="amb" style="opacity:.7">${L.amb}</div>
+      </div>
+      <div class="price" style="font-size:13cqw;text-align:right">${priceHTML(L)}</div>
+    </div>`},
+
+  // 4 — Cima y pie
+  { name:'Cima/Pie', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 28%,rgba(0,0,0,0) 55%,rgba(0,0,0,.8) 82%,rgba(0,0,0,.8) 100%)')}
+    <div class="wrap" style="flex-direction:column;align-items:center;text-align:center;color:#fff">
+      ${logo('#fff',3.2)}
+      <div class="lbl" style="color:${t.acc};margin-top:3cqw">${L.zona}</div>
+      <div style="flex:1"></div>
+      <div class="price" style="font-size:16cqw">${priceHTML(L)}</div>
+      <div class="amb" style="margin-top:3cqw">${L.amb}</div>
+    </div>`},
+
+  // 5 — Cine (letterbox dentro de la zona segura)
+  { name:'Cine', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(180deg,rgba(0,0,0,.55) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 65%,rgba(0,0,0,.7) 100%)')}
+    <div class="wrap" style="flex-direction:column;align-items:center;text-align:center;justify-content:space-between;color:#fff">
+      <div class="lbl" style="letter-spacing:.5em;font-size:2.7cqw">${L.zona.toUpperCase()}</div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="price" style="font-size:13cqw;letter-spacing:.06em">${priceHTML(L)}</div>
+        <div class="amb" style="margin-top:3cqw;font-size:2.9cqw;letter-spacing:.18em">${L.amb}</div>
+      </div>
+      ${logo('#fff',3)}
+    </div>`},
+
+  // 6 — Tarjeta flotante (levantada por encima de la barra de responder)
+  { name:'Tarjeta', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(rgba(0,0,0,.12),rgba(0,0,0,.12))')}
+    <div style="position:absolute;top:var(--st);right:7cqw">${logo('#fff',2.8)}</div>
+    <div style="position:absolute;left:7cqw;right:7cqw;bottom:calc(var(--sb) + 4cqw);background:${t.bg};color:${t.txt};
+      padding:7cqw;border-radius:3cqw;box-shadow:0 4cqw 12cqw rgba(0,0,0,.3)">
+      <div class="lbl" style="color:${t.acc};margin-bottom:3cqw">${L.zona}</div>
+      <div class="price" style="font-size:13cqw">${priceHTML(L)}</div>
+      <hr class="rule" style="height:.3cqw;opacity:.4;margin:4cqw 0">
+      <div class="amb" style="opacity:.75">${L.amb}</div>
+    </div>`},
+
+  // 7 — Esquina (minimal)
+  { name:'Esquina', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 60%,rgba(0,0,0,.55) 90%)')}
+    <div class="wrap" style="flex-direction:column;justify-content:space-between;color:#fff">
+      ${logo('#fff',3.2)}
+      <div>
+        <div class="lbl" style="color:${t.acc};margin-bottom:2.5cqw">${L.zona}</div>
+        <div class="price" style="font-size:14cqw">${priceHTML(L)}</div>
+        <div class="amb" style="margin-top:2.5cqw;font-size:3cqw">${L.amb}</div>
+      </div>
+    </div>`},
+
+  // 8 — Split (panel + foto), contenido centrado en la zona segura
+  { name:'Split', render:(p,t,L)=>`
+    <div class="ph" style="top:0;bottom:0;right:0;width:52%;background-image:url('${p}')"></div>
+    <div style="position:absolute;top:0;bottom:0;left:0;width:48%;background:${t.bg};color:${t.txt};
+      display:flex;flex-direction:column;justify-content:center;padding:var(--st) 7cqw var(--sb)">
+      <div style="margin-bottom:6cqw">${logo(t.txt,3)}</div>
+      <div class="lbl" style="color:${t.acc};margin-bottom:3cqw">${L.zona}</div>
+      <div class="price" style="font-size:13cqw">${priceHTML(L)}</div>
+      <div class="amb" style="margin-top:3cqw;opacity:.7">${L.amb}</div>
+    </div>`},
+
+  // 9 — Editorial (foto arriba / info abajo, toda por encima de la barra)
+  { name:'Editorial', render:(p,t,L)=>`
+    <div class="ph" style="top:0;left:0;right:0;height:48%;background-image:url('${p}')"></div>
+    <div style="position:absolute;left:0;right:0;top:48%;bottom:var(--sb);background:${t.bg};color:${t.txt};
+      padding:6cqw 7cqw;display:flex;flex-direction:column">
+      ${logo(t.txt,2.8)}
+      <div class="zona" style="font-size:14cqw;margin-top:4cqw">${L.zona}</div>
+      <div class="price" style="font-size:12cqw;margin-top:auto;border-top:.3cqw solid ${t.acc};padding-top:3cqw">${priceHTML(L)}</div>
+      <div class="amb" style="margin-top:2.5cqw;opacity:.6;font-size:3cqw">${L.amb}</div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:var(--sb);background:${t.bg}"></div>`},
+
+  // 10 — Marco
+  { name:'Marco', render:(p,t,L)=>`
+    ${phFull(p,'linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,.34))')}
+    <div class="wrap" style="border:.4cqw solid rgba(255,255,255,.7);flex-direction:column;align-items:center;
+      text-align:center;justify-content:space-between;color:#fff;padding:5cqw">
+      ${logo('#fff',3)}
+      <div>
+        <div class="lbl" style="color:${t.acc};margin-bottom:3cqw">${L.zona}</div>
+        <div class="price" style="font-size:15cqw">${priceHTML(L)}</div>
+      </div>
+      <div class="amb" style="font-size:2.9cqw;letter-spacing:.12em">${L.amb}</div>
+    </div>`},
+];
+
+// ---------------- build 100 ----------------
+const g = document.getElementById('gallery');
+let html = '';
+for (let i = 0; i < 100; i++) {
+  const layout = LAYOUTS[i % 10];
+  const theme  = THEMES[Math.floor(i / 10)];
+  const L      = LISTINGS[i % LISTINGS.length];
+  const photo  = PHOTOS[i % PHOTOS.length];
+  const vars   = `--disp:'${theme.disp}';--body:'${theme.body}';--acc:${theme.acc};--txt:${theme.txt}`;
+  html += `<figure>
+      <div class="placa" style="${vars};background:${theme.bg}">${layout.render(photo, theme, L)}${GUIDES}</div>
+      <figcaption><b>#${i+1}</b> ${layout.name} · ${theme.name}</figcaption>
+    </figure>`;
+}
+g.innerHTML = html;
+
+function setFmt(f){
+  g.classList.toggle('post', f === 'post');
+  document.getElementById('bStory').classList.toggle('on', f === 'story');
+  document.getElementById('bPost').classList.toggle('on', f === 'post');
+}
+function toggleSafe(on){ g.classList.toggle('safe', on); }
+</script>
+</body>
+</html>
