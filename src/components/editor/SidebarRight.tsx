@@ -406,11 +406,24 @@ const TemaTab: React.FC = () => {
           <img src={theme.logoUrl} alt="" className="w-12 h-12 object-contain bg-neutral-100 rounded" />
           <label className="btn flex-1 justify-center cursor-pointer">
             <Upload className="w-3.5 h-3.5" />
-            Cambiar logo
+            Subir mi logo
             <input type="file" accept="image/*,.svg" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogo(e.target.files[0])} />
           </label>
         </div>
-        <button className="btn w-full" onClick={() => patchTheme({ logoUrl: '/logo-z.png' })}>Volver al logo Z</button>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            className={`btn justify-center ${theme.logoUrl === '/logo-z.png' ? 'btn-primary' : ''}`}
+            onClick={() => patchTheme({ logoUrl: '/logo-z.png' })}
+          >
+            Solo Z
+          </button>
+          <button
+            className={`btn justify-center ${theme.logoUrl === '/logo-zamboni.svg' ? 'btn-primary' : ''}`}
+            onClick={() => patchTheme({ logoUrl: '/logo-zamboni.svg' })}
+          >
+            Z + ZAMBONI
+          </button>
+        </div>
       </div>
 
       <div className="divider" />
