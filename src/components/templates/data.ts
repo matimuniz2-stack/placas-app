@@ -267,32 +267,35 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     },
   },
 
-  // ============== t16: ZAMBONI EDITORIAL (foto top + panel crema) ==============
+  // ============== t16: ZAMBONI EDITORIAL (foto top + panel crema premium) ==============
   {
     id: 't16',
     name: 'Zamboni Pro',
     category: 'premium',
-    bgColor: '#e7ddcb',
-    textColor: '#2b2620',
+    bgColor: '#f4ebdd',
+    textColor: '#2b1a14',
+    // Fundido suave foto → panel beige (sin corte duro)
+    overlay:
+      'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 46%, rgba(244,235,221,0.55) 53%, rgba(244,235,221,0.92) 58%, #f4ebdd 61%, #f4ebdd 100%)',
     defaultLayers: {
-      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 60 }),
-      // Píldora "EN VENTA" arriba a la derecha, sobre la foto
-      op: L({ id: 'op', x: 60, y: 4, w: 34, h: 0, bg: '#cf2520', color: '#ffffff', font: 'Inter', size: 26, weight: 700, align: 'center', letterSpacing: 3, uppercase: true, padding: 18, radius: 14, z: 30 }),
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 61 }),
+      // Sticker "EN VENTA" arriba a la derecha, separado del borde (no choca con los 3 puntitos de IG)
+      op: L({ id: 'op', x: 75.5, y: 6.3, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
       // Etiqueta "— en venta"
-      lbl: L({ id: 'lbl', x: 6, y: 63.5, w: 50, font: 'Cormorant Garamond', size: 34, color: '#7a6f5f', italic: true, letterSpacing: 1 }),
-      // Logo a la derecha
-      logo: L({ id: 'logo', x: 74, y: 64, w: 19, h: 0 }),
+      lbl: L({ id: 'lbl', x: 7.4, y: 60.4, w: 50, font: 'Cormorant Garamond', size: 32, color: '#a78b61', italic: true, letterSpacing: 1 }),
+      // Logo a la derecha del panel
+      logo: L({ id: 'logo', x: 76.5, y: 60.5, w: 17, h: 0 }),
       // Título grande (ej: "Departamento en Playa Grande")
-      addr: L({ id: 'addr', x: 6, y: 65.5, w: 62, font: 'Playfair Display', size: 82, color: '#2b2620', weight: 700, lineHeight: 1.02 }),
+      addr: L({ id: 'addr', x: 7.4, y: 63.5, w: 62, font: 'Playfair Display', size: 84, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
       // Divisor con rombo
-      line: L({ id: 'line', x: 6, y: 78.6, w: 60, h: 0.12, bg: '#cdbb96', z: 4 }),
-      dot: L({ id: 'dot', x: 35, y: 78, w: 2.2, h: 1.24, bg: '#b89a63', rotation: 45, z: 6 }),
+      line: L({ id: 'line', x: 7.4, y: 74.5, w: 57, h: 0.1, bg: 'rgba(199,168,107,0.55)', z: 4 }),
+      dot: L({ id: 'dot', x: 35.5, y: 73.9, w: 2, h: 1.13, bg: '#c7a86b', rotation: 45, z: 6 }),
       // Precio en rojo
-      price: L({ id: 'price', x: 6, y: 80.5, w: 84, font: 'Playfair Display', size: 110, color: '#c0271f', weight: 900, lineHeight: 1 }),
+      price: L({ id: 'price', x: 7.4, y: 77, w: 85, font: 'Playfair Display', size: 106, color: '#d9221f', weight: 700, lineHeight: 1 }),
       // Línea de detalles
-      amen: L({ id: 'amen', x: 6, y: 90.5, w: 84, font: 'Inter', size: 30, color: '#4a443c', letterSpacing: 0.5 }),
-      // Ubicación con pin (ej: "📍 Mar del Plata"), con divisor arriba
-      barrio: L({ id: 'barrio', x: 6, y: 94.5, w: 84, font: 'Inter', size: 28, color: '#3a342c', weight: 500, borderTop: '1px solid #cdbb96', padding: 16 }),
+      amen: L({ id: 'amen', x: 7.4, y: 86, w: 85, font: 'Inter', size: 36, color: '#2b1a14', letterSpacing: 0.5 }),
+      // Ubicación con pin (ej: "📍 Mar del Plata"), con divisor fino arriba
+      barrio: L({ id: 'barrio', x: 7.4, y: 90, w: 57, font: 'Inter', size: 34, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.6)', padding: 20 }),
     },
   },
 ];
