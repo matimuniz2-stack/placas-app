@@ -49,6 +49,7 @@ export interface LayerConfig {
   border?: string;
   borderTop?: string;
   padding?: number;
+  radius?: number; // border-radius en px (para píldoras/badges)
 }
 
 export interface PlacaData {

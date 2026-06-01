@@ -266,4 +266,33 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       price: L({ id: 'price', x: 32, y: 89, w: 64, font: 'Playfair Display', size: 50, color: '#1c1715', weight: 700 }),
     },
   },
+
+  // ============== t16: ZAMBONI EDITORIAL (foto top + panel crema) ==============
+  {
+    id: 't16',
+    name: 'Zamboni Pro',
+    category: 'premium',
+    bgColor: '#e7ddcb',
+    textColor: '#2b2620',
+    defaultLayers: {
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 60 }),
+      // Píldora "EN VENTA" arriba a la derecha, sobre la foto
+      op: L({ id: 'op', x: 60, y: 4, w: 34, h: 0, bg: '#cf2520', color: '#ffffff', font: 'Inter', size: 26, weight: 700, align: 'center', letterSpacing: 3, uppercase: true, padding: 18, radius: 14, z: 30 }),
+      // Etiqueta "— en venta"
+      lbl: L({ id: 'lbl', x: 6, y: 63.5, w: 50, font: 'Cormorant Garamond', size: 34, color: '#7a6f5f', italic: true, letterSpacing: 1 }),
+      // Logo a la derecha
+      logo: L({ id: 'logo', x: 74, y: 64, w: 19, h: 0 }),
+      // Título grande (ej: "Departamento en Playa Grande")
+      addr: L({ id: 'addr', x: 6, y: 65.5, w: 62, font: 'Playfair Display', size: 82, color: '#2b2620', weight: 700, lineHeight: 1.02 }),
+      // Divisor con rombo
+      line: L({ id: 'line', x: 6, y: 78.6, w: 60, h: 0.12, bg: '#cdbb96', z: 4 }),
+      dot: L({ id: 'dot', x: 35, y: 78, w: 2.2, h: 1.24, bg: '#b89a63', rotation: 45, z: 6 }),
+      // Precio en rojo
+      price: L({ id: 'price', x: 6, y: 80.5, w: 84, font: 'Playfair Display', size: 110, color: '#c0271f', weight: 900, lineHeight: 1 }),
+      // Línea de detalles
+      amen: L({ id: 'amen', x: 6, y: 90.5, w: 84, font: 'Inter', size: 30, color: '#4a443c', letterSpacing: 0.5 }),
+      // Ubicación con pin (ej: "📍 Mar del Plata"), con divisor arriba
+      barrio: L({ id: 'barrio', x: 6, y: 94.5, w: 84, font: 'Inter', size: 28, color: '#3a342c', weight: 500, borderTop: '1px solid #cdbb96', padding: 16 }),
+    },
+  },
 ];
