@@ -9,6 +9,7 @@ export interface BadgeDef {
 }
 
 export const BADGE_PRESETS: BadgeDef[] = [
+  { id: 'disponible', label: 'DISPONIBLE', bg: '#de1f1a', fg: '#ffffff' },
   { id: 'nuevo', label: 'NUEVO', bg: '#de1f1a', fg: '#ffffff' },
   { id: 'rebajado', label: 'REBAJADO', bg: '#0a0a0a', fg: '#ffffff' },
   { id: 'exclusivo', label: 'EXCLUSIVO', bg: '#c9a86b', fg: '#1c1715' },
