@@ -274,9 +274,9 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     category: 'premium',
     bgColor: '#f4ebdd',
     textColor: '#2b1a14',
-    // Fundido suave foto → panel beige (sin corte duro)
+    // Fundido sutil al borde inferior de la foto (easing en varios pasos, poco fade)
     overlay:
-      'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 46%, rgba(244,235,221,0.55) 53%, rgba(244,235,221,0.92) 58%, #f4ebdd 61%, #f4ebdd 100%)',
+      'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 53%, rgba(244,235,221,0.08) 55.5%, rgba(244,235,221,0.25) 57.5%, rgba(244,235,221,0.55) 59%, rgba(244,235,221,0.85) 60.3%, #f4ebdd 61%, #f4ebdd 100%)',
     defaultLayers: {
       photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 61 }),
       // Sticker "EN VENTA" arriba a la derecha, separado del borde (no choca con los 3 puntitos de IG)
