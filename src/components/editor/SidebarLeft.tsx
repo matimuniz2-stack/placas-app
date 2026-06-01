@@ -3,6 +3,7 @@ import { usePlacaStore } from '@/lib/store';
 import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
 import { extractFromUrl } from '@/lib/urlExtract';
+import { amenString } from '@/lib/format';
 import { CropModal } from '@/components/modals/CropModal';
 
 type Tab = 'datos' | 'fotos' | 'agente';
@@ -161,6 +162,19 @@ const DatosTab: React.FC = () => {
         <Field label="Amb" v={data.amb} on={(v) => patchData({ amb: v })} />
         <Field label="m²" v={data.m2} on={(v) => patchData({ m2: v })} />
         <Field label="Baños" v={data.baths} on={(v) => patchData({ baths: v })} />
+      </div>
+
+      <div>
+        <label className="label">Línea de detalles (editable)</label>
+        <input
+          className="input"
+          value={data.amenText || ''}
+          placeholder={amenString(data) || 'ej: 3 amb · 85 m² · 2 baños · cochera'}
+          onChange={(e) => patchData({ amenText: e.target.value })}
+        />
+        <p className="text-[10px] text-neutral-400 mt-1 leading-snug">
+          Vacío = se arma solo con amb/m²/baños/cochera. Escribí acá para personalizarla (ej: agregar "balcón", "apto profesional").
+        </p>
       </div>
 
       <div>

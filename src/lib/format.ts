@@ -21,6 +21,8 @@ export function abbreviatePrice(raw: string): string {
 }
 
 export function amenString(d: PlacaData): string {
+  // Si el usuario escribió un texto manual, ese tiene prioridad sobre el auto.
+  if (d.amenText && d.amenText.trim()) return d.amenText;
   const parts: string[] = [];
   if (d.amb) parts.push(`${d.amb} amb`);
   if (d.m2) parts.push(`${d.m2} m²`);

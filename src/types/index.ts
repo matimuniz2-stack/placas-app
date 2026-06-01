@@ -65,6 +65,7 @@ export interface PlacaData {
   antiguedad?: string;
   desc?: string;
   listingUrl?: string;
+  amenText?: string; // override manual de la línea de detalles (amb · m² · baños…)
 }
 
 export interface PhotoState {
