@@ -71,7 +71,7 @@ const App: React.FC = () => {
         <main className="flex-1 min-w-0 relative">
           <Canvas ref={placaRef} />
         </main>
-        <SidebarRight />
+        <SidebarRight placaRef={placaRef} />
       </div>
     </div>
   );

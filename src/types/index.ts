@@ -127,3 +127,19 @@ export interface Draft {
   theme: ThemeState;
   badges: string[];
 }
+
+/**
+ * Un "boceto" reusable: guarda SOLO el diseño (sin datos de la propiedad ni
+ * fotos). Se aplica sobre cualquier propiedad para reproducir el layout.
+ */
+export interface DesignPreset {
+  id: string;
+  name: string;
+  savedAt: string;
+  format: Format;
+  templateId: string; // template base del que deriva
+  variantId: string;
+  layerOverrides: Partial<Record<LayerId, Partial<LayerConfig>>>;
+  theme: ThemeState; // color de marca, fuentes, logo
+  thumb?: string; // dataURL jpg de preview (best-effort)
+}

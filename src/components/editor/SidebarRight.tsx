@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
 import { ALL_TEMPLATES, templatesByCategory } from '@/components/templates/registry';
 import { VARIANTS } from '@/lib/variants';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { BADGE_PRESETS } from '@/components/templates/primitives/Badge';
 import { HexColorPicker } from 'react-colorful';
-import { Eye, EyeOff, RotateCcw, Upload, Sparkles, MapPin, Loader2, X } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Upload, Sparkles, MapPin, Loader2, X, Save, Trash2, Bookmark } from 'lucide-react';
 import { renderStaticMap, geocodeAddress, type MapStyle } from '@/lib/map';
 import { PlacaRenderer } from '@/components/templates/Renderer';
-import type { LayerId } from '@/types';
+import { listPresets, savePreset, deletePreset } from '@/lib/presets';
+import { captureThumb } from '@/lib/export';
+import type { LayerId, DesignPreset } from '@/types';
 
 type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
+
+const FORMAT_SIZES = { story: { w: 1080, h: 1920 }, post: { w: 1080, h: 1350 } } as const;
 
 const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   photo: 'Foto',
@@ -33,7 +37,11 @@ const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   dot: 'Punto',
 };
 
-export const SidebarRight: React.FC = () => {
+interface SidebarRightProps {
+  placaRef?: React.RefObject<HTMLDivElement>;
+}
+
+export const SidebarRight: React.FC<SidebarRightProps> = ({ placaRef }) => {
   const [tab, setTab] = useState<Tab>('inspector');
   const open = usePlacaStore((s) => s.sidebarRightOpen);
   const selected = usePlacaStore((s) => s.selectedLayer);
@@ -63,7 +71,7 @@ export const SidebarRight: React.FC = () => {
       </div>
       <div className="flex-1 overflow-y-auto">
         {tab === 'inspector' && <InspectorTab />}
-        {tab === 'templates' && <TemplatesTab />}
+        {tab === 'templates' && <TemplatesTab placaRef={placaRef} />}
         {tab === 'tema' && <TemaTab />}
         {tab === 'extras' && <ExtrasTab />}
       </div>
@@ -202,7 +210,109 @@ const ColorField: React.FC<{ v: string; on: (v: string) => void }> = ({ v, on })
   );
 };
 
-const TemplatesTab: React.FC = () => {
+const MisBocetos: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = ({ placaRef }) => {
+  const [presets, setPresets] = useState<DesignPreset[]>([]);
+  const [saving, setSaving] = useState(false);
+  const applyPreset = usePlacaStore((s) => s.applyPreset);
+
+  const refresh = () => listPresets().then(setPresets);
+  useEffect(() => { refresh(); }, []);
+
+  const handleSave = async () => {
+    const s = usePlacaStore.getState();
+    const name = window.prompt('Nombre del boceto:', `Boceto ${s.templateId}`);
+    if (name === null) return; // cancelado
+    setSaving(true);
+    try {
+      let thumb: string | undefined;
+      const node = placaRef?.current;
+      if (node) {
+        const size = FORMAT_SIZES[s.format];
+        try { thumb = await captureThumb(node, size.w, size.h); } catch { thumb = undefined; }
+      }
+      const preset: DesignPreset = {
+        id: 'p_' + Date.now(),
+        name: name.trim() || `Boceto ${s.templateId}`,
+        savedAt: new Date().toISOString(),
+        format: s.format,
+        templateId: s.templateId,
+        variantId: s.variantId,
+        layerOverrides: s.layerOverrides,
+        theme: s.theme,
+        thumb,
+      };
+      await savePreset(preset);
+      refresh();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApply = (p: DesignPreset) => {
+    applyPreset({
+      format: p.format,
+      templateId: p.templateId,
+      variantId: p.variantId,
+      layerOverrides: p.layerOverrides,
+      theme: p.theme,
+    });
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('¿Eliminar este boceto?')) return;
+    await deletePreset(id);
+    refresh();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="section-title flex items-center gap-1.5"><Bookmark className="w-3 h-3" /> Mis bocetos</div>
+        <button className="btn btn-primary px-2 py-1 text-[10px]" onClick={handleSave} disabled={saving}>
+          {saving ? '…' : <><Save className="w-3 h-3" /> Guardar diseño</>}
+        </button>
+      </div>
+      {presets.length === 0 ? (
+        <p className="text-[10px] text-neutral-400 leading-snug">
+          Ajustá el diseño (mové el logo, cambiá fuentes/colores) y guardalo como boceto reusable. Lo aplicás a cualquier propiedad sin tocar sus datos ni fotos.
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          {presets.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => handleApply(p)}
+              className="group relative rounded border-2 border-neutral-200 hover:border-brand overflow-hidden aspect-[9/16] bg-neutral-100"
+              title={`Aplicar "${p.name}"`}
+            >
+              {p.thumb ? (
+                <img src={p.thumb} alt={p.name} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-[9px] text-neutral-500 uppercase tracking-wider"
+                  style={{ background: p.theme.brand + '22' }}
+                >
+                  {p.templateId}
+                </div>
+              )}
+              <span
+                onClick={(e) => handleDelete(e, p.id)}
+                className="absolute top-0.5 right-0.5 z-10 bg-white/90 hover:bg-brand hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                title="Eliminar boceto"
+              >
+                <Trash2 className="w-2.5 h-2.5" />
+              </span>
+              <span className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[8px] py-0.5 px-1 text-center truncate">{p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TemplatesTab: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = ({ placaRef }) => {
   const cats = templatesByCategory();
   const templateId = usePlacaStore((s) => s.templateId);
   const variantId = usePlacaStore((s) => s.variantId);
@@ -211,6 +321,10 @@ const TemplatesTab: React.FC = () => {
 
   return (
     <div className="px-3 py-3 space-y-4">
+      <MisBocetos placaRef={placaRef} />
+
+      <div className="divider" />
+
       <div>
         <div className="section-title mb-2">Variante</div>
         <div className="grid grid-cols-3 gap-1.5">

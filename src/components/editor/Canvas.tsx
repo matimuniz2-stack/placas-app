@@ -142,7 +142,9 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
     const photos = usePlacaStore.getState().photos;
     const active = photos[usePlacaStore.getState().activePhotoIdx];
     if (!active) return;
-    if (selected && !photoIsSelectedFullbleed) return;
+    // Zoom permitido cuando no hay nada seleccionado o cuando la foto está
+    // seleccionada (sea fullbleed o un cuadro contenido).
+    if (selected && selected !== 'photo') return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.08 : 0.08;
     const newZoom = Math.max(1, Math.min(3, active.zoom + delta));
@@ -152,6 +154,28 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   // react-moveable callbacks
   const handleDrag = (e: OnDrag) => {
     if (!selected) return;
+
+    // Foto contenida (cuadro dentro del placa): arrastrar ENCUADRA la imagen
+    // dentro de su caja en lugar de mover la caja. La caja se reubica con los
+    // inputs X/Y del inspector y se redimensiona con los handles (onResize).
+    if (selected === 'photo' && !photoIsFullbleed) {
+      const active = usePlacaStore.getState().photos[usePlacaStore.getState().activePhotoIdx];
+      const layer = getEffectiveLayer('photo');
+      if (!active || !layer) return;
+      const boxW = size.w * ((layer.w || 100) / 100);
+      const boxH = size.h * ((layer.h || 100) / 100);
+      const dx = (e.delta[0] / boxW) * 100;
+      const dy = (e.delta[1] / boxH) * 100;
+      patchActivePhoto({
+        pos: {
+          x: Math.max(0, Math.min(100, active.pos.x - dx)),
+          y: Math.max(0, Math.min(100, active.pos.y - dy)),
+        },
+      });
+      moveableRef.current?.updateRect();
+      return;
+    }
+
     const layer = getEffectiveLayer(selected);
     if (!layer) return;
     const dx = (e.delta[0] / size.w) * 100;
@@ -182,7 +206,9 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
 
   const photos = usePlacaStore((s) => s.photos);
   const hasPhoto = photos.length > 0;
+  const photoContainedSelected = selected === 'photo' && !photoIsFullbleed;
   const showPhotoCursor = hasPhoto && (!selected || photoIsSelectedFullbleed);
+  const canFramePhoto = hasPhoto && (showPhotoCursor || photoContainedSelected);
   const useMoveable = !!target && !!selected && !photoIsSelectedFullbleed;
 
   return (
@@ -284,7 +310,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         }}
       >
         {Math.round(scale * 100)}%  ·  {size.w}×{size.h}
-        {showPhotoCursor && hasPhoto && <span className="ml-2 text-brand">· drag/scroll para encuadrar</span>}
+        {canFramePhoto && <span className="ml-2 text-brand">· {photoContainedSelected ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
       </div>
     </div>
   );

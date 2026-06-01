@@ -62,6 +62,14 @@ interface PlacaState {
   patchTheme: (p: Partial<ThemeState>) => void;
   setAgent: (a: AgentProfile | null) => void;
 
+  applyPreset: (p: {
+    format: Format;
+    templateId: string;
+    variantId: string;
+    layerOverrides: Partial<Record<LayerId, Partial<LayerConfig>>>;
+    theme: ThemeState;
+  }) => void;
+
   toggleBadge: (id: string) => void;
   setQrUrl: (url: string) => void;
   setMapUrl: (url: string) => void;
@@ -188,6 +196,18 @@ export const usePlacaStore = create<PlacaState>()(
 
       patchTheme: (p) => set((s) => ({ theme: { ...s.theme, ...p } })),
       setAgent: (a) => set({ agent: a }),
+
+      // Aplica un boceto guardado: reemplaza SOLO el diseño (template, layout,
+      // tema, formato). No toca data, fotos, badges ni agente de la propiedad.
+      applyPreset: (p) =>
+        set({
+          format: p.format,
+          templateId: p.templateId,
+          variantId: p.variantId,
+          layerOverrides: p.layerOverrides || {},
+          theme: p.theme,
+          selectedLayer: null,
+        }),
 
       toggleBadge: (id) =>
         set((s) => ({

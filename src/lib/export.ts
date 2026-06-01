@@ -60,6 +60,31 @@ export async function captureToDataUrl(
   return await captureNode(node, { format, resolution, width, height });
 }
 
+/**
+ * Captura un thumbnail liviano (jpg, ~200px de ancho) del placa para previews.
+ * Best-effort: si falla, el caller debe manejar el error y seguir sin thumb.
+ */
+export async function captureThumb(node: HTMLElement, width: number, height: number): Promise<string> {
+  await waitFontsReady();
+  const filter = (el: Element) => {
+    if (el.tagName === 'LINK') {
+      const href = (el as HTMLLinkElement).href;
+      if (href && /fonts\.googleapis\.com|fonts\.gstatic\.com/.test(href)) return false;
+    }
+    return true;
+  };
+  return await toJpeg(node, {
+    width,
+    height,
+    pixelRatio: 0.18, // 1080 → ~195px
+    quality: 0.7,
+    cacheBust: true,
+    skipFonts: false,
+    filter,
+    style: { transform: 'scale(1)', transformOrigin: 'top left' },
+  });
+}
+
 export function downloadDataUrl(dataUrl: string, filename: string) {
   const link = document.createElement('a');
   link.download = filename;
