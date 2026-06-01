@@ -278,7 +278,7 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     overlay:
       'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 49%, rgba(244,235,221,0.15) 52.5%, rgba(244,235,221,0.4) 55.5%, rgba(244,235,221,0.68) 58%, rgba(244,235,221,0.9) 60%, #f4ebdd 61%, #f4ebdd 100%)',
     defaultLayers: {
-      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 61 }),
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 61, z: 0 }),
       // Sticker "EN VENTA" arriba a la derecha, separado del borde (no choca con los 3 puntitos de IG)
       op: L({ id: 'op', x: 75.5, y: 6.3, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
       // Etiqueta "— en venta"
