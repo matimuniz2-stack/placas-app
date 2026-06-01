@@ -18,7 +18,9 @@ interface PlacaState {
   variantId: string;
   data: PlacaData;
   layerOverrides: Partial<Record<LayerId, Partial<LayerConfig>>>;
+  textOverrides: Partial<Record<LayerId, string>>; // texto editado in-canvas (doble click)
   selectedLayer: LayerId | null;
+  editingLayer: LayerId | null; // capa en edición de texto in-canvas
 
   // photos
   photos: PhotoState[];
@@ -58,6 +60,8 @@ interface PlacaState {
   resetLayer: (id: LayerId) => void;
   resetAllLayers: () => void;
   selectLayer: (id: LayerId | null) => void;
+  setTextOverride: (id: LayerId, text: string) => void;
+  setEditingLayer: (id: LayerId | null) => void;
 
   patchTheme: (p: Partial<ThemeState>) => void;
   setAgent: (a: AgentProfile | null) => void;
@@ -115,7 +119,9 @@ export const usePlacaStore = create<PlacaState>()(
       variantId: 'default',
       data: DEFAULT_DATA,
       layerOverrides: {},
+      textOverrides: {},
       selectedLayer: null,
+      editingLayer: null,
 
       photos: [],
       activePhotoIdx: 0,
@@ -134,7 +140,7 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarRightOpen: true,
 
       setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set({ templateId: id, layerOverrides: {}, selectedLayer: null }),
+      setTemplate: (id) => set({ templateId: id, layerOverrides: {}, textOverrides: {}, selectedLayer: null, editingLayer: null }),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),
@@ -189,10 +195,15 @@ export const usePlacaStore = create<PlacaState>()(
         set((s) => {
           const o = { ...s.layerOverrides };
           delete o[id];
-          return { layerOverrides: o };
+          const t = { ...s.textOverrides };
+          delete t[id];
+          return { layerOverrides: o, textOverrides: t };
         }),
-      resetAllLayers: () => set({ layerOverrides: {} }),
+      resetAllLayers: () => set({ layerOverrides: {}, textOverrides: {} }),
       selectLayer: (id) => set({ selectedLayer: id }),
+      setTextOverride: (id, text) =>
+        set((s) => ({ textOverrides: { ...s.textOverrides, [id]: text } })),
+      setEditingLayer: (id) => set({ editingLayer: id }),
 
       patchTheme: (p) => set((s) => ({ theme: { ...s.theme, ...p } })),
       setAgent: (a) => set({ agent: a }),
@@ -229,7 +240,9 @@ export const usePlacaStore = create<PlacaState>()(
           variantId: 'default',
           data: { ...DEFAULT_DATA, addr: '', barrio: '', amb: '', m2: '', baths: '', cochera: 'Sí', price: '', currency: 'USD', op: 'Venta', expensas: '', antiguedad: '', desc: '', listingUrl: '' },
           layerOverrides: {},
+          textOverrides: {},
           selectedLayer: null,
+          editingLayer: null,
           photos: [],
           activePhotoIdx: 0,
           theme: DEFAULT_THEME,
@@ -248,6 +261,7 @@ export const usePlacaStore = create<PlacaState>()(
         const {
           photos: _ph,
           selectedLayer: _sel,
+          editingLayer: _ed,
           sidebarLeftOpen: _l,
           sidebarRightOpen: _r,
           showGrid: _g,

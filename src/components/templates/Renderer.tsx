@@ -36,6 +36,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
   const theme = usePlacaStore((s) => s.theme);
   const abbreviate = usePlacaStore((s) => s.abbreviatePrice);
   const storeOverrides = usePlacaStore((s) => s.layerOverrides);
+  const textOverrides = usePlacaStore((s) => s.textOverrides);
   const photos = usePlacaStore((s) => s.photos);
 
   const format = formatOverride || storeFormat;
@@ -142,11 +143,14 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         if (visible === false) return null;
 
         if (DATA_LAYERS.includes(lid)) {
-          const content = getContent(lid);
-          // Hide the layer entirely if there's no content (avoid orphan "USD", "COCHERA", etc.)
-          if (!content && (lid === 'desc' || lid === 'extras' || lid === 'price' || lid === 'op' || lid === 'addr' || lid === 'amen')) return null;
+          // El texto editado in-canvas (doble click) tiene prioridad sobre el auto.
+          const tOv = noOverrides ? undefined : textOverrides[lid];
+          const content = tOv !== undefined ? tOv : getContent(lid);
+          // Ocultar la capa si no hay contenido (evita "USD", "COCHERA" huérfanos).
+          // Si hay override de texto (aunque sea ""), no la ocultamos: el usuario lo eligió.
+          if (tOv === undefined && !content && (lid === 'desc' || lid === 'extras' || lid === 'price' || lid === 'op' || lid === 'addr' || lid === 'amen')) return null;
           return (
-            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive}>
+            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable>
               {content}
             </TextLayer>
           );

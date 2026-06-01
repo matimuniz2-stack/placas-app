@@ -9,6 +9,9 @@ const FORMAT_SIZES = {
   post: { w: 1080, h: 1350 },
 };
 
+// Capas de texto editables con doble click (deben coincidir con DATA_LAYERS del Renderer)
+const EDITABLE = new Set(['addr', 'barrio', 'price', 'amen', 'op', 'desc', 'extras', 'tag', 'lbl', 'num']);
+
 export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const placaRef = useRef<HTMLDivElement>(null);
@@ -24,6 +27,8 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const showGrid = usePlacaStore((s) => s.showGrid);
   const templateId = usePlacaStore((s) => s.templateId);
   const overrides = usePlacaStore((s) => s.layerOverrides);
+  const editingLayer = usePlacaStore((s) => s.editingLayer);
+  const setEditingLayer = usePlacaStore((s) => s.setEditingLayer);
 
   const [scale, setScale] = useState(0.3);
   const [target, setTarget] = useState<HTMLElement | null>(null);
@@ -90,6 +95,28 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
     const t = setTimeout(findTarget, 50);
     return () => clearTimeout(t);
   }, [selected, templateId, overrides, format]);
+
+  // Doble click sobre un texto → editar in-canvas. Se escucha en document porque
+  // cuando la capa está seleccionada, el overlay de react-moveable tapa al texto
+  // y el onDoubleClick del propio layer no llega.
+  useEffect(() => {
+    const onDbl = (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      if (!el) return;
+      let lid: string | null = null;
+      const layerEl = el.closest('[data-layer]') as HTMLElement | null;
+      if (layerEl) lid = layerEl.getAttribute('data-layer');
+      // si cayó sobre el recuadro de moveable, usar la capa seleccionada
+      if (!lid && el.closest('.moveable-control-box')) lid = selected;
+      if (lid && lid !== 'photo' && EDITABLE.has(lid)) {
+        e.preventDefault();
+        select(lid as any);
+        setEditingLayer(lid as any);
+      }
+    };
+    document.addEventListener('dblclick', onDbl);
+    return () => document.removeEventListener('dblclick', onDbl);
+  }, [selected, select, setEditingLayer]);
 
   // Photo is fullbleed (no defaultLayers.photo in template) — drag pans the photo instead of layer
   const tpl = getTemplate(templateId);
@@ -209,7 +236,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const photoContainedSelected = selected === 'photo' && !photoIsFullbleed;
   const showPhotoCursor = hasPhoto && (!selected || photoIsSelectedFullbleed);
   const canFramePhoto = hasPhoto && (showPhotoCursor || photoContainedSelected);
-  const useMoveable = !!target && !!selected && !photoIsSelectedFullbleed;
+  const useMoveable = !!target && !!selected && !photoIsSelectedFullbleed && !editingLayer;
 
   return (
     <div

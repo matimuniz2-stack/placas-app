@@ -26,6 +26,7 @@ export const DraftsModal: React.FC<Props> = ({ open, onClose }) => {
       photos: s.photos,
       templateId: s.templateId,
       layerOverrides: s.layerOverrides,
+      textOverrides: s.textOverrides,
       theme: s.theme,
       badges: s.badges,
     };
@@ -41,6 +42,7 @@ export const DraftsModal: React.FC<Props> = ({ open, onClose }) => {
       activePhotoIdx: 0,
       templateId: d.templateId,
       layerOverrides: d.layerOverrides || {},
+      textOverrides: d.textOverrides || {},
       theme: d.theme,
       badges: d.badges || [],
     });

@@ -47,6 +47,7 @@ const App: React.FC = () => {
           variantId: state.variantId,
           data: state.data,
           layerOverrides: state.layerOverrides,
+          textOverrides: state.textOverrides,
           photos: state.photos,
           activePhotoIdx: state.activePhotoIdx,
           theme: state.theme,

@@ -125,6 +125,7 @@ export interface Draft {
   photos: PhotoState[];
   templateId: string;
   layerOverrides: Partial<Record<LayerId, Partial<LayerConfig>>>;
+  textOverrides?: Partial<Record<LayerId, string>>;
   theme: ThemeState;
   badges: string[];
 }
