@@ -1,54 +1,32 @@
 import React from 'react';
-import { usePlacaStore } from '@/lib/store';
+import { usePlacaStore, getEffectiveLayer, getCurrentTemplate } from '@/lib/store';
+import type { LayerId } from '@/types';
 
-const RADIUS = 24;
+const CELL_IDS: LayerId[] = ['g0', 'g1', 'g2', 'g3'];
 const SHADOW = '0 10px 30px rgba(43,26,20,0.08)';
-
-interface Cell { left: number; top: number; width: number; height: number; }
-
-// Layouts editoriales por cantidad de fotos (porcentajes del canvas 1080x1920)
-function layoutFor(n: number): Cell[] {
-  const M = 7.41; // margen 80px
-  const FULL = 85.19; // ancho útil
-  const GAPX = 2.78; // ~30px
-  const HALF = (FULL - GAPX) / 2; // ~41.2
-  const RIGHT = M + HALF + GAPX; // 51.39
-
-  if (n >= 4)
-    return [
-      { left: M, top: 13.5, width: FULL, height: 40 },
-      { left: M, top: 55.5, width: HALF, height: 18 },
-      { left: RIGHT, top: 55.5, width: HALF, height: 18 },
-      { left: M, top: 75.5, width: FULL, height: 13 },
-    ];
-  if (n === 3)
-    return [
-      { left: M, top: 13.5, width: FULL, height: 46 },
-      { left: M, top: 61.5, width: HALF, height: 27 },
-      { left: RIGHT, top: 61.5, width: HALF, height: 27 },
-    ];
-  if (n === 2)
-    return [
-      { left: M, top: 13.5, width: FULL, height: 37 },
-      { left: M, top: 52.5, width: FULL, height: 36 },
-    ];
-  if (n === 1) return [{ left: M, top: 15, width: FULL, height: 73 }];
-  return [];
-}
 
 export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive = true }) => {
   const photos = usePlacaStore((s) => s.photos);
-  const activeIdx = usePlacaStore((s) => s.activePhotoIdx);
-  const setActive = usePlacaStore((s) => s.setActivePhoto);
-
-  const n = Math.min(photos.length, 4);
-  // Con 0 fotos mostramos los 4 placeholders de la grilla principal
-  const cells = n > 0 ? layoutFor(n) : layoutFor(4);
+  const galleryCells = usePlacaStore((s) => s.galleryCells);
+  // suscribirse para re-render cuando se mueve/redimensiona o cambia la plantilla
+  usePlacaStore((s) => s.layerOverrides);
+  const templateId = usePlacaStore((s) => s.templateId);
+  const selected = usePlacaStore((s) => s.selectedLayer);
+  const select = usePlacaStore((s) => s.selectLayer);
+  const tpl = getCurrentTemplate();
+  void templateId;
 
   return (
     <>
-      {cells.map((c, i) => {
-        const p = photos[i];
+      {CELL_IDS.map((id, i) => {
+        if (!tpl.defaultLayers[id]) return null;
+        const layer = getEffectiveLayer(id);
+        if (!layer || layer.visible === false) return null;
+
+        const idx = galleryCells[id] ?? i;
+        const p = photos[idx];
+        const isSel = interactive && selected === id;
+
         const bgStyle: React.CSSProperties = p
           ? {
               backgroundImage: `url("${p.url}")`,
@@ -58,24 +36,28 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
               filter: `brightness(${p.filter.b}%) contrast(${p.filter.c}%) saturate(${p.filter.s}%)`,
             }
           : { background: 'rgba(43,26,20,0.06)' };
-        const isActive = interactive && !!p && i === activeIdx;
+
         return (
           <div
-            key={i}
-            onClick={interactive && p ? (e) => { e.stopPropagation(); setActive(i); } : undefined}
+            key={id}
+            data-layer={id}
+            onClick={interactive ? (e) => { e.stopPropagation(); select(id); } : undefined}
             style={{
               position: 'absolute',
-              left: `${c.left}%`,
-              top: `${c.top}%`,
-              width: `${c.width}%`,
-              height: `${c.height}%`,
-              borderRadius: RADIUS,
+              left: `${layer.x}%`,
+              top: `${layer.y}%`,
+              width: `${layer.w}%`,
+              height: `${layer.h}%`,
+              transform: layer.rotation ? `rotate(${layer.rotation}deg)` : undefined,
+              borderRadius: layer.radius ?? 24,
               boxShadow: SHADOW,
               overflow: 'hidden',
-              zIndex: 2,
-              cursor: interactive && p ? 'pointer' : 'default',
-              outline: isActive ? '3px solid #d9221f' : undefined,
+              zIndex: layer.z ?? 2,
+              opacity: layer.opacity,
+              outline: isSel ? '2px dashed #de1f1a' : undefined,
               outlineOffset: 2,
+              cursor: interactive ? 'pointer' : 'default',
+              pointerEvents: interactive ? 'auto' : 'none',
               ...bgStyle,
             }}
           >

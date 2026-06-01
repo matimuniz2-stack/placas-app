@@ -308,6 +308,11 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#2b1a14',
     gallery: true,
     defaultLayers: {
+      // Celdas de la grilla (movibles/redimensionables, cada una con su foto)
+      g0: L({ id: 'g0', x: 7.41, y: 13.5, w: 85.19, h: 40, radius: 24, z: 2 }),
+      g1: L({ id: 'g1', x: 7.41, y: 55.5, w: 41.2, h: 18, radius: 24, z: 2 }),
+      g2: L({ id: 'g2', x: 51.39, y: 55.5, w: 41.2, h: 18, radius: 24, z: 2 }),
+      g3: L({ id: 'g3', x: 7.41, y: 75.5, w: 85.19, h: 13, radius: 24, z: 2 }),
       // Encabezado: título + subtítulo
       addr: L({ id: 'addr', x: 7.4, y: 3.6, w: 68, font: 'Playfair Display', size: 72, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
       lbl: L({ id: 'lbl', x: 7.4, y: 12, w: 60, font: 'Inter', size: 30, color: '#a78b61', weight: 400 }),

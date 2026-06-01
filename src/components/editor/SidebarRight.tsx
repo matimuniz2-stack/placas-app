@@ -35,6 +35,10 @@ const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   agent: 'Agente',
   line: 'Línea',
   dot: 'Punto',
+  g0: 'Foto 1',
+  g1: 'Foto 2',
+  g2: 'Foto 3',
+  g3: 'Foto 4',
 };
 
 interface SidebarRightProps {
@@ -134,6 +138,8 @@ const InspectorTab: React.FC = () => {
               <NumInput label="Opacidad" v={Math.round((layer.opacity ?? 1) * 100)} on={(v) => patchLayer(selected, { opacity: v / 100 })} suffix="%" />
             </div>
 
+            {/^g\d$/.test(selected) && <GalleryCellPicker cellId={selected} />}
+
             {layer.font !== undefined && (
               <>
                 <div className="divider my-3" />
@@ -206,6 +212,40 @@ const ColorField: React.FC<{ v: string; on: (v: string) => void }> = ({ v, on })
           <HexColorPicker color={v} onChange={on} />
         </div>
       )}
+    </div>
+  );
+};
+
+const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
+  const photos = usePlacaStore((s) => s.photos);
+  const galleryCells = usePlacaStore((s) => s.galleryCells);
+  const setGalleryCell = usePlacaStore((s) => s.setGalleryCell);
+  const setActive = usePlacaStore((s) => s.setActivePhoto);
+  const cellIndex = parseInt(cellId.slice(1), 10);
+  const current = galleryCells[cellId] ?? cellIndex;
+
+  return (
+    <div className="mt-1 mb-1">
+      <div className="divider my-3" />
+      <div className="section-title mb-2">Foto de esta celda</div>
+      {photos.length === 0 ? (
+        <p className="text-[10px] text-neutral-400 leading-snug">Subí fotos en el panel izquierdo (FOTOS) y después elegí cuál va en esta celda.</p>
+      ) : (
+        <div className="grid grid-cols-4 gap-1.5">
+          {photos.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => { setGalleryCell(cellId, i); setActive(i); }}
+              className={`aspect-square rounded overflow-hidden border-2 transition ${current === i ? 'border-brand' : 'border-transparent hover:border-neutral-300'}`}
+              style={{ backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+              title={`Foto ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+      <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
+        Arrastrá la celda para moverla y usá los handles para redimensionar. El encuadre de la foto se ajusta en FOTOS.
+      </p>
     </div>
   );
 };

@@ -54,6 +54,7 @@ const App: React.FC = () => {
           agent: state.agent,
           badges: state.badges,
           qrUrl: state.qrUrl,
+          galleryCells: state.galleryCells,
           abbreviatePrice: state.abbreviatePrice,
           snapToGrid: state.snapToGrid,
         };

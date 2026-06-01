@@ -140,6 +140,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       {/* Render each layer in defaultLayers (excluding photo + special ones) */}
       {(Object.keys(tpl.defaultLayers) as LayerId[]).map((lid) => {
         if (lid === 'photo' || lid === 'logo' || lid === 'badge' || lid === 'qr' || lid === 'agent' || lid === 'map') return null;
+        if (lid === 'g0' || lid === 'g1' || lid === 'g2' || lid === 'g3') return null; // celdas de galería → GalleryGrid
         const baseDefaults = tpl.defaultLayers[lid]!;
         const defaults = applyVariant(baseDefaults, lid);
         const ov = overrides[lid];

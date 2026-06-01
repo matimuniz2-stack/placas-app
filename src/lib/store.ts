@@ -34,6 +34,7 @@ interface PlacaState {
   badges: string[]; // ids of stickers active
   qrUrl: string;
   mapUrl: string;   // dataURL of the rendered mini-map (or empty if not enabled)
+  galleryCells: Record<string, number>; // celda de galería (g0..) → índice de foto asignada
 
   // ui state (not in undo)
   abbreviatePrice: boolean;
@@ -77,6 +78,7 @@ interface PlacaState {
   toggleBadge: (id: string) => void;
   setQrUrl: (url: string) => void;
   setMapUrl: (url: string) => void;
+  setGalleryCell: (id: string, photoIdx: number) => void;
 
   setAbbreviate: (b: boolean) => void;
   toggleSidebarLeft: () => void;
@@ -132,6 +134,7 @@ export const usePlacaStore = create<PlacaState>()(
       badges: [],
       qrUrl: '',
       mapUrl: '',
+      galleryCells: {},
 
       abbreviatePrice: false,
       showGrid: false,
@@ -140,7 +143,7 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarRightOpen: true,
 
       setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set({ templateId: id, layerOverrides: {}, textOverrides: {}, selectedLayer: null, editingLayer: null }),
+      setTemplate: (id) => set({ templateId: id, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null }),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),
@@ -226,6 +229,8 @@ export const usePlacaStore = create<PlacaState>()(
         })),
       setQrUrl: (url) => set({ qrUrl: url }),
       setMapUrl: (url) => set({ mapUrl: url }),
+      setGalleryCell: (id, photoIdx) =>
+        set((s) => ({ galleryCells: { ...s.galleryCells, [id]: photoIdx } })),
 
       setAbbreviate: (b) => set({ abbreviatePrice: b }),
       toggleSidebarLeft: () => set((s) => ({ sidebarLeftOpen: !s.sidebarLeftOpen })),
@@ -250,6 +255,7 @@ export const usePlacaStore = create<PlacaState>()(
           badges: [],
           qrUrl: '',
           mapUrl: '',
+          galleryCells: {},
           abbreviatePrice: false,
           showGrid: false,
         }),

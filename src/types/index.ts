@@ -18,7 +18,11 @@ export type LayerId =
   | 'lbl'
   | 'num'
   | 'line'
-  | 'dot';
+  | 'dot'
+  | 'g0'
+  | 'g1'
+  | 'g2'
+  | 'g3';
 
 export type Align = 'left' | 'center' | 'right';
 
