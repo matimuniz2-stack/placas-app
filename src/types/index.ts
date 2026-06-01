@@ -101,6 +101,7 @@ export interface TemplateDef {
   bgColor?: string;
   textColor?: string;
   overlay?: string; // CSS for ::after-like overlay
+  gallery?: boolean; // renderiza grilla editorial de varias fotos (GalleryGrid)
   thumbnail?: string;
   render?: (data: PlacaData, ctx: RenderContext) => React.ReactNode;
 }

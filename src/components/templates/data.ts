@@ -298,4 +298,26 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       barrio: L({ id: 'barrio', x: 7.4, y: 90, w: 57, font: 'Inter', size: 34, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.6)', padding: 20 }),
     },
   },
+
+  // ============== t17: ZAMBONI GALERÍA (continuación de t16, grilla de fotos) ==============
+  {
+    id: 't17',
+    name: 'Galería',
+    category: 'premium',
+    bgColor: '#f4ebdd',
+    textColor: '#2b1a14',
+    gallery: true,
+    defaultLayers: {
+      // Encabezado: título + subtítulo
+      addr: L({ id: 'addr', x: 7.4, y: 3.6, w: 68, font: 'Playfair Display', size: 72, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
+      lbl: L({ id: 'lbl', x: 7.4, y: 12, w: 60, font: 'Inter', size: 30, color: '#a78b61', weight: 400 }),
+      // Sticker "GALERÍA" arriba a la derecha
+      op: L({ id: 'op', x: 73, y: 4, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
+      // Pie: ubicación con pin, divisor, detalles, logo
+      barrio: L({ id: 'barrio', x: 7.4, y: 90, w: 55, font: 'Inter', size: 32, color: '#2b1a14', weight: 500 }),
+      line: L({ id: 'line', x: 7.4, y: 93.4, w: 50, h: 0.08, bg: 'rgba(199,168,107,0.6)', z: 4 }),
+      amen: L({ id: 'amen', x: 7.4, y: 94.2, w: 60, font: 'Inter', size: 28, color: '#2b1a14' }),
+      logo: L({ id: 'logo', x: 81, y: 90, w: 11, h: 0 }),
+    },
+  },
 ];

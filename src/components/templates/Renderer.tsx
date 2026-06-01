@@ -9,6 +9,7 @@ import { Badges } from './primitives/Badge';
 import { QRLayer } from './primitives/QRLayer';
 import { AgentLayer } from './primitives/AgentLayer';
 import { MapLayer } from './primitives/MapLayer';
+import { GalleryGrid } from './primitives/GalleryGrid';
 import { amenString, extrasString, priceString } from '@/lib/format';
 import type { LayerId } from '@/types';
 
@@ -74,9 +75,9 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
     switch (id) {
       case 'addr':
         if (!data.addr && !data.barrio) return '';
-        return `${data.addr}${data.barrio && tpl.id !== 't14' && tpl.id !== 't16' ? '\n' + data.barrio : ''}`;
+        return `${data.addr}${data.barrio && tpl.id !== 't14' && tpl.id !== 't16' && tpl.id !== 't17' ? '\n' + data.barrio : ''}`;
       case 'barrio':
-        return tpl.id === 't16' ? (data.barrio ? '📍 ' + data.barrio : '') : data.barrio;
+        return (tpl.id === 't16' || tpl.id === 't17') ? (data.barrio ? '📍 ' + data.barrio : '') : data.barrio;
       case 'price':
         // Hide entirely if no price entered (avoid orphan "USD")
         if (!data.price || !data.price.trim()) return '';
@@ -85,7 +86,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         return amenString(data);
       case 'op': {
         if (!data.op) return '';
-        const opTxt = tpl.id === 't04' ? '' : (tpl.id === 't10' || tpl.id === 't16') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
+        const opTxt = tpl.id === 't04' ? '' : tpl.id === 't17' ? 'GALERÍA' : (tpl.id === 't10' || tpl.id === 't16') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
       case 'desc':
@@ -95,7 +96,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       case 'tag':
         return tpl.id === 't02' ? 'Propiedad destacada nº' : tpl.id === 't09' ? `PROPIEDAD · 01 · ${data.op.toUpperCase()}` : tpl.id === 't15' ? 'EN ' + data.op.toUpperCase() : data.barrio;
       case 'lbl':
-        return (tpl.id === 't06' || tpl.id === 't16') ? `— en ${data.op.toLowerCase()}` : tpl.id === 't08' ? `En ${data.op.toLowerCase()}` : tpl.id === 't10' ? `EN ${data.op.toUpperCase()}` : data.op;
+        return tpl.id === 't17' ? 'Más imágenes de la propiedad' : (tpl.id === 't06' || tpl.id === 't16') ? `— en ${data.op.toLowerCase()}` : tpl.id === 't08' ? `En ${data.op.toLowerCase()}` : tpl.id === 't10' ? `EN ${data.op.toUpperCase()}` : data.op;
       case 'num':
         return tpl.id === 't14' ? 'P-0' + tpl.id.replace('t', '') : tpl.id === 't15' ? '01' : '01';
       default:
@@ -120,11 +121,14 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         userSelect: 'none',
       }}
     >
+      {/* Galería: grilla editorial de varias fotos */}
+      {tpl.gallery && <GalleryGrid interactive={interactive} />}
+
       {/* Photo: si el template tiene un layer photo en defaultLayers, lo render como capa de FOTO; si NO lo tiene, la foto cubre el placa entero como fondo */}
-      {!tpl.defaultLayers.photo && photos.length > 0 && (
+      {!tpl.gallery && !tpl.defaultLayers.photo && photos.length > 0 && (
         <Photo fullbleed defaults={{ id: 'photo', x: 0, y: 0, w: 100, h: 100, visible: true } as any} />
       )}
-      {tpl.defaultLayers.photo && (
+      {!tpl.gallery && tpl.defaultLayers.photo && (
         <Photo defaults={tpl.defaultLayers.photo as any} />
       )}
 
