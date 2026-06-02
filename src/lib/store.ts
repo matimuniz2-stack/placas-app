@@ -10,6 +10,7 @@ import type {
   LayerId,
 } from '@/types';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
+import { galleryCellBase } from './galleryLayout';
 
 interface PlacaState {
   // core
@@ -117,7 +118,7 @@ export const usePlacaStore = create<PlacaState>()(
   temporal(
     (set, get) => ({
       format: 'story',
-      templateId: 't01',
+      templateId: 't16',
       variantId: 'default',
       data: DEFAULT_DATA,
       layerOverrides: {},
@@ -241,7 +242,7 @@ export const usePlacaStore = create<PlacaState>()(
       resetAll: () =>
         set({
           format: 'story',
-          templateId: 't01',
+          templateId: 't16',
           variantId: 'default',
           data: { ...DEFAULT_DATA, addr: '', barrio: '', amb: '', m2: '', baths: '', cochera: 'Sí', price: '', currency: 'USD', op: 'Venta', expensas: '', antiguedad: '', desc: '', listingUrl: '' },
           layerOverrides: {},
@@ -293,9 +294,12 @@ export function getCurrentTemplate() {
 }
 
 export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
-  const { templateId, layerOverrides } = usePlacaStore.getState();
+  const { templateId, layerOverrides, photos } = usePlacaStore.getState();
   const tpl = ALL_TEMPLATES.find((t) => t.id === templateId);
-  const base = tpl?.defaultLayers?.[id];
+  let base = tpl?.defaultLayers?.[id];
+  // Celdas de galería: la geometría base la da el motor adaptativo (según cantidad de
+  // fotos). El override del usuario manda sobre esa base, así la celda es editable a mano.
+  if (!base && tpl?.gallery && /^g\d$/.test(id)) base = galleryCellBase(id, photos.length);
   const override = layerOverrides[id];
   if (!base && !override) return undefined;
   return { ...(base as LayerConfig), ...(override || {}) } as LayerConfig;

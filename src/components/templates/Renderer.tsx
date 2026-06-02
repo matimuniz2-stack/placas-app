@@ -75,9 +75,9 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
     switch (id) {
       case 'addr':
         if (!data.addr && !data.barrio) return '';
-        return `${data.addr}${data.barrio && tpl.id !== 't14' && tpl.id !== 't16' && tpl.id !== 't17' ? '\n' + data.barrio : ''}`;
+        return data.addr;
       case 'barrio':
-        return (tpl.id === 't16' || tpl.id === 't17') ? (data.barrio ? '📍 ' + data.barrio : '') : data.barrio;
+        return data.barrio ? '📍 ' + data.barrio : '';
       case 'price':
         // Hide entirely if no price entered (avoid orphan "USD")
         if (!data.price || !data.price.trim()) return '';
@@ -86,7 +86,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         return amenString(data);
       case 'op': {
         if (!data.op) return '';
-        const opTxt = tpl.id === 't04' ? '' : tpl.id === 't17' ? 'GALERÍA' : (tpl.id === 't10' || tpl.id === 't16') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
+        const opTxt = tpl.id === 't17' ? 'GALERÍA' : (tpl.id === 't16' || tpl.id === 't18') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
       case 'desc':
@@ -94,11 +94,11 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       case 'extras':
         return extrasString(data);
       case 'tag':
-        return tpl.id === 't02' ? 'Propiedad destacada nº' : tpl.id === 't09' ? `PROPIEDAD · 01 · ${data.op.toUpperCase()}` : tpl.id === 't15' ? 'EN ' + data.op.toUpperCase() : data.barrio;
+        return data.barrio;
       case 'lbl':
-        return tpl.id === 't17' ? 'Más imágenes de la propiedad' : (tpl.id === 't06' || tpl.id === 't16') ? `— en ${data.op.toLowerCase()}` : tpl.id === 't08' ? `En ${data.op.toLowerCase()}` : tpl.id === 't10' ? `EN ${data.op.toUpperCase()}` : data.op;
+        return (tpl.id === 't17' || tpl.id === 't18') ? 'Más imágenes de la propiedad' : tpl.id === 't16' ? `— en ${data.op.toLowerCase()}` : data.op;
       case 'num':
-        return tpl.id === 't14' ? 'P-0' + tpl.id.replace('t', '') : tpl.id === 't15' ? '01' : '01';
+        return '01';
       default:
         return '';
     }
@@ -140,7 +140,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       {/* Render each layer in defaultLayers (excluding photo + special ones) */}
       {(Object.keys(tpl.defaultLayers) as LayerId[]).map((lid) => {
         if (lid === 'photo' || lid === 'logo' || lid === 'badge' || lid === 'qr' || lid === 'agent' || lid === 'map') return null;
-        if (lid === 'g0' || lid === 'g1' || lid === 'g2' || lid === 'g3') return null; // celdas de galería → GalleryGrid
+        if (/^g\d$/.test(lid)) return null; // celdas de galería → las dibuja GalleryGrid
         const baseDefaults = tpl.defaultLayers[lid]!;
         const defaults = applyVariant(baseDefaults, lid);
         const ov = overrides[lid];

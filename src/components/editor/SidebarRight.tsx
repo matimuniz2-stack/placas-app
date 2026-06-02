@@ -10,6 +10,7 @@ import { renderStaticMap, geocodeAddress, type MapStyle } from '@/lib/map';
 import { PlacaRenderer } from '@/components/templates/Renderer';
 import { listPresets, savePreset, deletePreset } from '@/lib/presets';
 import { captureThumb } from '@/lib/export';
+import { galleryCellIds } from '@/lib/galleryLayout';
 import type { LayerId, DesignPreset } from '@/types';
 
 type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
@@ -39,6 +40,8 @@ const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   g1: 'Foto 2',
   g2: 'Foto 3',
   g3: 'Foto 4',
+  g4: 'Foto 5',
+  g5: 'Foto 6',
 };
 
 interface SidebarRightProps {
@@ -91,8 +94,16 @@ const InspectorTab: React.FC = () => {
   const overrides = usePlacaStore((s) => s.layerOverrides);
   const patchLayer = usePlacaStore((s) => s.patchLayer);
   const resetLayer = usePlacaStore((s) => s.resetLayer);
+  const photos = usePlacaStore((s) => s.photos);
 
-  const layerIds = Object.keys(tpl.defaultLayers) as LayerId[];
+  // En galería, las celdas (g0..) no están en defaultLayers (las arma el motor),
+  // pero las listamos para poder ocultarlas/mostrarlas/resetear como cualquier capa.
+  const layerIds = Array.from(
+    new Set([
+      ...(Object.keys(tpl.defaultLayers) as LayerId[]),
+      ...(tpl.gallery ? galleryCellIds(photos.length) : []),
+    ])
+  );
 
   const layer = selected ? getEffectiveLayer(selected) : null;
 
@@ -104,7 +115,8 @@ const InspectorTab: React.FC = () => {
         <div className="space-y-1">
           {layerIds.map((lid) => {
             const ov = overrides[lid];
-            const isVis = ov?.visible ?? tpl.defaultLayers[lid]!.visible !== false;
+            const def = tpl.defaultLayers[lid];
+            const isVis = ov?.visible ?? (def ? def.visible !== false : true);
             const isSel = selected === lid;
             return (
               <div key={lid} className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs cursor-pointer transition ${isSel ? 'bg-brand/10 text-brand' : 'hover:bg-neutral-100 text-neutral-700'}`} onClick={() => select(lid)}>
@@ -222,7 +234,7 @@ const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
   const setGalleryCell = usePlacaStore((s) => s.setGalleryCell);
   const setActive = usePlacaStore((s) => s.setActivePhoto);
   const cellIndex = parseInt(cellId.slice(1), 10);
-  const current = galleryCells[cellId] ?? cellIndex;
+  const current = galleryCells[cellId] ?? cellIndex + 1; // +1: por defecto saltea la portada
 
   return (
     <div className="mt-1 mb-1">
@@ -244,7 +256,7 @@ const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
         </div>
       )}
       <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
-        Arrastrá la celda para moverla y usá los handles para redimensionar. El encuadre de la foto se ajusta en FOTOS.
+        Parte de un mosaico automático, pero podés mover/estirar la celda con los handles (o X/Y/W/H acá arriba). Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers. El encuadre de la foto se ajusta en FOTOS.
       </p>
     </div>
   );

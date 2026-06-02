@@ -11,17 +11,18 @@ interface Props {
   mode: 'story' | 'post';
 }
 
-// iPhone 15 Pro reference: 1290x2796 logical, ~3 aspect screen
-// We render the device at a fixed pixel width; screen is inset by the bezel.
-const DEVICE_W = 320;
-const DEVICE_H = 660;            // visible body height
-const BEZEL = 11;                // outer bezel thickness
+// ── Medidas del "teléfono" del preview ──────────────────────────────────────
+// Aspect realista (~19.5:9, más alto que 9:16) → así, igual que en la realidad,
+// la historia 9:16 entra fit-to-width y quedan franjas negras arriba/abajo donde
+// van el header de IG y la barra "Enviar mensaje" (referencia: captura real).
+const DEVICE_W = 322;
+const DEVICE_H = 670;
+const BEZEL = 11;
 const OUTER_RADIUS = 52;
 const INNER_RADIUS = 42;
 
-// Resulting screen dimensions
-const SCREEN_W = DEVICE_W - BEZEL * 2;
-const SCREEN_H = DEVICE_H - BEZEL * 2;
+const SCREEN_W = DEVICE_W - BEZEL * 2; // 300
+const SCREEN_H = DEVICE_H - BEZEL * 2; // 648
 
 export const IGSimulator: React.FC<Props> = ({ open, onClose, mode }) => {
   const formatNow = usePlacaStore((s) => s.format);
@@ -42,15 +43,13 @@ export const IGSimulator: React.FC<Props> = ({ open, onClose, mode }) => {
       <div
         style={{
           background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-          padding: '36px 28px 28px',
+          padding: '36px 28px 26px',
           borderRadius: '0 0 8px 8px',
         }}
       >
-        <IPhoneFrame>
-          {mode === 'story' ? <StoryContent /> : <PostContent />}
-        </IPhoneFrame>
+        <IPhoneFrame>{mode === 'story' ? <StoryContent /> : <PostContent />}</IPhoneFrame>
         <div className="text-center text-[10px] text-neutral-500 mt-5 tracking-[2px] uppercase font-mono">
-          {mode === 'story' ? '1080 × 1920 · Story' : '1080 × 1350 · Post'} · iPhone preview
+          {mode === 'story' ? '1080 × 1920 · Story' : '1080 × 1350 · Post'} · preview real
         </div>
       </div>
     </Modal>
@@ -58,7 +57,7 @@ export const IGSimulator: React.FC<Props> = ({ open, onClose, mode }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// iPhone frame with Dynamic Island, side buttons, realistic shadow
+// iPhone frame con Dynamic Island, botones laterales y sombra realista
 // ─────────────────────────────────────────────────────────────────────────────
 const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -75,13 +74,13 @@ const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           '0 0 0 1.5px #3a3a3c, 0 30px 70px rgba(0,0,0,0.55), 0 6px 18px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.04)',
       }}
     >
-      {/* Side buttons */}
+      {/* Botones laterales */}
       <div style={{ position: 'absolute', left: -2, top: 110, width: 3, height: 32, background: '#1a1a1c', borderRadius: 2 }} />
       <div style={{ position: 'absolute', left: -2, top: 160, width: 3, height: 54, background: '#1a1a1c', borderRadius: 2 }} />
       <div style={{ position: 'absolute', left: -2, top: 220, width: 3, height: 54, background: '#1a1a1c', borderRadius: 2 }} />
       <div style={{ position: 'absolute', right: -2, top: 160, width: 3, height: 82, background: '#1a1a1c', borderRadius: 2 }} />
 
-      {/* Screen */}
+      {/* Pantalla */}
       <div
         style={{
           width: SCREEN_W,
@@ -110,7 +109,7 @@ const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }}
         />
 
-        {/* Status bar (clock + signal + wifi + battery) */}
+        {/* Status bar */}
         <div
           style={{
             position: 'absolute',
@@ -138,7 +137,7 @@ const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </div>
 
-        {/* Home indicator bar */}
+        {/* Home indicator */}
         <div
           style={{
             position: 'absolute',
@@ -148,7 +147,7 @@ const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             width: 110,
             height: 4,
             borderRadius: 2,
-            background: 'rgba(255,255,255,0.4)',
+            background: 'rgba(255,255,255,0.5)',
             zIndex: 30,
           }}
         />
@@ -158,7 +157,8 @@ const IPhoneFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STORY content (fills screen edge-to-edge, IG story chrome overlaid)
+// STORY: la placa entra fit-to-width (9:16) y quedan franjas negras arriba/abajo
+// con el chrome de IG, igual que en una historia real.
 // ─────────────────────────────────────────────────────────────────────────────
 const StoryContent: React.FC = () => {
   const [progress, setProgress] = useState(0.05);
@@ -174,8 +174,8 @@ const StoryContent: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
-  // Contain-fit: scale by min so the WHOLE placa is visible (logos in corners
-  // won't overflow). Adds small top/bottom bands but fidelity > full-bleed.
+  // Fit-to-width centrado (como IG en un teléfono real): la placa NO llena el alto,
+  // deja franjas arriba/abajo donde van el header y la barra de mensaje.
   const scale = Math.min(SCREEN_W / 1080, SCREEN_H / 1920);
   const placaW = 1080 * scale;
   const placaH = 1920 * scale;
@@ -184,7 +184,7 @@ const StoryContent: React.FC = () => {
 
   return (
     <>
-      {/* Scaled placa, full-bleed under all UI chrome */}
+      {/* Placa escalada */}
       <div
         style={{
           position: 'absolute',
@@ -199,50 +199,20 @@ const StoryContent: React.FC = () => {
         <PlacaRenderer />
       </div>
 
-      {/* Subtle top + bottom gradient so UI chrome reads well over any photo */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 130,
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 100%)',
-          zIndex: 15,
-          pointerEvents: 'none',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 90,
-          background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
-          zIndex: 15,
-          pointerEvents: 'none',
-        }}
-      />
+      {/* Degradé sutil arriba para que el header se lea sobre cualquier placa */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 110, background: 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 100%)', zIndex: 15, pointerEvents: 'none' }} />
 
-      {/* Top chrome: progress bars + header (under Dynamic Island & status) */}
-      <div style={{ position: 'absolute', top: 50, left: 10, right: 10, zIndex: 20 }}>
+      {/* Chrome superior: barras de progreso + header */}
+      <div style={{ position: 'absolute', top: 48, left: 10, right: 10, zIndex: 20 }}>
         <div style={{ display: 'flex', gap: 3 }}>
           <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1, overflow: 'hidden' }}>
-            <div
-              style={{
-                width: `${progress * 100}%`,
-                height: '100%',
-                background: '#fff',
-                transition: 'width 0.05s linear',
-              }}
-            />
+            <div style={{ width: `${progress * 100}%`, height: '100%', background: '#fff', transition: 'width 0.05s linear' }} />
           </div>
           <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1 }} />
           <div style={{ flex: 1, height: 2, background: 'rgba(255,255,255,0.45)', borderRadius: 1 }} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,0.35)' }}>
           <div
             style={{
               width: 26,
@@ -261,48 +231,34 @@ const StoryContent: React.FC = () => {
             Z
           </div>
           <span style={{ fontSize: 11, fontWeight: 600 }}>zamboni.inmobiliaria</span>
-          <span style={{ fontSize: 10, opacity: 0.75 }}>2 h</span>
-          <span style={{ marginLeft: 'auto', fontSize: 14, lineHeight: 1 }}>⋯</span>
-          <span style={{ fontSize: 13 }}>✕</span>
+          <span style={{ fontSize: 10, opacity: 0.8 }}>2 h</span>
+          <span style={{ marginLeft: 'auto', fontSize: 15, lineHeight: 1 }}>⋯</span>
+          <span style={{ fontSize: 14 }}>✕</span>
         </div>
       </div>
 
-      {/* Bottom: reply bar */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 18,
-          left: 10,
-          right: 10,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          zIndex: 20,
-        }}
-      >
+      {/* Chrome inferior: barra "Enviar mensaje" + corazón (en la franja negra, debajo de la placa) */}
+      <div style={{ position: 'absolute', bottom: 16, left: 12, right: 12, display: 'flex', alignItems: 'center', gap: 12, zIndex: 20 }}>
         <div
           style={{
             flex: 1,
-            padding: '8px 14px',
+            padding: '9px 16px',
             border: '1.5px solid rgba(255,255,255,0.55)',
             borderRadius: 22,
             color: 'rgba(255,255,255,0.85)',
             fontSize: 11,
-            background: 'rgba(0,0,0,0.18)',
-            backdropFilter: 'blur(8px)',
           }}
         >
-          Enviar mensaje
+          Enviar mensaje…
         </div>
-        <Heart className="w-5 h-5 text-white" strokeWidth={2.2} />
-        <Send className="w-5 h-5 text-white" strokeWidth={2.2} />
+        <Heart className="w-6 h-6 text-white" strokeWidth={2} />
       </div>
     </>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST content (IG feed: top bar + header + placa + actions + likes + caption)
+// POST: feed de IG (top bar + header + placa + acciones + likes + caption)
 // ─────────────────────────────────────────────────────────────────────────────
 const PostContent: React.FC = () => {
   const data = usePlacaStore((s) => s.data);
@@ -311,28 +267,19 @@ const PostContent: React.FC = () => {
 
   return (
     <div style={{ width: SCREEN_W, height: SCREEN_H, background: '#000', color: '#fff', overflow: 'hidden' }}>
-      {/* Spacer for status + Dynamic Island */}
+      {/* Spacer para status + Dynamic Island */}
       <div style={{ height: 50 }} />
 
-      {/* IG top bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '4px 14px 8px',
-        }}
-      >
-        <span style={{ fontFamily: '"Brush Script MT", cursive', fontSize: 22, color: '#fff', lineHeight: 1 }}>
-          Instagram
-        </span>
+      {/* Top bar de IG */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 14px 8px' }}>
+        <span style={{ fontFamily: '"Brush Script MT", cursive', fontSize: 22, color: '#fff', lineHeight: 1 }}>Instagram</span>
         <div style={{ display: 'flex', gap: 16 }}>
           <Heart className="w-5 h-5" strokeWidth={2} />
           <Send className="w-5 h-5" strokeWidth={2} />
         </div>
       </div>
 
-      {/* Post header */}
+      {/* Header del post */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 9 }}>
         <div
           style={{
@@ -358,14 +305,14 @@ const PostContent: React.FC = () => {
         <span style={{ fontSize: 16, opacity: 0.9 }}>⋯</span>
       </div>
 
-      {/* Placa scaled into the post area */}
+      {/* Placa escalada dentro del área del post */}
       <div style={{ width: SCREEN_W, height: placaH, overflow: 'hidden', position: 'relative', background: '#0a0a0a' }}>
         <div style={{ width: 1080, height: 1350, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
           <PlacaRenderer />
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Acciones */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px 4px' }}>
         <div style={{ display: 'flex', gap: 14 }}>
           <Heart className="w-6 h-6" strokeWidth={1.8} />

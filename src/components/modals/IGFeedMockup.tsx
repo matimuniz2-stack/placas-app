@@ -202,21 +202,21 @@ const DummyTile: React.FC<{ post: typeof DUMMY_POSTS[0] }> = ({ post }) => {
       }}
     >
       <div style={{ fontFamily: `'${tpl.defaultLayers.addr?.font || 'Inter'}'`, fontSize: 7, opacity: 0.7, letterSpacing: 1, textTransform: 'uppercase' }}>
-        {tpl.id === 't04' ? post.barrio.toUpperCase() : post.barrio}
+        {post.barrio}
       </div>
       <div style={{
         fontFamily: `'${tpl.defaultLayers.addr?.font || 'Inter'}'`,
-        fontSize: tpl.id === 't04' ? 14 : 10,
+        fontSize: 10,
         fontWeight: tpl.defaultLayers.addr?.weight || 600,
         lineHeight: 1.05,
         marginTop: 2,
-        textTransform: tpl.id === 't04' || tpl.id === 't11' ? 'uppercase' : 'none',
+        textTransform: 'none',
       }}>
         {post.addr.split(' ').slice(-2).join(' ')}
       </div>
       <div style={{
         fontFamily: `'${tpl.defaultLayers.price?.font || tpl.defaultLayers.addr?.font || 'Inter'}'`,
-        fontSize: tpl.id === 't04' ? 14 : 11,
+        fontSize: 11,
         fontWeight: tpl.defaultLayers.price?.weight || 700,
         marginTop: 3,
       }}>

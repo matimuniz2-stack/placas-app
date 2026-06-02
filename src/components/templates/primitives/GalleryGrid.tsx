@@ -1,31 +1,33 @@
 import React from 'react';
-import { usePlacaStore, getEffectiveLayer, getCurrentTemplate } from '@/lib/store';
+import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
+import { galleryCount } from '@/lib/galleryLayout';
 import type { LayerId } from '@/types';
 
-const CELL_IDS: LayerId[] = ['g0', 'g1', 'g2', 'g3'];
 const SHADOW = '0 10px 30px rgba(43,26,20,0.08)';
 
 export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive = true }) => {
   const photos = usePlacaStore((s) => s.photos);
   const galleryCells = usePlacaStore((s) => s.galleryCells);
-  // suscribirse para re-render cuando se mueve/redimensiona o cambia la plantilla
+  // suscribirse para re-render al mover/redimensionar/ocultar celdas
   usePlacaStore((s) => s.layerOverrides);
-  const templateId = usePlacaStore((s) => s.templateId);
   const selected = usePlacaStore((s) => s.selectedLayer);
   const select = usePlacaStore((s) => s.selectLayer);
-  const tpl = getCurrentTemplate();
-  void templateId;
+
+  const count = galleryCount(photos.length);
+  const rest = Math.max(0, photos.length - 1);
+  const extra = rest - count; // fotos que no entran (badge "+N")
 
   return (
     <>
-      {CELL_IDS.map((id, i) => {
-        if (!tpl.defaultLayers[id]) return null;
+      {Array.from({ length: count }, (_, i) => {
+        const id = `g${i}` as LayerId;
         const layer = getEffectiveLayer(id);
-        if (!layer || layer.visible === false) return null;
+        if (!layer || layer.visible === false) return null; // celda oculta = "borrada"
 
-        const idx = galleryCells[id] ?? i;
-        const p = photos[idx];
+        const photoIdx = galleryCells[id] ?? i + 1; // +1: saltear la portada
+        const p = photos[photoIdx];
         const isSel = interactive && selected === id;
+        const isLast = i === count - 1;
 
         const bgStyle: React.CSSProperties = p
           ? {
@@ -49,7 +51,7 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
               width: `${layer.w}%`,
               height: `${layer.h}%`,
               transform: layer.rotation ? `rotate(${layer.rotation}deg)` : undefined,
-              borderRadius: layer.radius ?? 24,
+              borderRadius: layer.radius ?? 22,
               boxShadow: SHADOW,
               overflow: 'hidden',
               zIndex: layer.z ?? 2,
@@ -76,6 +78,25 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
                 }}
               >
                 FOTO {i + 1}
+              </div>
+            )}
+            {isLast && extra > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 16,
+                  bottom: 16,
+                  background: 'rgba(43,26,20,0.78)',
+                  color: '#f4ebdd',
+                  fontFamily: 'Inter',
+                  fontWeight: 600,
+                  fontSize: 26,
+                  letterSpacing: 0.5,
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                }}
+              >
+                +{extra}
               </div>
             )}
           </div>

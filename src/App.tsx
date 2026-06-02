@@ -18,7 +18,7 @@ const App: React.FC = () => {
     if (fromShare) {
       usePlacaStore.setState({
         data: fromShare.data || usePlacaStore.getState().data,
-        templateId: fromShare.templateId || 't01',
+        templateId: fromShare.templateId || 't16',
         layerOverrides: fromShare.layerOverrides || {},
         theme: fromShare.theme || usePlacaStore.getState().theme,
         badges: fromShare.badges || [],

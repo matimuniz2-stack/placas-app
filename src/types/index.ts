@@ -22,7 +22,9 @@ export type LayerId =
   | 'g0'
   | 'g1'
   | 'g2'
-  | 'g3';
+  | 'g3'
+  | 'g4'
+  | 'g5';
 
 export type Align = 'left' | 'center' | 'right';
 
