@@ -73,6 +73,12 @@ export interface PlacaData {
   desc?: string;
   listingUrl?: string;
   amenText?: string; // override manual de la línea de detalles (amb · m² · baños…)
+  // Campos del aviso Meta Ad (t19)
+  city?: string;
+  lote?: string;
+  microTagline?: string;
+  benefitTitle?: string;
+  benefitSubtitle?: string;
 }
 
 export interface PhotoState {

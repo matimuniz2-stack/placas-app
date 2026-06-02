@@ -159,8 +159,10 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         {/* Format toggle */}
         <div className="bg-neutral-100 rounded p-0.5 flex gap-0.5">
           <button
-            onClick={() => setFormat('story')}
-            className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'story' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`}
+            onClick={() => { if (templateId !== 't19') setFormat('story'); }}
+            disabled={templateId === 't19'}
+            title={templateId === 't19' ? 'El Meta Ad es 4:5 (Post)' : undefined}
+            className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'story' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${templateId === 't19' ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             <Smartphone className="w-3 h-3" /> Story
           </button>

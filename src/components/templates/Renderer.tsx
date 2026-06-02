@@ -10,6 +10,7 @@ import { QRLayer } from './primitives/QRLayer';
 import { AgentLayer } from './primitives/AgentLayer';
 import { MapLayer } from './primitives/MapLayer';
 import { GalleryGrid } from './primitives/GalleryGrid';
+import { MetaAdRenderer } from './MetaAdRenderer';
 import { amenString, extrasString, priceString } from '@/lib/format';
 import type { LayerId } from '@/types';
 
@@ -121,6 +122,10 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         userSelect: 'none',
       }}
     >
+      {templateId === 't19' ? (
+        <MetaAdRenderer interactive={interactive} />
+      ) : (
+        <>
       {/* Galería: grilla editorial de varias fotos */}
       {tpl.gallery && <GalleryGrid interactive={interactive} />}
 
@@ -179,6 +184,8 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
       {/* Agent watermark */}
       <AgentLayer />
+        </>
+      )}
     </div>
   );
 };

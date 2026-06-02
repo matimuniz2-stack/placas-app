@@ -41,6 +41,7 @@ export const SidebarLeft: React.FC = () => {
 const DatosTab: React.FC = () => {
   const data = usePlacaStore((s) => s.data);
   const patchData = usePlacaStore((s) => s.patchData);
+  const templateId = usePlacaStore((s) => s.templateId);
   const [pasting, setPasting] = useState(false);
   const [pasteUrl, setPasteUrl] = useState('');
   const [progress, setProgress] = useState<string>('');
@@ -211,6 +212,18 @@ const DatosTab: React.FC = () => {
           }}
         />
       </div>
+
+      {templateId === 't19' && (
+        <div className="bg-brand/5 border border-brand/20 rounded-md p-2.5 space-y-2">
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase text-brand">Datos del aviso (Meta Ad)</div>
+          <Field label="Ciudad" v={data.city || ''} on={(v) => patchData({ city: v })} ph="Mar del Plata" />
+          <Field label="m² lote" v={data.lote || ''} on={(v) => patchData({ lote: v })} ph="ej: 431" />
+          <Field label="Tagline" v={data.microTagline || ''} on={(v) => patchData({ microTagline: v })} ph="LISTA PARA DISFRUTAR" />
+          <Field label="Beneficio (título)" v={data.benefitTitle || ''} on={(v) => patchData({ benefitTitle: v })} ph="ZONA RESIDENCIAL" />
+          <Field label="Beneficio (subtítulo)" v={data.benefitSubtitle || ''} on={(v) => patchData({ benefitSubtitle: v })} ph="EXCELENTE ENTORNO" />
+          <p className="text-[10px] text-neutral-400 leading-snug">El titular sale de Dirección (línea 1) + Barrio (línea 2 en rojo). El subtítulo, de Descripción o la línea de detalles.</p>
+        </div>
+      )}
     </div>
   );
 };

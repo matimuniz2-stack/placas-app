@@ -105,6 +105,11 @@ const DEFAULT_DATA: PlacaData = {
   antiguedad: '',
   desc: '',
   listingUrl: '',
+  city: 'Mar del Plata',
+  lote: '',
+  microTagline: 'LISTA PARA DISFRUTAR',
+  benefitTitle: 'ZONA RESIDENCIAL',
+  benefitSubtitle: 'EXCELENTE ENTORNO',
 };
 
 const DEFAULT_THEME: ThemeState = {
@@ -145,7 +150,7 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarRightOpen: true,
 
       setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set({ templateId: id, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null }),
+      setTemplate: (id) => set((s) => ({ templateId: id, format: id === 't19' ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),

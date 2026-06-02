@@ -96,4 +96,14 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       logo: L({ id: 'logo', x: 81.64, y: 4.02, w: 11, h: 0 }),
     },
   },
+
+  // ============== t19: META AD (aviso publicitario 4:5 para Meta Ads — render dedicado en MetaAdRenderer) ==============
+  {
+    id: 't19',
+    name: 'Meta Ad',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];

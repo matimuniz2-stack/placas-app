@@ -403,7 +403,7 @@ const TemplatesTab: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = (
               <button
                 key={t.id}
                 onClick={() => setTemplate(t.id)}
-                className={`rounded border-2 overflow-hidden transition relative aspect-[9/16] ${templateId === t.id ? 'border-brand' : 'border-neutral-200 hover:border-neutral-400'}`}
+                className={`rounded border-2 overflow-hidden transition relative ${t.id === 't19' ? 'aspect-[4/5]' : 'aspect-[9/16]'} ${templateId === t.id ? 'border-brand' : 'border-neutral-200 hover:border-neutral-400'}`}
                 title={t.name}
                 style={{ background: t.bgColor || '#1a1a1a' }}
               >
@@ -421,18 +421,19 @@ const TemplatesTab: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = (
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
   const THUMB_W = 130;
   const scale = THUMB_W / 1080;
+  const isMeta = templateId === 't19';
   return (
     <div className="tpl-thumb-static" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       <div
         style={{
           width: 1080,
-          height: 1920,
+          height: isMeta ? 1350 : 1920,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
           pointerEvents: 'none',
         }}
       >
-        <PlacaRenderer overrideTemplateId={templateId} formatOverride="story" noOverrides interactive={false} />
+        <PlacaRenderer overrideTemplateId={templateId} formatOverride={isMeta ? 'post' : 'story'} noOverrides interactive={false} />
       </div>
     </div>
   );
