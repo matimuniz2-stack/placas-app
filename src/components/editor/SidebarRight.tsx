@@ -256,7 +256,7 @@ const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
         </div>
       )}
       <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
-        Parte de un mosaico automático, pero podés mover/estirar la celda con los handles (o X/Y/W/H acá arriba). Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers. El encuadre de la foto se ajusta en FOTOS.
+Arrastrá adentro de la celda para encuadrar la foto, scroll para zoom, y los handles para redimensionar el marco. Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers.
       </p>
     </div>
   );

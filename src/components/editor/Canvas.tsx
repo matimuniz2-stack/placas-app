@@ -22,6 +22,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const select = usePlacaStore((s) => s.selectLayer);
   const patchLayer = usePlacaStore((s) => s.patchLayer);
   const patchActivePhoto = usePlacaStore((s) => s.patchActivePhoto);
+  const patchPhoto = usePlacaStore((s) => s.patchPhoto);
   const sidebarLeftOpen = usePlacaStore((s) => s.sidebarLeftOpen);
   const sidebarRightOpen = usePlacaStore((s) => s.sidebarRightOpen);
   const showGrid = usePlacaStore((s) => s.showGrid);
@@ -166,8 +167,19 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    const photos = usePlacaStore.getState().photos;
-    const active = photos[usePlacaStore.getState().activePhotoIdx];
+    const st = usePlacaStore.getState();
+    // Celda de galería seleccionada: scroll = zoom de la foto de ESA celda.
+    if (selected && /^g\d$/.test(selected)) {
+      const cellIdx = parseInt(selected.slice(1), 10);
+      const photoIdx = st.galleryCells[selected] ?? cellIdx + 1;
+      const cellPhoto = st.photos[photoIdx];
+      if (!cellPhoto) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.08 : 0.08;
+      patchPhoto(photoIdx, { zoom: Math.max(1, Math.min(3, cellPhoto.zoom + delta)) });
+      return;
+    }
+    const active = st.photos[st.activePhotoIdx];
     if (!active) return;
     // Zoom permitido cuando no hay nada seleccionado o cuando la foto está
     // seleccionada (sea fullbleed o un cuadro contenido).
@@ -203,6 +215,30 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       return;
     }
 
+    // Celda de galería CON foto: arrastrar ENCUADRA la foto dentro del marco
+    // (si la celda está vacía, cae al movimiento normal del marco de abajo).
+    if (/^g\d$/.test(selected)) {
+      const st = usePlacaStore.getState();
+      const cellIdx = parseInt(selected.slice(1), 10);
+      const photoIdx = st.galleryCells[selected] ?? cellIdx + 1;
+      const active = st.photos[photoIdx];
+      const cellLayer = getEffectiveLayer(selected);
+      if (active && cellLayer) {
+        const boxW = size.w * ((cellLayer.w || 100) / 100);
+        const boxH = size.h * ((cellLayer.h || 100) / 100);
+        const dx = (e.delta[0] / boxW) * 100;
+        const dy = (e.delta[1] / boxH) * 100;
+        patchPhoto(photoIdx, {
+          pos: {
+            x: Math.max(0, Math.min(100, active.pos.x - dx)),
+            y: Math.max(0, Math.min(100, active.pos.y - dy)),
+          },
+        });
+        moveableRef.current?.updateRect();
+        return;
+      }
+    }
+
     const layer = getEffectiveLayer(selected);
     if (!layer) return;
     const dx = (e.delta[0] / size.w) * 100;
@@ -232,10 +268,14 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   };
 
   const photos = usePlacaStore((s) => s.photos);
+  const galleryCells = usePlacaStore((s) => s.galleryCells);
   const hasPhoto = photos.length > 0;
   const photoContainedSelected = selected === 'photo' && !photoIsFullbleed;
+  const galleryCellPhotoIdx =
+    selected && /^g\d$/.test(selected) ? (galleryCells[selected] ?? parseInt(selected.slice(1), 10) + 1) : -1;
+  const galleryCellHasPhoto = galleryCellPhotoIdx >= 0 && !!photos[galleryCellPhotoIdx];
   const showPhotoCursor = hasPhoto && (!selected || photoIsSelectedFullbleed);
-  const canFramePhoto = hasPhoto && (showPhotoCursor || photoContainedSelected);
+  const canFramePhoto = hasPhoto && (showPhotoCursor || photoContainedSelected || galleryCellHasPhoto);
   const useMoveable = !!target && !!selected && !photoIsSelectedFullbleed && !editingLayer;
 
   return (
@@ -337,7 +377,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         }}
       >
         {Math.round(scale * 100)}%  ·  {size.w}×{size.h}
-        {canFramePhoto && <span className="ml-2 text-brand">· {photoContainedSelected ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
+        {canFramePhoto && <span className="ml-2 text-brand">· {(photoContainedSelected || galleryCellHasPhoto) ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
       </div>
     </div>
   );

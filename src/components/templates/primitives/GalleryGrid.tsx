@@ -12,6 +12,7 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
   usePlacaStore((s) => s.layerOverrides);
   const selected = usePlacaStore((s) => s.selectedLayer);
   const select = usePlacaStore((s) => s.selectLayer);
+  const setActive = usePlacaStore((s) => s.setActivePhoto);
 
   const count = galleryCount(photos.length);
   const rest = Math.max(0, photos.length - 1);
@@ -43,7 +44,7 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
           <div
             key={id}
             data-layer={id}
-            onClick={interactive ? (e) => { e.stopPropagation(); select(id); } : undefined}
+            onClick={interactive ? (e) => { e.stopPropagation(); select(id); if (p) setActive(photoIdx); } : undefined}
             style={{
               position: 'absolute',
               left: `${layer.x}%`,

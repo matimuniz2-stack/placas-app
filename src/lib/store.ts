@@ -55,6 +55,7 @@ interface PlacaState {
   removePhoto: (idx: number) => void;
   setActivePhoto: (idx: number) => void;
   patchActivePhoto: (p: Partial<PhotoState>) => void;
+  patchPhoto: (idx: number, p: Partial<PhotoState>) => void;
   replacePhotoUrl: (idx: number, url: string) => void;
   clearPhotos: () => void;
 
@@ -179,6 +180,13 @@ export const usePlacaStore = create<PlacaState>()(
           if (photos[s.activePhotoIdx]) {
             photos[s.activePhotoIdx] = { ...photos[s.activePhotoIdx], ...p };
           }
+          return { photos };
+        }),
+
+      patchPhoto: (idx, p) =>
+        set((s) => {
+          const photos = [...s.photos];
+          if (photos[idx]) photos[idx] = { ...photos[idx], ...p };
           return { photos };
         }),
 
