@@ -256,7 +256,7 @@ const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
         </div>
       )}
       <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
-Arrastrá adentro de la celda para encuadrar la foto, scroll para zoom, y los handles para redimensionar el marco. Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers.
+Arrastrá adentro de la celda para encuadrar la foto (scroll = zoom), los handles para redimensionar, y Alt+arrastrá (o los campos X/Y de arriba) para mover el marco. Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers.
       </p>
     </div>
   );

@@ -215,15 +215,17 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       return;
     }
 
-    // Celda de galería CON foto: arrastrar ENCUADRA la foto dentro del marco
-    // (si la celda está vacía, cae al movimiento normal del marco de abajo).
+    // Celda de galería: arrastrar ENCUADRA la foto dentro del marco; con Alt/Cmd
+    // arrastrar MUEVE el marco. Celda vacía: siempre cae al movimiento del marco.
     if (/^g\d$/.test(selected)) {
+      const ie = e.inputEvent as any;
+      const moveCell = !!(ie && (ie.altKey || ie.metaKey));
       const st = usePlacaStore.getState();
       const cellIdx = parseInt(selected.slice(1), 10);
       const photoIdx = st.galleryCells[selected] ?? cellIdx + 1;
       const active = st.photos[photoIdx];
       const cellLayer = getEffectiveLayer(selected);
-      if (active && cellLayer) {
+      if (!moveCell && active && cellLayer) {
         const boxW = size.w * ((cellLayer.w || 100) / 100);
         const boxH = size.h * ((cellLayer.h || 100) / 100);
         const dx = (e.delta[0] / boxW) * 100;
@@ -377,7 +379,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         }}
       >
         {Math.round(scale * 100)}%  ·  {size.w}×{size.h}
-        {canFramePhoto && <span className="ml-2 text-brand">· {(photoContainedSelected || galleryCellHasPhoto) ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
+        {canFramePhoto && <span className="ml-2 text-brand">· {galleryCellHasPhoto ? 'arrastrá: encuadrar foto · Alt+arrastrá: mover celda · scroll: zoom · handles: tamaño' : photoContainedSelected ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
       </div>
     </div>
   );
