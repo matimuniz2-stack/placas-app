@@ -386,7 +386,6 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
             <Facebook size={24} color="#fff" strokeWidth={2} />
             <Instagram size={24} color="#fff" strokeWidth={2} />
           </div>
-          <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 20 }}>{MATRICULA}</span>
         </div>
       ))}
 
