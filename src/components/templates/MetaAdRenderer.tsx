@@ -192,7 +192,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const headSize = layerOverrides['maHead']?.size ?? (hMax <= 16 ? 62 : hMax <= 22 ? 52 : hMax <= 30 ? 42 : 36);
   // t20: el "grande" se calcula sobre las líneas del barrio (sin contar la 1ª roja).
   const t20BigMax = Math.max(0, ...headLines.slice(1).map((l) => l.length));
-  const t20Big = layerOverrides['maHead']?.size ?? (t20BigMax <= 6 ? 118 : t20BigMax <= 9 ? 94 : t20BigMax <= 12 ? 76 : 60);
+  const t20Big = layerOverrides['maHead']?.size ?? (t20BigMax <= 6 ? 92 : t20BigMax <= 9 ? 76 : t20BigMax <= 12 ? 62 : 50);
   // Subtítulo (debajo del título): editable in-canvas → textOverride manda.
   const subOverride = textOverrides['maSub'];
   const subtitle = subOverride != null ? subOverride : ((data.amenText && data.amenText.trim()) || (data.desc && data.desc.trim()) || amenString(data) || '');
@@ -202,8 +202,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const tagline = tagOverride != null ? tagOverride : (data.microTagline || '').trim();
   const cc = cocheraCount(data);
   const features = [
-    { Icon: Bed, value: data.amb, label: 'ambientes' },
-    { Icon: Bath, value: data.baths, label: 'baños' },
+    { Icon: Bed, value: data.amb, label: data.amb === '1' ? 'ambiente' : 'ambientes' },
+    { Icon: Bath, value: data.baths, label: data.baths === '1' ? 'baño' : 'baños' },
     { Icon: Car, value: cc > 0 ? String(cc) : '', label: cocheraLabel(cc) },
     { Icon: Maximize, value: data.m2 ? `${data.m2} m²` : '', label: 'cubiertos' },
     { Icon: Ruler, value: data.lote ? `${data.lote} m²` : '', label: 'lote' },
