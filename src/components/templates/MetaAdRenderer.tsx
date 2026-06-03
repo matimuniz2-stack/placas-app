@@ -153,8 +153,10 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const textOverrides = usePlacaStore((s) => s.textOverrides); // texto editado in-canvas
   const editingLayer = usePlacaStore((s) => s.editingLayer);
   const patchCustomElement = usePlacaStore((s) => s.patchCustomElement);
+  const templateId = usePlacaStore((s) => s.templateId);
 
-  const RED = theme.brand || '#EF2B2A';
+  const t20 = templateId === 't20'; // Aviso Pro
+  const RED = theme.brand || (t20 ? '#E5342B' : '#EF2B2A');
 
   // ── Datos ──
   const status = `EN ${(data.op || 'Venta').toUpperCase()}`;
@@ -165,14 +167,32 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
     : [data.addr || '', data.barrio ? `en ${data.barrio}` : ''];
   const hl1 = hParts[0] || '';
   const hl2 = hParts[1] || '';
-  // Título: si el usuario lo editó in-canvas (textOverride), manda ese texto. La 1ª línea
-  // va en oscuro y las siguientes en rojo (igual que el auto hl1/hl2).
+  // Título: si el usuario lo editó in-canvas (textOverride), manda ese texto.
+  // t19: 1ª línea oscura, resto rojo (del addr). t20: 1ª línea roja chica
+  // ("DEPARTAMENTO EN"), resto negro grande (el barrio, partido en palabras).
   const headOverride = textOverrides['maHead'];
-  const headLines = (headOverride != null ? headOverride.split('\n') : [hl1, hl2].filter(Boolean)).filter((l, i) => i === 0 || l !== '');
-  const headEdit = headOverride != null ? headOverride : [hl1, hl2].filter(Boolean).join('\n');
+  let headLines: string[];
+  let headEdit: string;
+  if (t20) {
+    if (headOverride != null) {
+      headLines = headOverride.split('\n');
+      headEdit = headOverride;
+    } else {
+      const l0 = `${(data.tipoPropiedad || 'Propiedad').trim()} en`.toUpperCase();
+      const barrioWords = (data.barrio || '').toUpperCase().split(/\s+/).filter(Boolean);
+      headLines = [l0, ...barrioWords];
+      headEdit = headLines.join('\n');
+    }
+  } else {
+    headLines = (headOverride != null ? headOverride.split('\n') : [hl1, hl2].filter(Boolean)).filter((l, i) => i === 0 || l !== '');
+    headEdit = headOverride != null ? headOverride : [hl1, hl2].filter(Boolean).join('\n');
+  }
   // Tamaño del título: respeta el override del usuario; si no, se achica solo según el largo.
   const hMax = Math.max(0, ...headLines.map((l) => l.length));
   const headSize = layerOverrides['maHead']?.size ?? (hMax <= 16 ? 62 : hMax <= 22 ? 52 : hMax <= 30 ? 42 : 36);
+  // t20: el "grande" se calcula sobre las líneas del barrio (sin contar la 1ª roja).
+  const t20BigMax = Math.max(0, ...headLines.slice(1).map((l) => l.length));
+  const t20Big = layerOverrides['maHead']?.size ?? (t20BigMax <= 6 ? 118 : t20BigMax <= 9 ? 94 : t20BigMax <= 12 ? 76 : 60);
   // Subtítulo (debajo del título): editable in-canvas → textOverride manda.
   const subOverride = textOverrides['maSub'];
   const subtitle = subOverride != null ? subOverride : ((data.amenText && data.amenText.trim()) || (data.desc && data.desc.trim()) || amenString(data) || '');
@@ -196,6 +216,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const photoIdxFor = (id: string): number | null => {
     if (id === 'maPhoto1') return galleryCells['maPhoto1'] ?? 0;
     if (id === 'maPhoto2') return galleryCells['maPhoto2'] ?? 1;
+    if (id === 'maPhoto3') return galleryCells['maPhoto3'] ?? 2;
     if (/^maC\d$/.test(id) && customElements[id]?.type === 'photo') return galleryCells[id] ?? customElements[id]?.photoIdx ?? 0;
     return null;
   };
@@ -250,10 +271,17 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
         <PhotoBox photo={photos[photoIdxFor('maPhoto1')!]} boost style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
       ), { extraStyle: { overflow: 'hidden' } })}
 
-      {/* Foto secundaria */}
+      {/* Foto secundaria 1 */}
       {block('maPhoto2', (L) => (
-        <PhotoBox photo={photos[photoIdxFor('maPhoto2')!]} style={{ position: 'absolute', inset: 0 }} />
-      ), { extraStyle: { borderRadius: 26, border: '5px solid #fff', boxShadow: '0 14px 34px rgba(0,0,0,0.16)', overflow: 'hidden' } })}
+        <PhotoBox photo={photos[photoIdxFor('maPhoto2')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
+      ), { extraStyle: t20
+        ? { borderRadius: 24, boxShadow: '0 10px 28px rgba(0,0,0,0.12)', overflow: 'hidden' }
+        : { borderRadius: 26, border: '5px solid #fff', boxShadow: '0 14px 34px rgba(0,0,0,0.16)', overflow: 'hidden' } })}
+
+      {/* Foto secundaria 2 (Aviso Pro) */}
+      {block('maPhoto3', (L) => (
+        <PhotoBox photo={photos[photoIdxFor('maPhoto3')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
+      ), { extraStyle: { borderRadius: 24, boxShadow: '0 10px 28px rgba(0,0,0,0.12)', overflow: 'hidden' } })}
 
       {/* Badge estado */}
       {block('maStatus', () => (
@@ -274,9 +302,25 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
         </div>
       ), { auto: true })}
 
-      {/* Título bicolor (editable: doble click) */}
+      {/* Título (editable: doble click). t20: 1ª línea roja chica + barrio negro grande + barra roja. */}
       {block('maHead', (L) => {
-        const s: React.CSSProperties = { fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: headSize, lineHeight: L.lineHeight ?? 1.04 };
+        const fam = `'${L.font || 'Outfit'}', sans-serif`;
+        if (t20) {
+          const small = Math.max(20, Math.round(t20Big * 0.3));
+          const s: React.CSSProperties = { fontFamily: fam };
+          return (
+            <MetaText id="maHead" interactive={interactive} editText={headEdit} style={{ ...s, fontSize: t20Big, fontWeight: 800 }}>
+              <div style={s}>
+                <div style={{ color: RED, fontSize: small, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>{headLines[0]}</div>
+                {headLines.slice(1).map((ln, i) => (
+                  <div key={i} style={{ color: L.color ?? DARK, fontSize: t20Big, fontWeight: 800, lineHeight: 0.98 }}>{ln}</div>
+                ))}
+                <div style={{ width: 100, height: 6, background: RED, borderRadius: 3, marginTop: 16 }} />
+              </div>
+            </MetaText>
+          );
+        }
+        const s: React.CSSProperties = { fontFamily: fam, fontWeight: L.weight ?? 800, fontSize: headSize, lineHeight: L.lineHeight ?? 1.04 };
         return (
           <MetaText id="maHead" interactive={interactive} editText={headEdit} style={s}>
             <div style={s}>
@@ -302,17 +346,28 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           );
         })}
 
-      {/* Precio (con separador rojo arriba) */}
+      {/* Precio. t19: texto rojo con barra. t20: bloque rojo sólido con texto blanco. */}
       {hasPrice &&
-        block('maPrice', (L) => (
-          <div>
-            <div style={{ width: 72, height: 6, background: RED, borderRadius: 3, marginBottom: 14 }} />
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-              <span style={{ fontFamily: HEAD, fontWeight: 600, fontSize: Math.round((L.size ?? 96) * 0.36), color: NAVY }}>{data.currency}</span>
-              <span style={{ fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: L.size ?? 96, color: L.color ?? RED, lineHeight: 0.9 }}>{priceNum}</span>
+        block('maPrice', (L) => {
+          if (t20) {
+            const big = L.size ?? 92;
+            return (
+              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 12, background: RED, borderRadius: 16, padding: '14px 30px', boxShadow: '0 8px 22px rgba(0,0,0,0.14)' }}>
+                <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: Math.round(big * 0.36), color: '#fff' }}>{data.currency}</span>
+                <span style={{ fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: big, color: '#fff', lineHeight: 0.9 }}>{priceNum}</span>
+              </div>
+            );
+          }
+          return (
+            <div>
+              <div style={{ width: 72, height: 6, background: RED, borderRadius: 3, marginBottom: 14 }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                <span style={{ fontFamily: HEAD, fontWeight: 600, fontSize: Math.round((L.size ?? 96) * 0.36), color: NAVY }}>{data.currency}</span>
+                <span style={{ fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: L.size ?? 96, color: L.color ?? RED, lineHeight: 0.9 }}>{priceNum}</span>
+              </div>
             </div>
-          </div>
-        ), { auto: true })}
+          );
+        }, { auto: true })}
 
       {/* Tagline (editable: doble click) */}
       {(tagline || tagOverride != null) &&
@@ -338,9 +393,9 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           </div>
         ))}
 
-      {/* CTA WhatsApp */}
+      {/* CTA WhatsApp. t20: pill rojo dentro de tarjeta blanca con borde. */}
       {block('maCta', () => {
-        const inner = (
+        const pill = (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: RED, color: '#fff', borderRadius: 14, padding: '16px 24px' }}>
             <MessageCircle size={36} color="#fff" strokeWidth={2.2} />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
@@ -349,20 +404,27 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
             </div>
           </div>
         );
+        const inner = t20
+          ? <div style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', border: '2px solid #E5E7EB', borderRadius: 20, padding: 16 }}>{pill}</div>
+          : pill;
         return waLink && !interactive ? <a href={waLink} style={{ textDecoration: 'none' }}>{inner}</a> : inner;
       }, { auto: true })}
 
-      {/* Beneficio */}
-      {benefitTitle &&
-        block('maBenefit', () => (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
-            <ShieldCheck size={40} color={RED} strokeWidth={2} />
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-              <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 24, color: DARK }}>{benefitTitle}</span>
-              {benefitSub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 19, color: GRAY }}>{benefitSub}</span>}
+      {/* Beneficio / Apto crédito (t20). */}
+      {((t20 && data.aptoCredito) || (!t20 && benefitTitle)) &&
+        block('maBenefit', () => {
+          const title = t20 ? 'APTO CRÉDITO' : benefitTitle;
+          const sub = t20 ? 'CONSULTANOS' : benefitSub;
+          return (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+              <ShieldCheck size={40} color={RED} strokeWidth={2} />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 24, color: DARK }}>{title}</span>
+                {sub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 19, color: GRAY }}>{sub}</span>}
+              </div>
             </div>
-          </div>
-        ), { auto: true })}
+          );
+        }, { auto: true })}
 
       {/* Marca — escala con el ancho del layer (16% = tamaño base). Redimensionable
           con los handles o el campo W del inspector. */}
@@ -381,20 +443,23 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
         );
       })}
 
-      {/* Footer navy */}
-      {block('maFooter', () => (
-        <div style={{ width: '100%', height: '100%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 44px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Globe size={22} color="#fff" strokeWidth={2} />
-            <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 21 }}>{WEBSITE}</span>
+      {/* Footer. t19: negro. t20: blanco con línea divisoria superior. */}
+      {block('maFooter', () => {
+        const fg = t20 ? '#374151' : '#fff';
+        return (
+          <div style={{ width: '100%', height: '100%', background: t20 ? '#fff' : '#000', color: fg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 44px', borderTop: t20 ? '1px solid #E5E7EB' : undefined }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Globe size={22} color={fg} strokeWidth={2} />
+              <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 21 }}>{WEBSITE}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span style={{ fontFamily: BODY, fontWeight: 400, fontSize: 20, opacity: 0.85 }}>{FOLLOW}</span>
+              <Facebook size={24} color={fg} strokeWidth={2} />
+              <Instagram size={24} color={fg} strokeWidth={2} />
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ fontFamily: BODY, fontWeight: 400, fontSize: 20, opacity: 0.85 }}>{FOLLOW}</span>
-            <Facebook size={24} color="#fff" strokeWidth={2} />
-            <Instagram size={24} color="#fff" strokeWidth={2} />
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Elementos custom agregados por el usuario */}
       {CUSTOM_SLOTS.filter((id) => customElements[id]).map((id) => {

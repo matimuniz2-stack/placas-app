@@ -106,4 +106,14 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#111827',
     defaultLayers: {},
   },
+
+  // ============== t20: AVISO PRO (foto hero + 2 secundarias, precio en bloque, apto crédito) ==============
+  {
+    id: 't20',
+    name: 'Aviso Pro',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];

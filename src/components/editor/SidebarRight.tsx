@@ -11,7 +11,7 @@ import { PlacaRenderer } from '@/components/templates/Renderer';
 import { listPresets, savePreset, deletePreset } from '@/lib/presets';
 import { captureThumb } from '@/lib/export';
 import { galleryCellIds } from '@/lib/galleryLayout';
-import { META_BLOCK_IDS, CUSTOM_SLOTS, META_LABELS } from '@/lib/metaAd';
+import { CUSTOM_SLOTS, META_LABELS, isMetaTemplate, metaBlockIdsFor } from '@/lib/metaAd';
 import type { LayerId, DesignPreset } from '@/types';
 
 type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
@@ -100,12 +100,12 @@ const InspectorTab: React.FC = () => {
   const addCustomElement = usePlacaStore((s) => s.addCustomElement);
   const duplicateLayer = usePlacaStore((s) => s.duplicateLayer);
 
-  const isMeta = tpl.id === 't19';
-  // En galería las celdas (g0..) y en Meta Ad los bloques no están en defaultLayers,
-  // pero los listamos para seleccionarlos/ocultarlos/resetear como cualquier capa.
+  const isMeta = isMetaTemplate(tpl.id);
+  // En galería las celdas (g0..) y en Meta Ad / Aviso Pro los bloques no están en
+  // defaultLayers, pero los listamos para seleccionarlos/ocultarlos/resetear.
   const layerIds = (
     isMeta
-      ? [...META_BLOCK_IDS, ...CUSTOM_SLOTS.filter((id) => customElements[id])]
+      ? [...metaBlockIdsFor(tpl.id), ...CUSTOM_SLOTS.filter((id) => customElements[id])]
       : Array.from(
           new Set([
             ...(Object.keys(tpl.defaultLayers) as LayerId[]),
@@ -180,6 +180,7 @@ const InspectorTab: React.FC = () => {
 
             {selected === 'maPhoto1' && <MetaPhotoPicker id="maPhoto1" defaultIdx={0} />}
             {selected === 'maPhoto2' && <MetaPhotoPicker id="maPhoto2" defaultIdx={1} />}
+            {selected === 'maPhoto3' && <MetaPhotoPicker id="maPhoto3" defaultIdx={2} />}
             {/^maC\d$/.test(selected) && customElements[selected]?.type === 'photo' && <MetaPhotoPicker id={selected} defaultIdx={0} />}
             {/^maC\d$/.test(selected) && <MetaCustomEditor id={selected} />}
 
@@ -506,7 +507,7 @@ const TemplatesTab: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = (
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
   const THUMB_W = 130;
   const scale = THUMB_W / 1080;
-  const isMeta = templateId === 't19';
+  const isMeta = isMetaTemplate(templateId);
   return (
     <div className="tpl-thumb-static" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       <div

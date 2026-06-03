@@ -26,10 +26,51 @@ export const META_BASE: Record<string, LayerConfig> = {
 
 export const META_BLOCK_IDS = Object.keys(META_BASE);
 
+// ── t20: Aviso Pro (foto hero arriba + 2 fotos secundarias, precio en bloque rojo,
+// apto crédito, footer blanco). Mismo motor/ids editables que el Meta Ad. ──
+export const META2_BASE: Record<string, LayerConfig> = {
+  // Foto hero (40% superior, a sangre)
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 43, z: 0, visible: true },
+  // Badge EN VENTA sobre la foto
+  maStatus: { id: 'maStatus', x: 2.5, y: 2.8, w: 27, h: 5, z: 10, visible: true },
+  // Título: "DEPARTAMENTO EN" (rojo chico) + "PLAZA / MITRE" (negro grande)
+  maHead: { id: 'maHead', x: 4.5, y: 45, w: 35, h: 18, font: 'Outfit', size: 96, color: '#111827', weight: 800, lineHeight: 1.0, z: 5, visible: true },
+  // Descripción corta gris
+  maSub: { id: 'maSub', x: 4.5, y: 65.5, w: 34, h: 5.5, font: 'Inter', size: 27, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: true },
+  // Precio en bloque rojo
+  maPrice: { id: 'maPrice', x: 4, y: 72.5, w: 41, h: 7.5, font: 'Outfit', size: 92, color: '#ffffff', weight: 800, z: 5, visible: true },
+  // Dos fotos secundarias
+  maPhoto2: { id: 'maPhoto2', x: 40.5, y: 43.8, w: 28.4, h: 19, radius: 24, z: 6, visible: true },
+  maPhoto3: { id: 'maPhoto3', x: 70, y: 43.8, w: 27.5, h: 19, radius: 24, z: 6, visible: true },
+  // Fila de características
+  maFeats: { id: 'maFeats', x: 4.5, y: 81.5, w: 91, h: 7, z: 5, visible: true },
+  // CTA WhatsApp (tarjeta blanca con borde)
+  maCta: { id: 'maCta', x: 4, y: 89.2, w: 47, h: 8, z: 5, visible: true },
+  // Apto crédito
+  maBenefit: { id: 'maBenefit', x: 54, y: 90.2, w: 20, h: 6, z: 5, visible: true },
+  // Marca Z + ZAMBONI PROPIEDADES
+  maBrand: { id: 'maBrand', x: 79, y: 87.2, w: 17, h: 10, z: 5, visible: true },
+  // Footer blanco
+  maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: true },
+};
+
+export const META2_BLOCK_IDS = Object.keys(META2_BASE);
+
+export function isMetaTemplate(id: string): boolean {
+  return id === 't19' || id === 't20';
+}
+export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
+  return templateId === 't20' ? META2_BASE : META_BASE;
+}
+export function metaBlockIdsFor(templateId: string): string[] {
+  return templateId === 't20' ? META2_BLOCK_IDS : META_BLOCK_IDS;
+}
+
 // Etiquetas para la lista de capas / inspector
 export const META_LABELS: Record<string, string> = {
   maPhoto1: 'Foto principal',
-  maPhoto2: 'Foto secundaria',
+  maPhoto2: 'Foto secundaria 1',
+  maPhoto3: 'Foto secundaria 2',
   maStatus: 'Badge estado',
   maLoc: 'Badge ubicación',
   maHead: 'Título',

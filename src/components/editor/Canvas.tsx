@@ -147,6 +147,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
     if (/^g\d$/.test(id)) return st.galleryCells[id] ?? parseInt(id.slice(1), 10) + 1;
     if (id === 'maPhoto1') return st.galleryCells['maPhoto1'] ?? 0;
     if (id === 'maPhoto2') return st.galleryCells['maPhoto2'] ?? 1;
+    if (id === 'maPhoto3') return st.galleryCells['maPhoto3'] ?? 2;
     if (/^maC\d$/.test(id) && st.customElements[id]?.type === 'photo')
       return st.galleryCells[id] ?? st.customElements[id]?.photoIdx ?? 0;
     return null;

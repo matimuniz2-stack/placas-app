@@ -28,6 +28,7 @@ export type LayerId =
   // Meta Ad (t19): bloques editables
   | 'maPhoto1'
   | 'maPhoto2'
+  | 'maPhoto3'
   | 'maStatus'
   | 'maLoc'
   | 'maHead'
@@ -89,6 +90,8 @@ export interface PlacaData {
   baths: string;
   cochera: 'Sí' | 'No';
   cocheras?: string; // cantidad de cocheras (numérico). Si está, manda sobre cochera Sí/No.
+  tipoPropiedad?: string; // ej: "Departamento" (título del Aviso Pro)
+  aptoCredito?: boolean; // muestra el bloque "APTO CRÉDITO" (Aviso Pro)
   price: string;
   currency: 'USD' | 'ARS';
   op: 'Venta' | 'Alquiler';

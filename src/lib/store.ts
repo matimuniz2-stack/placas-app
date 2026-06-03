@@ -12,7 +12,7 @@ import type {
 } from '@/types';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
 import { galleryCellBase } from './galleryLayout';
-import { META_BASE, customElBase, CUSTOM_SLOTS } from './metaAd';
+import { customElBase, CUSTOM_SLOTS, isMetaTemplate, metaBaseFor, META_BASE, META2_BASE } from './metaAd';
 import { amenString } from './format';
 
 // Snapshot de una capa para copiar/pegar/duplicar en el Meta Ad: geometría + estilo
@@ -128,6 +128,8 @@ const DEFAULT_DATA: PlacaData = {
   microTagline: 'LISTA PARA DISFRUTAR',
   benefitTitle: 'ZONA RESIDENCIAL',
   benefitSubtitle: 'EXCELENTE ENTORNO',
+  tipoPropiedad: 'Departamento',
+  aptoCredito: true,
 };
 
 const DEFAULT_THEME: ThemeState = {
@@ -143,6 +145,7 @@ const DEFAULT_THEME: ThemeState = {
 function metaPhotoIdx(s: PlacaState, id: string): number | null {
   if (id === 'maPhoto1') return s.galleryCells['maPhoto1'] ?? 0;
   if (id === 'maPhoto2') return s.galleryCells['maPhoto2'] ?? 1;
+  if (id === 'maPhoto3') return s.galleryCells['maPhoto3'] ?? 2;
   if (/^g\d$/.test(id)) return s.galleryCells[id] ?? parseInt(id.slice(1), 10) + 1;
   if (id === 'photo') return s.activePhotoIdx;
   if (/^maC\d$/.test(id) && s.customElements[id]?.type === 'photo')
@@ -234,7 +237,7 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarRightOpen: true,
 
       setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set((s) => ({ templateId: id, format: id === 't19' ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
+      setTemplate: (id) => set((s) => ({ templateId: id, format: isMetaTemplate(id) ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),
@@ -357,7 +360,7 @@ export const usePlacaStore = create<PlacaState>()(
 
       duplicateLayer: (id) =>
         set((s) => {
-          if (s.templateId !== 't19') return {} as any; // solo Meta Ad tiene slots custom
+          if (!isMetaTemplate(s.templateId)) return {} as any; // solo Meta Ad / Aviso Pro tienen slots custom
           const snap = buildSnapshot(s, id);
           if (!snap) return {} as any;
           return placeSnapshot(s, snap) as any;
@@ -369,7 +372,7 @@ export const usePlacaStore = create<PlacaState>()(
         }),
       pasteLayer: () =>
         set((s) => {
-          if (s.templateId !== 't19' || !s.metaClipboard) return {} as any;
+          if (!isMetaTemplate(s.templateId) || !s.metaClipboard) return {} as any;
           return placeSnapshot(s, s.metaClipboard) as any;
         }),
 
@@ -442,9 +445,11 @@ export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
   // Celdas de galería: la geometría base la da el motor adaptativo (según cantidad de
   // fotos). El override del usuario manda sobre esa base, así la celda es editable a mano.
   if (!base && tpl?.gallery && /^g\d$/.test(id)) base = galleryCellBase(id, photos.length);
-  // Meta Ad (t19): bases de los bloques editables + elementos custom (no dependen del
-  // template del store, así el thumbnail con overrideTemplateId también las resuelve)
-  if (!base && META_BASE[id]) base = META_BASE[id];
+  // Meta Ad (t19) / Aviso Pro (t20): bases de los bloques editables según el template.
+  // Fallback a META_BASE cuando el store no está en un template meta (p. ej. thumbnails
+  // del picker con overrideTemplateId) para que no queden vacíos.
+  if (!base && isMetaTemplate(templateId)) base = metaBaseFor(templateId)[id];
+  else if (!base) base = META_BASE[id] ?? META2_BASE[id];
   if (!base && /^maC\d$/.test(id)) base = customElBase(id, usePlacaStore.getState().customElements[id]?.type || 'text');
   const override = layerOverrides[id];
   if (!base && !override) return undefined;

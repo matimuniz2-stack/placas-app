@@ -145,6 +145,7 @@ const DatosTab: React.FC = () => {
         </div>
       </div>
 
+      <Field label="Tipo de propiedad" v={data.tipoPropiedad || ''} on={(v) => patchData({ tipoPropiedad: v })} ph="ej: Departamento" />
       <Field label="Dirección" v={data.addr} on={(v) => patchData({ addr: v })} />
       <Field label="Barrio" v={data.barrio} on={(v) => patchData({ barrio: v })} />
 
@@ -189,6 +190,22 @@ const DatosTab: React.FC = () => {
           ph="ej: 2"
         />
         <p className="text-[10px] text-neutral-400 mt-1 leading-snug">Cantidad de cocheras. Aparece con el ícono de auto (1 = "cochera", 2+ = "cocheras"). Dejá vacío o 0 si no tiene.</p>
+      </div>
+
+      <div>
+        <label className="label">Apto crédito</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {([['Sí', true], ['No', false]] as const).map(([lbl, val]) => (
+            <button
+              key={lbl}
+              onClick={() => patchData({ aptoCredito: val })}
+              className={`h-8 rounded text-xs font-medium border transition ${(data.aptoCredito ?? false) === val ? 'bg-brand text-white border-brand' : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'}`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-neutral-400 mt-1 leading-snug">Muestra el bloque "APTO CRÉDITO · CONSULTANOS" (template Aviso Pro).</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

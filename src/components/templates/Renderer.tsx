@@ -153,7 +153,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         userSelect: 'none',
       }}
     >
-      {templateId === 't19' ? (
+      {(templateId === 't19' || templateId === 't20') ? (
         <MetaAdRenderer interactive={interactive} />
       ) : (
         <>
