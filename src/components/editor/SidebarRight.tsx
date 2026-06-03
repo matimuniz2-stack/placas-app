@@ -11,6 +11,7 @@ import { PlacaRenderer } from '@/components/templates/Renderer';
 import { listPresets, savePreset, deletePreset } from '@/lib/presets';
 import { captureThumb } from '@/lib/export';
 import { galleryCellIds } from '@/lib/galleryLayout';
+import { META_BLOCK_IDS, CUSTOM_SLOTS, META_LABELS } from '@/lib/metaAd';
 import type { LayerId, DesignPreset } from '@/types';
 
 type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
@@ -95,20 +96,33 @@ const InspectorTab: React.FC = () => {
   const patchLayer = usePlacaStore((s) => s.patchLayer);
   const resetLayer = usePlacaStore((s) => s.resetLayer);
   const photos = usePlacaStore((s) => s.photos);
+  const customElements = usePlacaStore((s) => s.customElements);
+  const addCustomElement = usePlacaStore((s) => s.addCustomElement);
 
-  // En galería, las celdas (g0..) no están en defaultLayers (las arma el motor),
-  // pero las listamos para poder ocultarlas/mostrarlas/resetear como cualquier capa.
-  const layerIds = Array.from(
-    new Set([
-      ...(Object.keys(tpl.defaultLayers) as LayerId[]),
-      ...(tpl.gallery ? galleryCellIds(photos.length) : []),
-    ])
-  );
+  const isMeta = tpl.id === 't19';
+  // En galería las celdas (g0..) y en Meta Ad los bloques no están en defaultLayers,
+  // pero los listamos para seleccionarlos/ocultarlos/resetear como cualquier capa.
+  const layerIds = (
+    isMeta
+      ? [...META_BLOCK_IDS, ...CUSTOM_SLOTS.filter((id) => customElements[id])]
+      : Array.from(
+          new Set([
+            ...(Object.keys(tpl.defaultLayers) as LayerId[]),
+            ...(tpl.gallery ? galleryCellIds(photos.length) : []),
+          ])
+        )
+  ) as LayerId[];
 
   const layer = selected ? getEffectiveLayer(selected) : null;
 
   return (
     <div className="px-3 py-3 space-y-3">
+      {isMeta && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <button className="btn justify-center text-xs" onClick={() => addCustomElement('text')}>+ Texto</button>
+          <button className="btn justify-center text-xs" onClick={() => addCustomElement('photo')}>+ Foto</button>
+        </div>
+      )}
       {/* Layers list */}
       <div>
         <div className="section-title mb-2">Layers</div>
@@ -123,7 +137,7 @@ const InspectorTab: React.FC = () => {
                 <button onClick={(e) => { e.stopPropagation(); patchLayer(lid, { visible: !isVis }); }} className="text-neutral-400 hover:text-brand">
                   {isVis ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                 </button>
-                <span className="flex-1 capitalize">{LAYER_LABELS[lid] || lid}</span>
+                <span className="flex-1 capitalize">{META_LABELS[lid] || LAYER_LABELS[lid] || lid}</span>
                 {ov && <button onClick={(e) => { e.stopPropagation(); resetLayer(lid); }} className="text-neutral-400 hover:text-brand"><RotateCcw className="w-3 h-3" /></button>}
               </div>
             );
@@ -137,7 +151,7 @@ const InspectorTab: React.FC = () => {
           <div className="divider" />
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="section-title">{LAYER_LABELS[selected] || selected}</span>
+              <span className="section-title">{META_LABELS[selected] || LAYER_LABELS[selected] || selected}</span>
               <button className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider" onClick={() => resetLayer(selected)}>Reset</button>
             </div>
 
@@ -151,6 +165,11 @@ const InspectorTab: React.FC = () => {
             </div>
 
             {/^g\d$/.test(selected) && <GalleryCellPicker cellId={selected} />}
+
+            {selected === 'maPhoto1' && <MetaPhotoPicker id="maPhoto1" defaultIdx={0} />}
+            {selected === 'maPhoto2' && <MetaPhotoPicker id="maPhoto2" defaultIdx={1} />}
+            {/^maC\d$/.test(selected) && customElements[selected]?.type === 'photo' && <MetaPhotoPicker id={selected} defaultIdx={0} />}
+            {/^maC\d$/.test(selected) && <MetaCustomEditor id={selected} />}
 
             {layer.font !== undefined && (
               <>
@@ -258,6 +277,60 @@ const GalleryCellPicker: React.FC<{ cellId: string }> = ({ cellId }) => {
       <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">
 Arrastrá adentro de la celda para encuadrar la foto (scroll = zoom), los handles para redimensionar, y Alt+arrastrá (o los campos X/Y de arriba) para mover el marco. Para borrar un placeholder, ocultá la celda con el ojo en la lista de Layers.
       </p>
+    </div>
+  );
+};
+
+// Meta Ad: elegir qué foto va en un slot (foto principal/secundaria/foto custom).
+const MetaPhotoPicker: React.FC<{ id: string; defaultIdx: number }> = ({ id, defaultIdx }) => {
+  const photos = usePlacaStore((s) => s.photos);
+  const galleryCells = usePlacaStore((s) => s.galleryCells);
+  const setGalleryCell = usePlacaStore((s) => s.setGalleryCell);
+  const setActive = usePlacaStore((s) => s.setActivePhoto);
+  const current = galleryCells[id] ?? defaultIdx;
+  return (
+    <div className="mt-1 mb-1">
+      <div className="divider my-3" />
+      <div className="section-title mb-2">Qué foto va acá</div>
+      {photos.length === 0 ? (
+        <p className="text-[10px] text-neutral-400 leading-snug">Subí fotos en el panel izquierdo (FOTOS).</p>
+      ) : (
+        <div className="grid grid-cols-4 gap-1.5">
+          {photos.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => { setGalleryCell(id, i); setActive(i); }}
+              className={`aspect-square rounded overflow-hidden border-2 transition ${current === i ? 'border-brand' : 'border-transparent hover:border-neutral-300'}`}
+              style={{ backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+              title={`Foto ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+      <p className="text-[10px] text-neutral-400 mt-1.5 leading-snug">Movés/redimensionás el marco con los handles; el encuadre/zoom de la foto se ajusta en FOTOS.</p>
+    </div>
+  );
+};
+
+// Meta Ad: editar el texto de un elemento custom y borrarlo.
+const MetaCustomEditor: React.FC<{ id: string }> = ({ id }) => {
+  const ce = usePlacaStore((s) => s.customElements[id]);
+  const patchCustomElement = usePlacaStore((s) => s.patchCustomElement);
+  const removeCustomElement = usePlacaStore((s) => s.removeCustomElement);
+  if (!ce) return null;
+  return (
+    <div className="mt-1">
+      <div className="divider my-3" />
+      {ce.type === 'text' && (
+        <div className="mb-2">
+          <label className="label">Texto</label>
+          <textarea className="input" rows={2} value={ce.text || ''} onChange={(e) => patchCustomElement(id, { text: e.target.value })} />
+          <p className="text-[10px] text-neutral-400 mt-1 leading-snug">Movés/redimensionás con los handles; fuente/tamaño/color acá arriba.</p>
+        </div>
+      )}
+      <button className="btn justify-center text-xs w-full" style={{ color: '#de1f1a' }} onClick={() => removeCustomElement(id)}>
+        <Trash2 className="w-3.5 h-3.5" /> Borrar elemento
+      </button>
     </div>
   );
 };

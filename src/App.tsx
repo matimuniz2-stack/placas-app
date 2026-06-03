@@ -55,6 +55,7 @@ const App: React.FC = () => {
           badges: state.badges,
           qrUrl: state.qrUrl,
           galleryCells: state.galleryCells,
+          customElements: state.customElements,
           abbreviatePrice: state.abbreviatePrice,
           snapToGrid: state.snapToGrid,
         };

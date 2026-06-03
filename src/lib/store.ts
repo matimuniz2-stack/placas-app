@@ -8,9 +8,11 @@ import type {
   Format,
   LayerConfig,
   LayerId,
+  CustomEl,
 } from '@/types';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
 import { galleryCellBase } from './galleryLayout';
+import { META_BASE, customElBase, CUSTOM_SLOTS } from './metaAd';
 
 interface PlacaState {
   // core
@@ -35,7 +37,8 @@ interface PlacaState {
   badges: string[]; // ids of stickers active
   qrUrl: string;
   mapUrl: string;   // dataURL of the rendered mini-map (or empty if not enabled)
-  galleryCells: Record<string, number>; // celda de galería (g0..) → índice de foto asignada
+  galleryCells: Record<string, number>; // celda de galería (g0..) / slot de foto Meta Ad → índice de foto
+  customElements: Record<string, CustomEl>; // Meta Ad: elementos agregados por el usuario
 
   // ui state (not in undo)
   abbreviatePrice: boolean;
@@ -81,6 +84,9 @@ interface PlacaState {
   setQrUrl: (url: string) => void;
   setMapUrl: (url: string) => void;
   setGalleryCell: (id: string, photoIdx: number) => void;
+  addCustomElement: (type: 'text' | 'photo') => void;
+  removeCustomElement: (id: string) => void;
+  patchCustomElement: (id: string, p: Partial<CustomEl>) => void;
 
   setAbbreviate: (b: boolean) => void;
   toggleSidebarLeft: () => void;
@@ -142,6 +148,7 @@ export const usePlacaStore = create<PlacaState>()(
       qrUrl: '',
       mapUrl: '',
       galleryCells: {},
+      customElements: {},
 
       abbreviatePrice: false,
       showGrid: false,
@@ -246,6 +253,31 @@ export const usePlacaStore = create<PlacaState>()(
       setGalleryCell: (id, photoIdx) =>
         set((s) => ({ galleryCells: { ...s.galleryCells, [id]: photoIdx } })),
 
+      addCustomElement: (type) =>
+        set((s) => {
+          const slot = CUSTOM_SLOTS.find((c) => !s.customElements[c]);
+          if (!slot) return {} as any;
+          return {
+            customElements: {
+              ...s.customElements,
+              [slot]: { type, text: type === 'text' ? 'Texto nuevo' : undefined, photoIdx: type === 'photo' ? 0 : undefined },
+            },
+            selectedLayer: slot as LayerId,
+          };
+        }),
+      removeCustomElement: (id) =>
+        set((s) => {
+          const ce = { ...s.customElements };
+          delete ce[id];
+          const lo = { ...s.layerOverrides };
+          delete lo[id as LayerId];
+          const to = { ...s.textOverrides };
+          delete to[id as LayerId];
+          return { customElements: ce, layerOverrides: lo, textOverrides: to, selectedLayer: null };
+        }),
+      patchCustomElement: (id, p) =>
+        set((s) => ({ customElements: { ...s.customElements, [id]: { ...(s.customElements[id] || { type: 'text' }), ...p } } })),
+
       setAbbreviate: (b) => set({ abbreviatePrice: b }),
       toggleSidebarLeft: () => set((s) => ({ sidebarLeftOpen: !s.sidebarLeftOpen })),
       toggleSidebarRight: () => set((s) => ({ sidebarRightOpen: !s.sidebarRightOpen })),
@@ -270,6 +302,7 @@ export const usePlacaStore = create<PlacaState>()(
           qrUrl: '',
           mapUrl: '',
           galleryCells: {},
+          customElements: {},
           abbreviatePrice: false,
           showGrid: false,
         }),
@@ -313,10 +346,10 @@ export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
   // Celdas de galería: la geometría base la da el motor adaptativo (según cantidad de
   // fotos). El override del usuario manda sobre esa base, así la celda es editable a mano.
   if (!base && tpl?.gallery && /^g\d$/.test(id)) base = galleryCellBase(id, photos.length);
-  // Meta Ad (t19): bases de las fotos editables (no depende del template del store,
-  // así el thumbnail con overrideTemplateId también las resuelve)
-  if (!base && id === 'maPhoto1') base = { id, x: 0, y: 0, w: 100, h: 54.07, z: 0, visible: true } as LayerConfig;
-  if (!base && id === 'maPhoto2') base = { id, x: 56.48, y: 48.59, w: 39.81, h: 30.67, radius: 26, z: 6, visible: true } as LayerConfig;
+  // Meta Ad (t19): bases de los bloques editables + elementos custom (no dependen del
+  // template del store, así el thumbnail con overrideTemplateId también las resuelve)
+  if (!base && META_BASE[id]) base = META_BASE[id];
+  if (!base && /^maC\d$/.test(id)) base = customElBase(id, usePlacaStore.getState().customElements[id]?.type || 'text');
   const override = layerOverrides[id];
   if (!base && !override) return undefined;
   return { ...(base as LayerConfig), ...(override || {}) } as LayerConfig;

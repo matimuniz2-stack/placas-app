@@ -104,6 +104,17 @@ export interface PlacaData {
   benefitSubtitle?: string;
 }
 
+// Meta Ad (t19): elemento agregado por el usuario (texto o foto libre)
+export interface CustomEl {
+  type: 'text' | 'photo';
+  text?: string;
+  color?: string;
+  size?: number;
+  font?: string;
+  align?: Align;
+  photoIdx?: number;
+}
+
 export interface PhotoState {
   url: string; // dataURL or http
   pos: { x: number; y: number };
