@@ -559,7 +559,7 @@ const TemaTab: React.FC = () => {
             className={`btn justify-center ${theme.logoUrl === '/logo-zamboni.svg' ? 'btn-primary' : ''}`}
             onClick={() => patchTheme({ logoUrl: '/logo-zamboni.svg' })}
           >
-            Z + ZAMBONI
+            Zamboni Propiedades
           </button>
         </div>
       </div>
