@@ -11,6 +11,8 @@ const FORMAT_SIZES = {
 
 // Capas de texto editables con doble click (deben coincidir con DATA_LAYERS del Renderer)
 const EDITABLE = new Set(['addr', 'barrio', 'price', 'amen', 'op', 'desc', 'extras', 'tag', 'lbl', 'num']);
+// Bloques de texto del Meta Ad (t19) editables in-canvas con doble click.
+const META_TEXT_EDITABLE = new Set(['maHead', 'maSub', 'maTag']);
 
 export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +112,12 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       if (layerEl) lid = layerEl.getAttribute('data-layer');
       // si cayó sobre el recuadro de moveable, usar la capa seleccionada
       if (!lid && el.closest('.moveable-control-box')) lid = selected;
-      if (lid && lid !== 'photo' && EDITABLE.has(lid)) {
+      if (!lid) return;
+      // Meta Ad: bloques de texto fijos + elementos custom de tipo texto.
+      const isMetaText =
+        META_TEXT_EDITABLE.has(lid) ||
+        (/^maC\d$/.test(lid) && usePlacaStore.getState().customElements[lid]?.type === 'text');
+      if (lid !== 'photo' && (EDITABLE.has(lid) || isMetaText)) {
         e.preventDefault();
         select(lid as any);
         setEditingLayer(lid as any);

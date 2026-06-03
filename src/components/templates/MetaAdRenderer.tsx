@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
 import { amenString, abbreviatePrice } from '@/lib/format';
 import { CUSTOM_SLOTS } from '@/lib/metaAd';
@@ -74,6 +74,69 @@ const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string 
 
 const VSep: React.FC = () => <div style={{ width: 1, height: 56, background: HAIR }} />;
 
+// Texto editable in-canvas (doble click). Mientras NO se edita, muestra `children`
+// (que puede ser bicolor/clamp, etc.). Al editar, se reemplaza por un contentEditable
+// que confirma con Enter (Shift+Enter = salto de línea) o al perder foco; Esc cancela.
+// Por defecto guarda en textOverrides[id]; los elementos custom pasan `commitText`.
+const MetaText: React.FC<{
+  id: string;
+  interactive: boolean;
+  editText: string;
+  style: React.CSSProperties;
+  commitText?: (t: string) => void;
+  children: React.ReactNode;
+}> = ({ id, interactive, editText, style, commitText, children }) => {
+  const editing = usePlacaStore((s) => s.editingLayer === id);
+  const setEditingLayer = usePlacaStore((s) => s.setEditingLayer);
+  const setTextOverride = usePlacaStore((s) => s.setTextOverride);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      const el = ref.current;
+      el.focus();
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(r);
+    }
+  }, [editing]);
+
+  if (!interactive || !editing) return <>{children}</>;
+
+  const commit = () => {
+    const t = ref.current?.innerText ?? '';
+    if (commitText) commitText(t);
+    else setTextOverride(id as any, t);
+    setEditingLayer(null);
+  };
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          commit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setEditingLayer(null);
+        }
+      }}
+      style={{ ...style, outline: '2px solid #de1f1a', outlineOffset: 2, cursor: 'text', whiteSpace: 'pre-wrap' }}
+    >
+      {editText}
+    </div>
+  );
+};
+
 export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactive = true }) => {
   const data = usePlacaStore((s) => s.data);
   const photos = usePlacaStore((s) => s.photos);
@@ -86,6 +149,9 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const galleryCells = usePlacaStore((s) => s.galleryCells);
   const customElements = usePlacaStore((s) => s.customElements);
   const layerOverrides = usePlacaStore((s) => s.layerOverrides); // re-render al mover/redimensionar
+  const textOverrides = usePlacaStore((s) => s.textOverrides); // texto editado in-canvas
+  const editingLayer = usePlacaStore((s) => s.editingLayer);
+  const patchCustomElement = usePlacaStore((s) => s.patchCustomElement);
 
   const RED = theme.brand || '#EF2B2A';
 
@@ -98,13 +164,21 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
     : [data.addr || '', data.barrio ? `en ${data.barrio}` : ''];
   const hl1 = hParts[0] || '';
   const hl2 = hParts[1] || '';
+  // Título: si el usuario lo editó in-canvas (textOverride), manda ese texto. La 1ª línea
+  // va en oscuro y las siguientes en rojo (igual que el auto hl1/hl2).
+  const headOverride = textOverrides['maHead'];
+  const headLines = (headOverride != null ? headOverride.split('\n') : [hl1, hl2].filter(Boolean)).filter((l, i) => i === 0 || l !== '');
+  const headEdit = headOverride != null ? headOverride : [hl1, hl2].filter(Boolean).join('\n');
   // Tamaño del título: respeta el override del usuario; si no, se achica solo según el largo.
-  const hMax = Math.max(hl1.length, hl2.length);
+  const hMax = Math.max(0, ...headLines.map((l) => l.length));
   const headSize = layerOverrides['maHead']?.size ?? (hMax <= 16 ? 62 : hMax <= 22 ? 52 : hMax <= 30 ? 42 : 36);
-  const subtitle = (data.amenText && data.amenText.trim()) || (data.desc && data.desc.trim()) || amenString(data) || '';
+  // Subtítulo (debajo del título): editable in-canvas → textOverride manda.
+  const subOverride = textOverrides['maSub'];
+  const subtitle = subOverride != null ? subOverride : ((data.amenText && data.amenText.trim()) || (data.desc && data.desc.trim()) || amenString(data) || '');
   const hasPrice = !!(data.price && data.price.trim());
   const priceNum = abbreviate ? abbreviatePrice(data.price) : data.price;
-  const tagline = (data.microTagline || '').trim();
+  const tagOverride = textOverrides['maTag'];
+  const tagline = tagOverride != null ? tagOverride : (data.microTagline || '').trim();
   const features = [
     { Icon: Bed, value: data.amb, label: 'ambientes' },
     { Icon: Bath, value: data.baths, label: 'baños' },
@@ -131,7 +205,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   ) => {
     const L = getEffectiveLayer(id as LayerId);
     if (!L || L.visible === false) return null;
-    const isSel = interactive && selected === id;
+    const isSel = interactive && selected === id && editingLayer !== id;
     return (
       <div
         key={id}
@@ -197,21 +271,33 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
         </div>
       ), { auto: true })}
 
-      {/* Título bicolor */}
-      {block('maHead', (L) => (
-        <div style={{ fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: headSize, lineHeight: L.lineHeight ?? 1.04 }}>
-          <div style={{ color: L.color ?? DARK }}>{hl1}</div>
-          {hl2 && <div style={{ color: RED }}>{hl2}</div>}
-        </div>
-      ))}
+      {/* Título bicolor (editable: doble click) */}
+      {block('maHead', (L) => {
+        const s: React.CSSProperties = { fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: headSize, lineHeight: L.lineHeight ?? 1.04 };
+        return (
+          <MetaText id="maHead" interactive={interactive} editText={headEdit} style={s}>
+            <div style={s}>
+              <div style={{ color: L.color ?? DARK }}>{headLines[0]}</div>
+              {headLines.slice(1).map((ln, i) => (
+                <div key={i} style={{ color: RED }}>{ln}</div>
+              ))}
+            </div>
+          </MetaText>
+        );
+      })}
 
-      {/* Subtítulo */}
-      {subtitle &&
-        block('maSub', (L) => (
-          <div style={{ fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 500, fontSize: L.size ?? 28, color: L.color ?? GRAY, lineHeight: L.lineHeight ?? 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {subtitle}
-          </div>
-        ))}
+      {/* Subtítulo (editable: doble click) */}
+      {(subtitle || subOverride != null) &&
+        block('maSub', (L) => {
+          const s: React.CSSProperties = { fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 500, fontSize: L.size ?? 28, color: L.color ?? GRAY, lineHeight: L.lineHeight ?? 1.3 };
+          return (
+            <MetaText id="maSub" interactive={interactive} editText={subtitle} style={s}>
+              <div style={{ ...s, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {subtitle}
+              </div>
+            </MetaText>
+          );
+        })}
 
       {/* Precio (con separador rojo arriba) */}
       {hasPrice &&
@@ -225,13 +311,16 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           </div>
         ), { auto: true })}
 
-      {/* Tagline */}
-      {tagline &&
-        block('maTag', (L) => (
-          <div style={{ fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 600, fontSize: L.size ?? 22, color: L.color ?? GRAY, letterSpacing: L.letterSpacing ?? 3, textTransform: 'uppercase' }}>
-            {tagline}
-          </div>
-        ), { auto: true })}
+      {/* Tagline (editable: doble click) */}
+      {(tagline || tagOverride != null) &&
+        block('maTag', (L) => {
+          const s: React.CSSProperties = { fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 600, fontSize: L.size ?? 22, color: L.color ?? GRAY, letterSpacing: L.letterSpacing ?? 3, textTransform: 'uppercase' };
+          return (
+            <MetaText id="maTag" interactive={interactive} editText={tagline} style={s}>
+              <div style={s}>{tagline}</div>
+            </MetaText>
+          );
+        }, { auto: true })}
 
       {/* Features */}
       {features.length > 0 &&
@@ -309,11 +398,14 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
             <PhotoBox photo={photos[photoIdxFor(id)!]} style={{ position: 'absolute', inset: 0 }} />
           ), { extraStyle: { borderRadius: getEffectiveLayer(id as LayerId)?.radius ?? 20, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.14)' } });
         }
-        return block(id, (L) => (
-          <div style={{ fontFamily: `'${ce.font || L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 700, fontSize: ce.size ?? L.size ?? 44, color: ce.color ?? L.color ?? DARK, textAlign: (L.align as any) ?? 'left', lineHeight: 1.1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {ce.text || ' '}
-          </div>
-        ));
+        return block(id, (L) => {
+          const s: React.CSSProperties = { fontFamily: `'${ce.font || L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 700, fontSize: ce.size ?? L.size ?? 44, color: ce.color ?? L.color ?? DARK, textAlign: (L.align as any) ?? 'left', lineHeight: 1.1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' };
+          return (
+            <MetaText id={id} interactive={interactive} editText={ce.text || ''} commitText={(t) => patchCustomElement(id, { text: t })} style={s}>
+              <div style={s}>{ce.text || ' '}</div>
+            </MetaText>
+          );
+        });
       })}
     </div>
   );
