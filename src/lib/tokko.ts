@@ -154,6 +154,7 @@ export class TokkoClient {
 
 // ─── Helpers to convert Tokko → our PlacaData ────────────────────────────────
 import type { PlacaData } from '@/types';
+import { firstSentence } from './format';
 
 export function tokkoToPlacaData(p: TokkoProperty): Partial<PlacaData> {
   // Find Venta first, fall back to Alquiler
@@ -179,7 +180,7 @@ export function tokkoToPlacaData(p: TokkoProperty): Partial<PlacaData> {
     op: (op?.operation_type === 'Alquiler' ? 'Alquiler' : 'Venta') as any,
     expensas: p.expenses ? String(p.expenses) : '',
     antiguedad: p.age ? String(p.age) : '',
-    desc: stripHtml(p.description || p.rich_description || '').slice(0, 140),
+    desc: firstSentence(stripHtml(p.description || p.rich_description || '')),
     listingUrl: p.public_url || '',
   };
 }

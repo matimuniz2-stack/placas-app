@@ -30,6 +30,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const overrides = usePlacaStore((s) => s.layerOverrides);
   const editingLayer = usePlacaStore((s) => s.editingLayer);
   const setEditingLayer = usePlacaStore((s) => s.setEditingLayer);
+  const customElements = usePlacaStore((s) => s.customElements);
 
   const [scale, setScale] = useState(0.3);
   const [target, setTarget] = useState<HTMLElement | null>(null);
@@ -124,6 +125,23 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const photoIsFullbleed = !tpl.defaultLayers.photo;
   const photoIsSelectedFullbleed = selected === 'photo' && photoIsFullbleed;
 
+  // Dado el id de una capa, devuelve el índice de foto al que está vinculada si esa
+  // capa es un "placeholder de foto" (foto contenida, celda de galería, fotos del
+  // Meta Ad o un elemento custom de tipo foto). Devuelve null si no es de foto.
+  // Permite tratar TODOS los placeholders igual: arrastrar encuadra la imagen, y
+  // Alt/Cmd + arrastrar mueve el placeholder.
+  const photoSlotIdx = (id: string | null): number | null => {
+    if (!id) return null;
+    const st = usePlacaStore.getState();
+    if (id === 'photo') return st.activePhotoIdx;
+    if (/^g\d$/.test(id)) return st.galleryCells[id] ?? parseInt(id.slice(1), 10) + 1;
+    if (id === 'maPhoto1') return st.galleryCells['maPhoto1'] ?? 0;
+    if (id === 'maPhoto2') return st.galleryCells['maPhoto2'] ?? 1;
+    if (/^maC\d$/.test(id) && st.customElements[id]?.type === 'photo')
+      return st.galleryCells[id] ?? st.customElements[id]?.photoIdx ?? 0;
+    return null;
+  };
+
   // Photo pan/zoom handlers
   const photoDragRef = useRef({ on: false, x: 0, y: 0, posX: 50, posY: 50 });
 
@@ -168,69 +186,45 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
 
   const handleWheel = (e: React.WheelEvent) => {
     const st = usePlacaStore.getState();
-    // Celda de galería seleccionada: scroll = zoom de la foto de ESA celda.
-    if (selected && /^g\d$/.test(selected)) {
-      const cellIdx = parseInt(selected.slice(1), 10);
-      const photoIdx = st.galleryCells[selected] ?? cellIdx + 1;
-      const cellPhoto = st.photos[photoIdx];
-      if (!cellPhoto) return;
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    // Placeholder de foto seleccionado (galería, Meta Ad, foto contenida o
+    // fullbleed): scroll = zoom de ESA foto.
+    const slotIdx = photoSlotIdx(selected);
+    if (selected && slotIdx != null) {
+      const p = st.photos[slotIdx];
+      if (!p) return;
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.08 : 0.08;
-      patchPhoto(photoIdx, { zoom: Math.max(1, Math.min(3, cellPhoto.zoom + delta)) });
+      patchPhoto(slotIdx, { zoom: Math.max(1, Math.min(3, p.zoom + delta)) });
       return;
     }
+    // Otra capa seleccionada (no foto): no hacemos zoom.
+    if (selected) return;
+    // Nada seleccionado: zoom de la foto activa (fondo).
     const active = st.photos[st.activePhotoIdx];
     if (!active) return;
-    // Zoom permitido cuando no hay nada seleccionado o cuando la foto está
-    // seleccionada (sea fullbleed o un cuadro contenido).
-    if (selected && selected !== 'photo') return;
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.08 : 0.08;
-    const newZoom = Math.max(1, Math.min(3, active.zoom + delta));
-    patchActivePhoto({ zoom: newZoom });
+    patchActivePhoto({ zoom: Math.max(1, Math.min(3, active.zoom + delta)) });
   };
 
   // react-moveable callbacks
   const handleDrag = (e: OnDrag) => {
     if (!selected) return;
 
-    // Foto contenida (cuadro dentro del placa): arrastrar ENCUADRA la imagen
-    // dentro de su caja en lugar de mover la caja. La caja se reubica con los
-    // inputs X/Y del inspector y se redimensiona con los handles (onResize).
-    if (selected === 'photo' && !photoIsFullbleed) {
-      const active = usePlacaStore.getState().photos[usePlacaStore.getState().activePhotoIdx];
-      const layer = getEffectiveLayer('photo');
-      if (!active || !layer) return;
-      const boxW = size.w * ((layer.w || 100) / 100);
-      const boxH = size.h * ((layer.h || 100) / 100);
-      const dx = (e.delta[0] / boxW) * 100;
-      const dy = (e.delta[1] / boxH) * 100;
-      patchActivePhoto({
-        pos: {
-          x: Math.max(0, Math.min(100, active.pos.x - dx)),
-          y: Math.max(0, Math.min(100, active.pos.y - dy)),
-        },
-      });
-      moveableRef.current?.updateRect();
-      return;
-    }
-
-    // Celda de galería: arrastrar ENCUADRA la foto dentro del marco; con Alt/Cmd
-    // arrastrar MUEVE el marco. Celda vacía: siempre cae al movimiento del marco.
-    if (/^g\d$/.test(selected)) {
+    // Placeholder de foto (foto contenida, celda de galería, fotos del Meta Ad o
+    // elemento custom de tipo foto): arrastrar ENCUADRA la imagen dentro de su caja;
+    // con Alt/Cmd + arrastrar se MUEVE la caja. Caja vacía: siempre mueve la caja.
+    const slotIdx = photoSlotIdx(selected);
+    if (slotIdx != null) {
       const ie = e.inputEvent as any;
-      const moveCell = !!(ie && (ie.altKey || ie.metaKey));
-      const st = usePlacaStore.getState();
-      const cellIdx = parseInt(selected.slice(1), 10);
-      const photoIdx = st.galleryCells[selected] ?? cellIdx + 1;
-      const active = st.photos[photoIdx];
-      const cellLayer = getEffectiveLayer(selected);
-      if (!moveCell && active && cellLayer) {
-        const boxW = size.w * ((cellLayer.w || 100) / 100);
-        const boxH = size.h * ((cellLayer.h || 100) / 100);
+      const moveBox = !!(ie && (ie.altKey || ie.metaKey));
+      const active = usePlacaStore.getState().photos[slotIdx];
+      const layer = getEffectiveLayer(selected);
+      if (!moveBox && active && layer) {
+        const boxW = size.w * ((layer.w || 100) / 100);
+        const boxH = size.h * ((layer.h || 100) / 100);
         const dx = (e.delta[0] / boxW) * 100;
         const dy = (e.delta[1] / boxH) * 100;
-        patchPhoto(photoIdx, {
+        patchPhoto(slotIdx, {
           pos: {
             x: Math.max(0, Math.min(100, active.pos.x - dx)),
             y: Math.max(0, Math.min(100, active.pos.y - dy)),
@@ -239,6 +233,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         moveableRef.current?.updateRect();
         return;
       }
+      // moveBox o caja vacía → cae al movimiento de la caja (abajo).
     }
 
     const layer = getEffectiveLayer(selected);
@@ -272,12 +267,14 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const photos = usePlacaStore((s) => s.photos);
   const galleryCells = usePlacaStore((s) => s.galleryCells);
   const hasPhoto = photos.length > 0;
-  const photoContainedSelected = selected === 'photo' && !photoIsFullbleed;
-  const galleryCellPhotoIdx =
-    selected && /^g\d$/.test(selected) ? (galleryCells[selected] ?? parseInt(selected.slice(1), 10) + 1) : -1;
-  const galleryCellHasPhoto = galleryCellPhotoIdx >= 0 && !!photos[galleryCellPhotoIdx];
+  // Placeholder de foto seleccionado (cualquier template): se puede encuadrar la
+  // imagen dentro y mover el placeholder con Alt. `photo` fullbleed se encuadra con
+  // el cursor de fondo (no por moveable).
+  const selectedSlotIdx = selected ? photoSlotIdx(selected) : null;
+  const selectedSlotHasPhoto = selectedSlotIdx != null && !!photos[selectedSlotIdx];
+  const photoBoxSelected = selected != null && selected !== 'photo' && selectedSlotHasPhoto;
   const showPhotoCursor = hasPhoto && (!selected || photoIsSelectedFullbleed);
-  const canFramePhoto = hasPhoto && (showPhotoCursor || photoContainedSelected || galleryCellHasPhoto);
+  const canFramePhoto = hasPhoto && (showPhotoCursor || selectedSlotHasPhoto);
   const useMoveable = !!target && !!selected && !photoIsSelectedFullbleed && !editingLayer;
 
   return (
@@ -379,7 +376,7 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         }}
       >
         {Math.round(scale * 100)}%  ·  {size.w}×{size.h}
-        {canFramePhoto && <span className="ml-2 text-brand">· {galleryCellHasPhoto ? 'arrastrá: encuadrar foto · Alt+arrastrá: mover celda · scroll: zoom · handles: tamaño' : photoContainedSelected ? 'arrastrá la foto / scroll para encuadrar · handles para redimensionar' : 'drag/scroll para encuadrar'}</span>}
+        {canFramePhoto && <span className="ml-2 text-brand">· {photoBoxSelected ? 'arrastrá: encuadrar foto · Alt+arrastrá: mover · scroll: zoom · handles: tamaño' : 'drag/scroll para encuadrar'}</span>}
       </div>
     </div>
   );

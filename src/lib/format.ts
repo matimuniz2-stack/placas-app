@@ -43,6 +43,26 @@ export function priceString(d: PlacaData, opts?: { abbreviate?: boolean }): stri
   return `${d.currency} ${p}`;
 }
 
+// Recorta un texto largo (p. ej. la descripción de un aviso) a su PRIMERA oración,
+// para usarlo como subtítulo/bajada en la placa. Si la primera oración es muy larga,
+// corta por palabra hasta `maxLen` y agrega elipsis. Evita cortar en abreviaturas
+// tempranas (Av., Sr.) exigiendo un mínimo de caracteres antes del punto.
+export function firstSentence(text: string, maxLen = 120): string {
+  const clean = (text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const re = /[.!?](?=\s|$)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(clean))) {
+    if (m.index >= 25) {
+      const s = clean.slice(0, m.index + 1).trim();
+      if (s.length <= maxLen) return s;
+      break;
+    }
+  }
+  if (clean.length <= maxLen) return clean;
+  return clean.slice(0, maxLen).replace(/\s+\S*$/, '').trim() + '…';
+}
+
 export function slugify(s: string): string {
   return (s || '')
     .toLowerCase()

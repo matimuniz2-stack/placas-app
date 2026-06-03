@@ -13,6 +13,24 @@ const cleanText = (s: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+// Recorta a la primera oración (subtítulo de la placa) en vez de cortar a N chars
+// en medio de un párrafo. Evita cortar en abreviaturas tempranas (Av., Sr.).
+function firstSentence(text: string, maxLen = 120): string {
+  const clean = (text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const re = /[.!?](?=\s|$)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(clean))) {
+    if (m.index >= 25) {
+      const s = clean.slice(0, m.index + 1).trim();
+      if (s.length <= maxLen) return s;
+      break;
+    }
+  }
+  if (clean.length <= maxLen) return clean;
+  return clean.slice(0, maxLen).replace(/\s+\S*$/, '').trim() + '…';
+}
+
 function pickMeta(html: string, prop: string): string | null {
   const re = new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i');
   const m = html.match(re);
@@ -156,7 +174,7 @@ export default async function handler(req: Request): Promise<Response> {
       price,
       currency,
       op,
-      desc: ogDesc.slice(0, 140),
+      desc: firstSentence(ogDesc),
       photoUrl: photos[0] || '',
       photoUrls: photos,
       listingUrl: url,
