@@ -116,4 +116,14 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#111827',
     defaultLayers: {},
   },
+
+  // ============== t21: AVISO PREMIUM (variante refinada: specs a la derecha, footer negro) ==============
+  {
+    id: 't21',
+    name: 'Aviso Premium',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];

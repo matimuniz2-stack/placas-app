@@ -12,6 +12,7 @@ import { MapLayer } from './primitives/MapLayer';
 import { GalleryGrid } from './primitives/GalleryGrid';
 import { MetaAdRenderer } from './MetaAdRenderer';
 import { amenString, extrasString, priceString, cocheraCount, cocheraLabel } from '@/lib/format';
+import { isMetaTemplate } from '@/lib/metaAd';
 import type { LayerId, PlacaData } from '@/types';
 import { Bed, Bath, Maximize, Car } from 'lucide-react';
 
@@ -153,7 +154,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         userSelect: 'none',
       }}
     >
-      {(templateId === 't19' || templateId === 't20') ? (
+      {isMetaTemplate(templateId) ? (
         <MetaAdRenderer interactive={interactive} />
       ) : (
         <>

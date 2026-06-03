@@ -156,7 +156,9 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const templateId = usePlacaStore((s) => s.templateId);
 
   const t20 = templateId === 't20'; // Aviso Pro
-  const RED = theme.brand || (t20 ? '#E5342B' : '#EF2B2A');
+  const t21 = templateId === 't21'; // Aviso Premium
+  const aviso = t20 || t21; // familia "aviso": título rojo+barrio, precio en bloque, apto crédito
+  const RED = theme.brand || (aviso ? '#E5342B' : '#EF2B2A');
 
   // ── Datos ──
   const status = `EN ${(data.op || 'Venta').toUpperCase()}`;
@@ -173,7 +175,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const headOverride = textOverrides['maHead'];
   let headLines: string[];
   let headEdit: string;
-  if (t20) {
+  if (aviso) {
     if (headOverride != null) {
       headLines = headOverride.split('\n');
       headEdit = headOverride;
@@ -274,14 +276,14 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Foto secundaria 1 */}
       {block('maPhoto2', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto2')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: t20
-        ? { borderRadius: 24, boxShadow: '0 10px 28px rgba(0,0,0,0.12)', overflow: 'hidden' }
+      ), { extraStyle: aviso
+        ? { borderRadius: 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' }
         : { borderRadius: 26, border: '5px solid #fff', boxShadow: '0 14px 34px rgba(0,0,0,0.16)', overflow: 'hidden' } })}
 
       {/* Foto secundaria 2 (Aviso Pro) */}
       {block('maPhoto3', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto3')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: { borderRadius: 24, boxShadow: '0 10px 28px rgba(0,0,0,0.12)', overflow: 'hidden' } })}
+      ), { extraStyle: { borderRadius: 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' } })}
 
       {/* Badge estado */}
       {block('maStatus', () => (
@@ -305,7 +307,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Título (editable: doble click). t20: 1ª línea roja chica + barrio negro grande + barra roja. */}
       {block('maHead', (L) => {
         const fam = `'${L.font || 'Outfit'}', sans-serif`;
-        if (t20) {
+        if (aviso) {
           const small = Math.max(20, Math.round(t20Big * 0.3));
           const s: React.CSSProperties = { fontFamily: fam };
           return (
@@ -339,7 +341,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           const s: React.CSSProperties = { fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 500, fontSize: L.size ?? 28, color: L.color ?? GRAY, lineHeight: L.lineHeight ?? 1.3 };
           return (
             <MetaText id="maSub" interactive={interactive} editText={subtitle} style={s}>
-              <div style={{ ...s, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <div style={{ ...s, display: '-webkit-box', WebkitLineClamp: aviso ? 3 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {subtitle}
               </div>
             </MetaText>
@@ -349,7 +351,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Precio. t19: texto rojo con barra. t20: bloque rojo sólido con texto blanco. */}
       {hasPrice &&
         block('maPrice', (L) => {
-          if (t20) {
+          if (aviso) {
             const big = L.size ?? 92;
             return (
               <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 12, background: RED, borderRadius: 16, padding: '14px 30px', boxShadow: '0 8px 22px rgba(0,0,0,0.14)' }}>
@@ -410,17 +412,20 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
         return waLink && !interactive ? <a href={waLink} style={{ textDecoration: 'none' }}>{inner}</a> : inner;
       }, { auto: true })}
 
-      {/* Beneficio / Apto crédito (t20). */}
-      {((t20 && data.aptoCredito) || (!t20 && benefitTitle)) &&
+      {/* Beneficio / Apto crédito (aviso). t21: con línea divisoria a la izquierda. */}
+      {((aviso && data.aptoCredito) || (!aviso && benefitTitle)) &&
         block('maBenefit', () => {
-          const title = t20 ? 'APTO CRÉDITO' : benefitTitle;
-          const sub = t20 ? 'CONSULTANOS' : benefitSub;
+          const title = aviso ? 'APTO CRÉDITO' : benefitTitle;
+          const sub = aviso ? 'CONSULTANOS' : benefitSub;
           return (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
-              <ShieldCheck size={40} color={RED} strokeWidth={2} />
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-                <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 24, color: DARK }}>{title}</span>
-                {sub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 19, color: GRAY }}>{sub}</span>}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18 }}>
+              {t21 && <div style={{ width: 1, height: 56, background: HAIR }} />}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                <ShieldCheck size={40} color={RED} strokeWidth={2} />
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                  <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 24, color: DARK }}>{title}</span>
+                  {sub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 19, color: GRAY }}>{sub}</span>}
+                </div>
               </div>
             </div>
           );

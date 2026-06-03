@@ -56,14 +56,44 @@ export const META2_BASE: Record<string, LayerConfig> = {
 
 export const META2_BLOCK_IDS = Object.keys(META2_BASE);
 
+// ── t21: Aviso Premium (variante refinada de Aviso Pro): fotos secundarias alineadas
+// con el título, specs a la derecha en la misma fila que el precio, footer negro. ──
+export const META3_BASE: Record<string, LayerConfig> = {
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 43, z: 0, visible: true },
+  maStatus: { id: 'maStatus', x: 2.5, y: 2.8, w: 27, h: 5, z: 10, visible: true },
+  // Título (rojo chico + barrio negro grande + barra roja)
+  maHead: { id: 'maHead', x: 4, y: 46, w: 37, h: 17, font: 'Outfit', size: 92, color: '#111827', weight: 800, lineHeight: 1.0, z: 5, visible: true },
+  maSub: { id: 'maSub', x: 4, y: 65.5, w: 36, h: 6, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.35, z: 5, visible: true },
+  // Precio en bloque rojo (columna izquierda)
+  maPrice: { id: 'maPrice', x: 4, y: 72.5, w: 40, h: 8, font: 'Outfit', size: 92, color: '#ffffff', weight: 800, z: 5, visible: true },
+  // Dos fotos secundarias alineadas con el título (columna derecha, arriba)
+  maPhoto2: { id: 'maPhoto2', x: 43, y: 46, w: 26.7, h: 16.5, radius: 18, z: 6, visible: true },
+  maPhoto3: { id: 'maPhoto3', x: 70.8, y: 46, w: 26.2, h: 16.5, radius: 18, z: 6, visible: true },
+  // Specs a la derecha, misma fila que el precio
+  maFeats: { id: 'maFeats', x: 44, y: 72.5, w: 53, h: 8, z: 5, visible: true },
+  // CTA WhatsApp (pill rojo, sin tarjeta)
+  maCta: { id: 'maCta', x: 4, y: 85, w: 40, h: 7.5, z: 5, visible: true },
+  // Apto crédito
+  maBenefit: { id: 'maBenefit', x: 47, y: 86, w: 20, h: 6, z: 5, visible: true },
+  // Marca
+  maBrand: { id: 'maBrand', x: 77, y: 83.5, w: 19, h: 11, z: 5, visible: true },
+  // Footer negro
+  maFooter: { id: 'maFooter', x: 0, y: 95, w: 100, h: 5, z: 8, visible: true },
+};
+export const META3_BLOCK_IDS = Object.keys(META3_BASE);
+
 export function isMetaTemplate(id: string): boolean {
-  return id === 't19' || id === 't20';
+  return id === 't19' || id === 't20' || id === 't21';
 }
 export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
-  return templateId === 't20' ? META2_BASE : META_BASE;
+  if (templateId === 't20') return META2_BASE;
+  if (templateId === 't21') return META3_BASE;
+  return META_BASE;
 }
 export function metaBlockIdsFor(templateId: string): string[] {
-  return templateId === 't20' ? META2_BLOCK_IDS : META_BLOCK_IDS;
+  if (templateId === 't20') return META2_BLOCK_IDS;
+  if (templateId === 't21') return META3_BLOCK_IDS;
+  return META_BLOCK_IDS;
 }
 
 // Etiquetas para la lista de capas / inspector
