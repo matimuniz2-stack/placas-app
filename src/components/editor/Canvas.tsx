@@ -114,9 +114,12 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       if (!lid && el.closest('.moveable-control-box')) lid = selected;
       if (!lid) return;
       // Meta Ad: bloques de texto fijos + elementos custom de tipo texto.
+      const st = usePlacaStore.getState();
+      // La línea de detalles con íconos (Zamboni Pro) no se edita in-canvas.
+      if (lid === 'amen' && st.templateId === 't16' && !(st.data.amenText && st.data.amenText.trim())) return;
       const isMetaText =
         META_TEXT_EDITABLE.has(lid) ||
-        (/^maC\d$/.test(lid) && usePlacaStore.getState().customElements[lid]?.type === 'text');
+        (/^maC\d$/.test(lid) && st.customElements[lid]?.type === 'text');
       if (lid !== 'photo' && (EDITABLE.has(lid) || isMetaText)) {
         e.preventDefault();
         select(lid as any);

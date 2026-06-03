@@ -12,7 +12,33 @@ import { MapLayer } from './primitives/MapLayer';
 import { GalleryGrid } from './primitives/GalleryGrid';
 import { MetaAdRenderer } from './MetaAdRenderer';
 import { amenString, extrasString, priceString } from '@/lib/format';
-import type { LayerId } from '@/types';
+import type { LayerId, PlacaData } from '@/types';
+import { Bed, Bath, Maximize, Car } from 'lucide-react';
+
+// Templates (familia editorial crema) que muestran la línea de detalles con íconos.
+const ICON_AMEN = new Set(['t16']);
+const AMEN_ACCENT = '#c7a86b'; // dorado editorial
+
+// Línea de detalles con dibujitos (ambientes, m², baños, cochera). Los íconos escalan
+// con el font-size de la capa (1em) y van en dorado; el texto hereda el color de la capa.
+function amenIcons(d: PlacaData): React.ReactNode {
+  const items: { Icon: React.ElementType; label: string }[] = [];
+  if (d.amb) items.push({ Icon: Bed, label: `${d.amb} amb` });
+  if (d.m2) items.push({ Icon: Maximize, label: `${d.m2} m²` });
+  if (d.baths) items.push({ Icon: Bath, label: `${d.baths} baños` });
+  if (d.cochera === 'Sí') items.push({ Icon: Car, label: 'Cochera' });
+  if (!items.length) return '';
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.7em', width: '100%' }}>
+      {items.map(({ Icon, label }, i) => (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.28em', whiteSpace: 'nowrap' }}>
+          <Icon style={{ width: '1em', height: '1em', color: AMEN_ACCENT, flexShrink: 0 }} strokeWidth={1.8} />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const FORMAT_SIZES = {
   story: { w: 1080, h: 1920 },
@@ -84,6 +110,10 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         if (!data.price || !data.price.trim()) return '';
         return priceString(data, { abbreviate });
       case 'amen':
+        // Si el usuario escribió una línea custom, respetarla tal cual; si no, en la
+        // familia crema (t16) mostrar la línea con dibujitos.
+        if (data.amenText && data.amenText.trim()) return data.amenText;
+        if (ICON_AMEN.has(tpl.id)) return amenIcons(data);
         return amenString(data);
       case 'op': {
         if (!data.op) return '';
@@ -159,8 +189,11 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           // Ocultar la capa si no hay contenido (evita "USD", "COCHERA" huérfanos).
           // Si hay override de texto (aunque sea ""), no la ocultamos: el usuario lo eligió.
           if (tOv === undefined && !content && (lid === 'desc' || lid === 'extras' || lid === 'price' || lid === 'op' || lid === 'addr' || lid === 'amen')) return null;
+          // La línea de detalles con íconos no se edita in-canvas (se ajusta desde los
+          // campos amb/m²/baños/cochera). Si hay texto custom, sí es editable.
+          const iconAmen = lid === 'amen' && ICON_AMEN.has(tpl.id) && !(data.amenText && data.amenText.trim());
           return (
-            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable>
+            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable={!iconAmen}>
               {content}
             </TextLayer>
           );
