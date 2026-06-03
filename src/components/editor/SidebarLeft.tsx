@@ -179,18 +179,16 @@ const DatosTab: React.FC = () => {
       </div>
 
       <div>
-        <label className="label">Cochera</label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {(['Sí', 'No'] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => patchData({ cochera: c })}
-              className={`h-8 rounded text-xs font-medium border transition ${data.cochera === c ? 'bg-brand text-white border-brand' : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'}`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        <Field
+          label="Cocheras"
+          v={data.cocheras ?? (data.cochera === 'Sí' ? '1' : '')}
+          on={(v) => {
+            const n = parseInt(v, 10);
+            patchData({ cocheras: v, cochera: (!isNaN(n) && n > 0) ? 'Sí' : 'No' });
+          }}
+          ph="ej: 2"
+        />
+        <p className="text-[10px] text-neutral-400 mt-1 leading-snug">Cantidad de cocheras. Aparece con el ícono de auto (1 = "cochera", 2+ = "cocheras"). Dejá vacío o 0 si no tiene.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

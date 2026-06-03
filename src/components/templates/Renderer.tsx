@@ -11,7 +11,7 @@ import { AgentLayer } from './primitives/AgentLayer';
 import { MapLayer } from './primitives/MapLayer';
 import { GalleryGrid } from './primitives/GalleryGrid';
 import { MetaAdRenderer } from './MetaAdRenderer';
-import { amenString, extrasString, priceString } from '@/lib/format';
+import { amenString, extrasString, priceString, cocheraCount, cocheraLabel } from '@/lib/format';
 import type { LayerId, PlacaData } from '@/types';
 import { Bed, Bath, Maximize, Car } from 'lucide-react';
 
@@ -26,7 +26,8 @@ function amenIcons(d: PlacaData): React.ReactNode {
   if (d.amb) items.push({ Icon: Bed, label: `${d.amb} amb` });
   if (d.m2) items.push({ Icon: Maximize, label: `${d.m2} m²` });
   if (d.baths) items.push({ Icon: Bath, label: `${d.baths} baños` });
-  if (d.cochera === 'Sí') items.push({ Icon: Car, label: 'Cochera' });
+  const cc = cocheraCount(d);
+  if (cc > 0) items.push({ Icon: Car, label: `${cc} ${cocheraLabel(cc)}` });
   if (!items.length) return '';
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.7em', width: '100%' }}>

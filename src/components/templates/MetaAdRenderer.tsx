@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
-import { amenString, abbreviatePrice } from '@/lib/format';
+import { amenString, abbreviatePrice, cocheraCount, cocheraLabel } from '@/lib/format';
 import { CUSTOM_SLOTS } from '@/lib/metaAd';
 import type { PhotoState, LayerConfig, LayerId } from '@/types';
 import {
@@ -8,6 +8,7 @@ import {
   MapPin,
   Bed,
   Bath,
+  Car,
   Maximize,
   Ruler,
   MessageCircle,
@@ -179,9 +180,11 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const priceNum = abbreviate ? abbreviatePrice(data.price) : data.price;
   const tagOverride = textOverrides['maTag'];
   const tagline = tagOverride != null ? tagOverride : (data.microTagline || '').trim();
+  const cc = cocheraCount(data);
   const features = [
     { Icon: Bed, value: data.amb, label: 'ambientes' },
     { Icon: Bath, value: data.baths, label: 'baños' },
+    { Icon: Car, value: cc > 0 ? String(cc) : '', label: cocheraLabel(cc) },
     { Icon: Maximize, value: data.m2 ? `${data.m2} m²` : '', label: 'cubiertos' },
     { Icon: Ruler, value: data.lote ? `${data.lote} m²` : '', label: 'lote' },
   ].filter((f) => f.value && String(f.value).trim());

@@ -20,6 +20,19 @@ export function abbreviatePrice(raw: string): string {
   return String(num);
 }
 
+// Cantidad de cocheras: usa el campo numérico `cocheras` si está, si no cae al
+// Sí/No histórico (Sí = 1).
+export function cocheraCount(d: PlacaData): number {
+  if (d.cocheras != null && d.cocheras !== '') {
+    const n = parseInt(d.cocheras, 10);
+    return isNaN(n) ? 0 : n;
+  }
+  return d.cochera === 'Sí' ? 1 : 0;
+}
+export function cocheraLabel(n: number): string {
+  return n === 1 ? 'cochera' : 'cocheras';
+}
+
 export function amenString(d: PlacaData): string {
   // Si el usuario escribió un texto manual, ese tiene prioridad sobre el auto.
   if (d.amenText && d.amenText.trim()) return d.amenText;
@@ -27,7 +40,8 @@ export function amenString(d: PlacaData): string {
   if (d.amb) parts.push(`${d.amb} amb`);
   if (d.m2) parts.push(`${d.m2} m²`);
   if (d.baths) parts.push(`${d.baths} baños`);
-  if (d.cochera === 'Sí') parts.push('cochera');
+  const cc = cocheraCount(d);
+  if (cc > 0) parts.push(`${cc} ${cocheraLabel(cc)}`);
   return parts.join(' · ');
 }
 
@@ -76,6 +90,8 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
   const lines: string[] = [];
   const opLbl = d.op === 'Venta' ? 'EN VENTA' : 'EN ALQUILER';
   const opEmoji = d.op === 'Venta' ? '🏠' : '🔑';
+  const cc = cocheraCount(d);
+  const ccCap = cc === 1 ? 'Cochera' : 'Cocheras';
 
   if (style === 'formal') {
     lines.push(`${opLbl}${d.barrio ? ' — ' + d.barrio : ''}`);
@@ -86,7 +102,7 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (d.amb) lines.push(`• ${d.amb} ambientes`);
     if (d.m2) lines.push(`• Superficie: ${d.m2} m²`);
     if (d.baths) lines.push(`• ${d.baths} baños`);
-    if (d.cochera === 'Sí') lines.push('• Cochera incluida');
+    if (cc > 0) lines.push(`• ${cc} ${ccCap.toLowerCase()}`);
     if (d.expensas) lines.push(`• Expensas: $${d.expensas}`);
     if (d.antiguedad) lines.push(`• Antigüedad: ${d.antiguedad} años`);
     lines.push('');
@@ -101,7 +117,7 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (d.desc) { lines.push(''); lines.push(`"${d.desc}"`); }
     lines.push('');
     if (d.amb) lines.push(`${d.amb} ambientes · ${d.m2 || '—'} m²`);
-    if (d.baths) lines.push(`${d.baths} baños${d.cochera === 'Sí' ? ' · Cochera' : ''}`);
+    if (d.baths) lines.push(`${d.baths} baños${cc > 0 ? ` · ${cc} ${ccCap}` : ''}`);
     lines.push('');
     lines.push(`${d.currency} ${d.price}`);
     lines.push('');
@@ -114,7 +130,7 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (d.amb) lines.push(`✅ ${d.amb} ambientes`);
     if (d.m2) lines.push(`✅ ${d.m2} m²`);
     if (d.baths) lines.push(`✅ ${d.baths} baños`);
-    if (d.cochera === 'Sí') lines.push('✅ Cochera');
+    if (cc > 0) lines.push(`✅ ${cc} ${ccCap}`);
     lines.push('');
     lines.push(`💰 ${d.currency} ${d.price}`);
     lines.push('');
@@ -124,7 +140,7 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (d.addr) lines.push(d.addr);
     lines.push('');
     if (d.desc) { lines.push(d.desc); lines.push(''); }
-    if (d.amb || d.m2) lines.push(`${d.amb || '—'} amb · ${d.m2 || '—'} m² · ${d.baths || '—'} baños${d.cochera === 'Sí' ? ' · cochera' : ''}`);
+    if (d.amb || d.m2) lines.push(`${d.amb || '—'} amb · ${d.m2 || '—'} m² · ${d.baths || '—'} baños${cc > 0 ? ` · ${cc} ${ccCap.toLowerCase()}` : ''}`);
     lines.push('');
     lines.push(`${d.currency} ${d.price}`);
     lines.push('');
@@ -138,7 +154,7 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (d.amb) lines.push(`✨ ${d.amb} ambientes`);
     if (d.m2) lines.push(`📐 ${d.m2} m² cubiertos`);
     if (d.baths) lines.push(`🚿 ${d.baths} baños`);
-    if (d.cochera === 'Sí') lines.push('🚗 Cochera fija');
+    if (cc > 0) lines.push(`🚗 ${cc} ${ccCap.toLowerCase()}${cc === 1 ? ' fija' : ' fijas'}`);
     if (d.expensas) lines.push(`💵 Expensas: $ ${d.expensas}`);
     if (d.antiguedad) lines.push(`🏗 ${d.antiguedad} años de antigüedad`);
     lines.push('');

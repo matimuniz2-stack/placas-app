@@ -88,6 +88,7 @@ export interface PlacaData {
   m2: string;
   baths: string;
   cochera: 'Sí' | 'No';
+  cocheras?: string; // cantidad de cocheras (numérico). Si está, manda sobre cochera Sí/No.
   price: string;
   currency: 'USD' | 'ARS';
   op: 'Venta' | 'Alquiler';
