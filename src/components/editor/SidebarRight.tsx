@@ -5,7 +5,7 @@ import { VARIANTS } from '@/lib/variants';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { BADGE_PRESETS } from '@/components/templates/primitives/Badge';
 import { HexColorPicker } from 'react-colorful';
-import { Eye, EyeOff, RotateCcw, Upload, Sparkles, MapPin, Loader2, X, Save, Trash2, Bookmark } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, Upload, Sparkles, MapPin, Loader2, X, Save, Trash2, Bookmark, Copy } from 'lucide-react';
 import { renderStaticMap, geocodeAddress, type MapStyle } from '@/lib/map';
 import { PlacaRenderer } from '@/components/templates/Renderer';
 import { listPresets, savePreset, deletePreset } from '@/lib/presets';
@@ -98,6 +98,7 @@ const InspectorTab: React.FC = () => {
   const photos = usePlacaStore((s) => s.photos);
   const customElements = usePlacaStore((s) => s.customElements);
   const addCustomElement = usePlacaStore((s) => s.addCustomElement);
+  const duplicateLayer = usePlacaStore((s) => s.duplicateLayer);
 
   const isMeta = tpl.id === 't19';
   // En galería las celdas (g0..) y en Meta Ad los bloques no están en defaultLayers,
@@ -152,7 +153,18 @@ const InspectorTab: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="section-title">{META_LABELS[selected] || LAYER_LABELS[selected] || selected}</span>
-              <button className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider" onClick={() => resetLayer(selected)}>Reset</button>
+              <div className="flex items-center gap-2">
+                {isMeta && (
+                  <button
+                    className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider flex items-center gap-1"
+                    title="Duplicar (Ctrl+D)"
+                    onClick={() => duplicateLayer(selected)}
+                  >
+                    <Copy className="w-3 h-3" /> Duplicar
+                  </button>
+                )}
+                <button className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider" onClick={() => resetLayer(selected)}>Reset</button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-2">

@@ -13,6 +13,14 @@ import type {
 import { ALL_TEMPLATES } from '@/components/templates/registry';
 import { galleryCellBase } from './galleryLayout';
 import { META_BASE, customElBase, CUSTOM_SLOTS } from './metaAd';
+import { amenString } from './format';
+
+// Snapshot de una capa para copiar/pegar/duplicar en el Meta Ad: geometría + estilo
+// (layer) y contenido (ce: foto vinculada o texto).
+export interface LayerSnapshot {
+  ce: CustomEl;
+  layer: Partial<LayerConfig>;
+}
 
 interface PlacaState {
   // core
@@ -39,6 +47,7 @@ interface PlacaState {
   mapUrl: string;   // dataURL of the rendered mini-map (or empty if not enabled)
   galleryCells: Record<string, number>; // celda de galería (g0..) / slot de foto Meta Ad → índice de foto
   customElements: Record<string, CustomEl>; // Meta Ad: elementos agregados por el usuario
+  metaClipboard: LayerSnapshot | null; // portapapeles de capas (copiar/pegar en Meta Ad)
 
   // ui state (not in undo)
   abbreviatePrice: boolean;
@@ -87,6 +96,9 @@ interface PlacaState {
   addCustomElement: (type: 'text' | 'photo') => void;
   removeCustomElement: (id: string) => void;
   patchCustomElement: (id: string, p: Partial<CustomEl>) => void;
+  duplicateLayer: (id: LayerId) => void; // clona una capa en un slot custom libre (Meta Ad)
+  copyLayer: (id: LayerId) => void;       // copia una capa al portapapeles
+  pasteLayer: () => void;                  // pega el portapapeles en un slot custom libre
 
   setAbbreviate: (b: boolean) => void;
   toggleSidebarLeft: () => void;
@@ -126,6 +138,70 @@ const DEFAULT_THEME: ThemeState = {
   logoUrl: '/logo-z.png',
 };
 
+// ── Copiar / pegar / duplicar capas (Meta Ad) ───────────────────────────────
+// Índice de foto al que está vinculada una capa de tipo foto, o null si es texto.
+function metaPhotoIdx(s: PlacaState, id: string): number | null {
+  if (id === 'maPhoto1') return s.galleryCells['maPhoto1'] ?? 0;
+  if (id === 'maPhoto2') return s.galleryCells['maPhoto2'] ?? 1;
+  if (/^g\d$/.test(id)) return s.galleryCells[id] ?? parseInt(id.slice(1), 10) + 1;
+  if (id === 'photo') return s.activePhotoIdx;
+  if (/^maC\d$/.test(id) && s.customElements[id]?.type === 'photo')
+    return s.galleryCells[id] ?? s.customElements[id]?.photoIdx ?? 0;
+  return null;
+}
+
+// Texto que muestra una capa de texto del Meta Ad (para clonarla como texto fijo).
+function metaTextContent(s: PlacaState, id: string): string {
+  if (/^maC\d$/.test(id)) return s.customElements[id]?.text || '';
+  const to = s.textOverrides[id as LayerId];
+  if (to != null) return to;
+  const d = s.data;
+  if (id === 'maSub') return (d.amenText && d.amenText.trim()) || (d.desc && d.desc.trim()) || amenString(d) || '';
+  if (id === 'maTag') return (d.microTagline || '').trim();
+  if (id === 'maHead') {
+    const parts = (d.addr || '').includes('\n')
+      ? (d.addr || '').split('\n')
+      : [d.addr || '', d.barrio ? `en ${d.barrio}` : ''];
+    return [parts[0] || '', parts[1] || ''].filter(Boolean).join('\n');
+  }
+  return '';
+}
+
+// Arma un snapshot (estilo + contenido) de una capa para clonarla.
+function buildSnapshot(s: PlacaState, id: string): LayerSnapshot | null {
+  const base = getEffectiveLayer(id as LayerId);
+  if (!base) return null;
+  const layer: Partial<LayerConfig> = {
+    x: base.x, y: base.y, w: base.w, h: base.h, radius: base.radius,
+    z: (base.z ?? 5) + 1, rotation: base.rotation, opacity: base.opacity,
+    font: base.font, size: base.size, color: base.color, weight: base.weight,
+    align: base.align, letterSpacing: base.letterSpacing, lineHeight: base.lineHeight,
+    uppercase: base.uppercase, visible: true,
+  };
+  const photoIdx = metaPhotoIdx(s, id);
+  const ce: CustomEl =
+    photoIdx != null
+      ? { type: 'photo', photoIdx }
+      : { type: 'text', text: metaTextContent(s, id), font: base.font, size: base.size, color: base.color, align: base.align };
+  return { ce, layer };
+}
+
+// Coloca un snapshot en el primer slot custom libre, desplazado para no taparse.
+function placeSnapshot(s: PlacaState, snap: LayerSnapshot): Partial<PlacaState> {
+  const slot = CUSTOM_SLOTS.find((c) => !s.customElements[c]);
+  if (!slot) return {}; // sin slots libres (máx. 8 elementos custom)
+  const layer = {
+    ...snap.layer,
+    x: Math.min(92, (snap.layer.x ?? 0) + 3),
+    y: Math.min(92, (snap.layer.y ?? 0) + 3),
+  };
+  return {
+    customElements: { ...s.customElements, [slot]: { ...snap.ce } },
+    layerOverrides: { ...s.layerOverrides, [slot as LayerId]: layer },
+    selectedLayer: slot as LayerId,
+  };
+}
+
 export const usePlacaStore = create<PlacaState>()(
   temporal(
     (set, get) => ({
@@ -149,6 +225,7 @@ export const usePlacaStore = create<PlacaState>()(
       mapUrl: '',
       galleryCells: {},
       customElements: {},
+      metaClipboard: null,
 
       abbreviatePrice: false,
       showGrid: false,
@@ -278,6 +355,24 @@ export const usePlacaStore = create<PlacaState>()(
       patchCustomElement: (id, p) =>
         set((s) => ({ customElements: { ...s.customElements, [id]: { ...(s.customElements[id] || { type: 'text' }), ...p } } })),
 
+      duplicateLayer: (id) =>
+        set((s) => {
+          if (s.templateId !== 't19') return {} as any; // solo Meta Ad tiene slots custom
+          const snap = buildSnapshot(s, id);
+          if (!snap) return {} as any;
+          return placeSnapshot(s, snap) as any;
+        }),
+      copyLayer: (id) =>
+        set((s) => {
+          const snap = buildSnapshot(s, id);
+          return { metaClipboard: snap } as any;
+        }),
+      pasteLayer: () =>
+        set((s) => {
+          if (s.templateId !== 't19' || !s.metaClipboard) return {} as any;
+          return placeSnapshot(s, s.metaClipboard) as any;
+        }),
+
       setAbbreviate: (b) => set({ abbreviatePrice: b }),
       toggleSidebarLeft: () => set((s) => ({ sidebarLeftOpen: !s.sidebarLeftOpen })),
       toggleSidebarRight: () => set((s) => ({ sidebarRightOpen: !s.sidebarRightOpen })),
@@ -319,6 +414,7 @@ export const usePlacaStore = create<PlacaState>()(
           sidebarRightOpen: _r,
           showGrid: _g,
           snapToGrid: _s,
+          metaClipboard: _cb,
           ...rest
         } = state;
         return rest as any;

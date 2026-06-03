@@ -27,6 +27,14 @@ export function useGlobalShortcuts() {
       const s = usePlacaStore.getState();
       const sel = s.selectedLayer;
 
+      // Copiar / pegar / duplicar capas (solo Meta Ad). Cmd/Ctrl + C / V / D.
+      if (meta && s.templateId === 't19') {
+        const k = e.key.toLowerCase();
+        if (k === 'd') { if (sel) { e.preventDefault(); s.duplicateLayer(sel); } return; }
+        if (k === 'c') { if (sel) { e.preventDefault(); s.copyLayer(sel); } return; }
+        if (k === 'v') { if (s.metaClipboard) { e.preventDefault(); s.pasteLayer(); } return; }
+      }
+
       // Esc
       if (e.key === 'Escape') {
         s.selectLayer(null);

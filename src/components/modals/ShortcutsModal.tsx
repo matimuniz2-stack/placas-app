@@ -6,6 +6,8 @@ interface Props { open: boolean; onClose: () => void }
 const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: '⌘ / Ctrl + Z', action: 'Deshacer' },
   { keys: '⌘ / Ctrl + ⇧ + Z', action: 'Rehacer' },
+  { keys: '⌘ / Ctrl + D', action: 'Duplicar layer (Meta Ad)' },
+  { keys: '⌘ / Ctrl + C / V', action: 'Copiar / pegar layer (Meta Ad)' },
   { keys: 'S', action: 'Story' },
   { keys: 'P', action: 'Post' },
   { keys: '1 – 9', action: 'Cambiar template' },
