@@ -265,7 +265,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
 
       {/* Badge ubicación */}
       {block('maLoc', () => (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: NAVY, color: '#fff', borderRadius: 16, padding: '12px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: '#000', color: '#fff', borderRadius: 16, padding: '12px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }}>
           <MapPin size={32} color="#fff" strokeWidth={2.2} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
             <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 30, letterSpacing: 0.5 }}>{neighborhood}</span>
@@ -383,7 +383,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
 
       {/* Footer navy */}
       {block('maFooter', () => (
-        <div style={{ width: '100%', height: '100%', background: NAVY, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 44px' }}>
+        <div style={{ width: '100%', height: '100%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 44px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Globe size={22} color="#fff" strokeWidth={2} />
             <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 21 }}>{WEBSITE}</span>
