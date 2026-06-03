@@ -361,18 +361,22 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           </div>
         ), { auto: true })}
 
-      {/* Marca */}
-      {block('maBrand', () => (
-        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          {logoUrl ? (
-            <img src={logoUrl} alt="" style={{ height: 52, objectFit: 'contain' }} />
-          ) : (
-            <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 52, color: RED }}>Z</span>
-          )}
-          <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, color: DARK, letterSpacing: 1 }}>{BRAND_NAME}</span>
-          <span style={{ fontFamily: BODY, fontWeight: 600, fontSize: 13, color: GRAY, letterSpacing: 3 }}>{BRAND_SUB}</span>
-        </div>
-      ), { auto: true })}
+      {/* Marca — escala con el ancho del layer (16% = tamaño base). Redimensionable
+          con los handles o el campo W del inspector. */}
+      {block('maBrand', (L) => {
+        const k = (L.w || 16) / 16;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 * k, width: '100%' }}>
+            {logoUrl ? (
+              <img src={logoUrl} alt="" style={{ height: 52 * k, maxWidth: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 52 * k, color: RED }}>Z</span>
+            )}
+            <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22 * k, color: DARK, letterSpacing: 1 * k }}>{BRAND_NAME}</span>
+            <span style={{ fontFamily: BODY, fontWeight: 600, fontSize: 13 * k, color: GRAY, letterSpacing: 3 * k }}>{BRAND_SUB}</span>
+          </div>
+        );
+      })}
 
       {/* Footer navy */}
       {block('maFooter', () => (
