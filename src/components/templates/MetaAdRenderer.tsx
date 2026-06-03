@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePlacaStore } from '@/lib/store';
+import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
 import { amenString, abbreviatePrice } from '@/lib/format';
 import type { PhotoState } from '@/types';
 import {
@@ -38,12 +38,18 @@ const CTA_2 = 'POR WHATSAPP';
 const PHOTO_H = 730; // foto principal ocupa ~54%
 
 // Caja de foto: cover-fit con pos/zoom/filtro propio (espeja primitives/Photo.tsx)
-const PhotoBox: React.FC<{ photo?: PhotoState; boost?: boolean; style: React.CSSProperties }> = ({ photo, boost, style }) => {
+const PhotoBox: React.FC<{ photo?: PhotoState; boost?: boolean; style: React.CSSProperties; dataLayer?: string; selected?: boolean; onSelect?: () => void }> = ({ photo, boost, style, dataLayer, selected, onSelect }) => {
+  const selOutline: React.CSSProperties = selected ? { outline: '2px dashed #de1f1a', outlineOffset: 2 } : {};
+  const cursorStyle: React.CSSProperties = onSelect ? { cursor: 'pointer' } : {};
   if (!photo) {
     return (
       <div
+        data-layer={dataLayer}
+        onClick={onSelect}
         style={{
           ...style,
+          ...selOutline,
+          ...cursorStyle,
           background: HAIR,
           display: 'flex',
           alignItems: 'center',
@@ -64,8 +70,12 @@ const PhotoBox: React.FC<{ photo?: PhotoState; boost?: boolean; style: React.CSS
   const s = boost ? f.s * 1.03 : f.s;
   return (
     <div
+      data-layer={dataLayer}
+      onClick={onSelect}
       style={{
         ...style,
+        ...selOutline,
+        ...cursorStyle,
         backgroundImage: `url("${photo.url}")`,
         backgroundSize: photo.zoom === 1 ? 'cover' : `${photo.zoom * 100}%`,
         backgroundPosition: `${photo.pos.x}% ${photo.pos.y}%`,
@@ -89,12 +99,16 @@ const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string 
 
 const VSep: React.FC = () => <div style={{ width: 1, height: 56, background: HAIR }} />;
 
-export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = () => {
+export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactive = true }) => {
   const data = usePlacaStore((s) => s.data);
   const photos = usePlacaStore((s) => s.photos);
   const theme = usePlacaStore((s) => s.theme);
   const agent = usePlacaStore((s) => s.agent);
   const abbreviate = usePlacaStore((s) => s.abbreviatePrice);
+  const selected = usePlacaStore((s) => s.selectedLayer);
+  const select = usePlacaStore((s) => s.selectLayer);
+  const setActive = usePlacaStore((s) => s.setActivePhoto);
+  usePlacaStore((s) => s.layerOverrides); // re-render al mover/redimensionar bloques
 
   const RED = theme.brand || '#EF2B2A';
 
@@ -137,8 +151,20 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = () => {
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: '#fff', fontFamily: BODY, overflow: 'hidden' }}>
-      {/* Foto principal */}
-      <PhotoBox photo={photos[0]} boost style={{ position: 'absolute', left: 0, top: 0, width: 1080, height: PHOTO_H }} />
+      {/* Foto principal (editable: mover/redimensionar) */}
+      {(() => {
+        const L = getEffectiveLayer('maPhoto1')!;
+        return (
+          <PhotoBox
+            photo={photos[0]}
+            boost
+            dataLayer={interactive ? 'maPhoto1' : undefined}
+            selected={selected === 'maPhoto1'}
+            onSelect={interactive ? () => { select('maPhoto1'); if (photos[0]) setActive(0); } : undefined}
+            style={{ position: 'absolute', left: `${L.x}%`, top: `${L.y}%`, width: `${L.w}%`, height: `${L.h}%`, zIndex: L.z ?? 0 }}
+          />
+        );
+      })()}
 
       {/* Badge estado (rojo, arriba izq) */}
       <div
@@ -185,22 +211,30 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = () => {
         </div>
       </div>
 
-      {/* Segunda foto destacada (der, solapando hacia arriba) */}
-      <PhotoBox
-        photo={photos[1]}
-        style={{
-          position: 'absolute',
-          top: 656,
-          right: 40,
-          width: 430,
-          height: 414,
-          borderRadius: 26,
-          border: '5px solid #fff',
-          boxShadow: '0 14px 34px rgba(0,0,0,0.16)',
-          overflow: 'hidden',
-          zIndex: 6,
-        }}
-      />
+      {/* Segunda foto destacada (editable: mover/redimensionar) */}
+      {(() => {
+        const L = getEffectiveLayer('maPhoto2')!;
+        return (
+          <PhotoBox
+            photo={photos[1]}
+            dataLayer={interactive ? 'maPhoto2' : undefined}
+            selected={selected === 'maPhoto2'}
+            onSelect={interactive ? () => { select('maPhoto2'); if (photos[1]) setActive(1); } : undefined}
+            style={{
+              position: 'absolute',
+              left: `${L.x}%`,
+              top: `${L.y}%`,
+              width: `${L.w}%`,
+              height: `${L.h}%`,
+              borderRadius: L.radius ?? 26,
+              border: '5px solid #fff',
+              boxShadow: '0 14px 34px rgba(0,0,0,0.16)',
+              overflow: 'hidden',
+              zIndex: L.z ?? 6,
+            }}
+          />
+        );
+      })()}
 
       {/* ── Columna de texto comercial (izq) ── */}
       {/* Headline bicolor */}

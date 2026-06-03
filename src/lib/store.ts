@@ -313,6 +313,10 @@ export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
   // Celdas de galería: la geometría base la da el motor adaptativo (según cantidad de
   // fotos). El override del usuario manda sobre esa base, así la celda es editable a mano.
   if (!base && tpl?.gallery && /^g\d$/.test(id)) base = galleryCellBase(id, photos.length);
+  // Meta Ad (t19): bases de las fotos editables (no depende del template del store,
+  // así el thumbnail con overrideTemplateId también las resuelve)
+  if (!base && id === 'maPhoto1') base = { id, x: 0, y: 0, w: 100, h: 54.07, z: 0, visible: true } as LayerConfig;
+  if (!base && id === 'maPhoto2') base = { id, x: 56.48, y: 48.59, w: 39.81, h: 30.67, radius: 26, z: 6, visible: true } as LayerConfig;
   const override = layerOverrides[id];
   if (!base && !override) return undefined;
   return { ...(base as LayerConfig), ...(override || {}) } as LayerConfig;

@@ -24,7 +24,30 @@ export type LayerId =
   | 'g2'
   | 'g3'
   | 'g4'
-  | 'g5';
+  | 'g5'
+  // Meta Ad (t19): bloques editables
+  | 'maPhoto1'
+  | 'maPhoto2'
+  | 'maStatus'
+  | 'maLoc'
+  | 'maHead'
+  | 'maSub'
+  | 'maPrice'
+  | 'maTag'
+  | 'maFeats'
+  | 'maCta'
+  | 'maBenefit'
+  | 'maBrand'
+  | 'maFooter'
+  // Meta Ad: elementos custom agregados por el usuario (slots fijos)
+  | 'maC0'
+  | 'maC1'
+  | 'maC2'
+  | 'maC3'
+  | 'maC4'
+  | 'maC5'
+  | 'maC6'
+  | 'maC7';
 
 export type Align = 'left' | 'center' | 'right';
 
