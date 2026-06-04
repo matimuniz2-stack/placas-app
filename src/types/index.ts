@@ -38,6 +38,7 @@ export type LayerId =
   | 'maFeats'
   | 'maCta'
   | 'maBenefit'
+  | 'maFeats2'
   | 'maBrand'
   | 'maFooter'
   // Meta Ad: elementos custom agregados por el usuario (slots fijos)

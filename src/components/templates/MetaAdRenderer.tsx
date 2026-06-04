@@ -225,6 +225,12 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
     { Icon: M2Icon, value: data.m2 || '', label: 'm² cubiertos' },
     { Icon: Ruler, value: data.lote || '', label: 'm² lote' },
   ].filter((f) => f.value && String(f.value).trim());
+  // En los templates "aviso", si hay 4+ specs se dividen en 2 tandas (bloques movibles
+  // por separado): tanda 1 = primera mitad, tanda 2 = resto.
+  const splitFeats = aviso && features.length >= 4;
+  const featsHalf = Math.ceil(features.length / 2);
+  const feats1 = splitFeats ? features.slice(0, featsHalf) : features;
+  const feats2 = splitFeats ? features.slice(featsHalf) : [];
   const benefitTitle = (data.benefitTitle || '').trim();
   const benefitSub = (data.benefitSubtitle || '').trim();
   const waLink = agent?.phone ? `https://wa.me/${agent.phone.replace(/\D/g, '')}` : null;
@@ -397,11 +403,22 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           );
         }, { auto: true })}
 
-      {/* Features */}
-      {features.length > 0 &&
+      {/* Features. En "aviso" con 4+ specs se parten en 2 tandas (bloques separados). */}
+      {feats1.length > 0 &&
         block('maFeats', () => (
-          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'space-between' }}>
-            {features.map((f, i) => (
+          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'space-around', gap: 8 }}>
+            {feats1.map((f, i) => (
+              <React.Fragment key={f.label}>
+                {i > 0 && <VSep />}
+                <Feature Icon={f.Icon} value={String(f.value)} label={f.label} color={aviso ? RED : NAVY} vertical={aviso} />
+              </React.Fragment>
+            ))}
+          </div>
+        ))}
+      {feats2.length > 0 &&
+        block('maFeats2', () => (
+          <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'space-around', gap: 8 }}>
+            {feats2.map((f, i) => (
               <React.Fragment key={f.label}>
                 {i > 0 && <VSep />}
                 <Feature Icon={f.Icon} value={String(f.value)} label={f.label} color={aviso ? RED : NAVY} vertical={aviso} />

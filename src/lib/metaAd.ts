@@ -42,8 +42,9 @@ export const META2_BASE: Record<string, LayerConfig> = {
   // Dos fotos secundarias
   maPhoto2: { id: 'maPhoto2', x: 40.5, y: 43.8, w: 28.4, h: 19, radius: 24, z: 6, visible: true },
   maPhoto3: { id: 'maPhoto3', x: 70, y: 43.8, w: 27.5, h: 19, radius: 24, z: 6, visible: true },
-  // Fila de características
+  // Filas de características (tanda 1 abajo full-width; tanda 2 arriba si se divide)
   maFeats: { id: 'maFeats', x: 4.5, y: 81.5, w: 91, h: 7, z: 5, visible: true },
+  maFeats2: { id: 'maFeats2', x: 4.5, y: 73, w: 91, h: 6, z: 5, visible: true },
   // CTA WhatsApp (tarjeta blanca con borde)
   maCta: { id: 'maCta', x: 4, y: 89.2, w: 47, h: 8, z: 5, visible: true },
   // Apto crédito
@@ -69,8 +70,9 @@ export const META3_BASE: Record<string, LayerConfig> = {
   // Dos fotos secundarias alineadas con el título (columna derecha, arriba)
   maPhoto2: { id: 'maPhoto2', x: 43, y: 46, w: 26.7, h: 16.5, radius: 18, z: 6, visible: true },
   maPhoto3: { id: 'maPhoto3', x: 70.8, y: 46, w: 26.2, h: 16.5, radius: 18, z: 6, visible: true },
-  // Specs a la derecha, misma fila que el precio
+  // Specs a la derecha (tanda 1 en la fila del precio; tanda 2 arriba si se divide)
   maFeats: { id: 'maFeats', x: 44, y: 72.5, w: 53, h: 8, z: 5, visible: true },
+  maFeats2: { id: 'maFeats2', x: 44, y: 64, w: 53, h: 7, z: 5, visible: true },
   // CTA WhatsApp (pill rojo, sin tarjeta)
   maCta: { id: 'maCta', x: 4, y: 85, w: 40, h: 7.5, z: 5, visible: true },
   // Apto crédito
@@ -107,7 +109,8 @@ export const META_LABELS: Record<string, string> = {
   maSub: 'Subtítulo',
   maPrice: 'Precio',
   maTag: 'Tagline',
-  maFeats: 'Features',
+  maFeats: 'Features (tanda 1)',
+  maFeats2: 'Features (tanda 2)',
   maCta: 'Botón WhatsApp',
   maBenefit: 'Beneficio',
   maBrand: 'Marca',
