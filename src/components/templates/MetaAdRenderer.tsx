@@ -76,7 +76,7 @@ const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string;
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
       <Icon size={42} color={color} strokeWidth={1.8} />
       <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 42, color: DARK, lineHeight: 1 }}>{value}</span>
-      <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 22, color: GRAY }}>{label}</span>
+      <span style={{ fontFamily: BODY, fontWeight: 600, fontSize: 23, color: '#4B5563', letterSpacing: 0.3 }}>{label}</span>
     </div>
   ) : (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -210,7 +210,14 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const headSize = layerOverrides['maHead']?.size ?? (hMax <= 16 ? 62 : hMax <= 22 ? 52 : hMax <= 30 ? 42 : 36);
   // t20: el "grande" se calcula sobre las líneas del barrio (sin contar la 1ª roja).
   const t20BigMax = Math.max(0, ...headLines.slice(1).map((l) => l.length));
-  const t20Big = layerOverrides['maHead']?.size ?? (t20BigMax <= 6 ? 92 : t20BigMax <= 9 ? 76 : t20BigMax <= 12 ? 62 : 50);
+  const t20Lines = headLines.length - 1; // líneas del barrio (sin contar la roja chica)
+  const t20Big =
+    layerOverrides['maHead']?.size ??
+    Math.min(
+      t20BigMax <= 6 ? 92 : t20BigMax <= 9 ? 76 : t20BigMax <= 12 ? 62 : 50,
+      // Cap por cantidad de líneas para que barrios de 3+ palabras no desborden.
+      t20Lines >= 4 ? 44 : t20Lines >= 3 ? 56 : 999,
+    );
   // Subtítulo (debajo del título): editable in-canvas → textOverride manda.
   const subOverride = textOverrides['maSub'];
   const subtitle = subOverride != null ? subOverride : ((data.amenText && data.amenText.trim()) || (data.desc && data.desc.trim()) || amenString(data) || '');
@@ -228,7 +235,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   ].filter((f) => f.value && String(f.value).trim());
   // En los templates "aviso", si hay 4+ specs se dividen en 2 tandas (bloques movibles
   // por separado): tanda 1 = primera mitad, tanda 2 = resto.
-  const splitFeats = aviso && features.length >= 4;
+  // t22 (Story) NO parte specs: van en una sola fila para no comer la zona segura.
+  const splitFeats = (t20 || t21) && features.length >= 4;
   const featsHalf = Math.ceil(features.length / 2);
   const feats1 = splitFeats ? features.slice(0, featsHalf) : features;
   const feats2 = splitFeats ? features.slice(featsHalf) : [];
@@ -293,7 +301,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Foto principal */}
       {block('maPhoto1', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto1')!]} boost style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: t22 ? { overflow: 'hidden', borderRadius: 28, boxShadow: '0 18px 50px rgba(0,0,0,0.16)' } : { overflow: 'hidden' } })}
+      ), { extraStyle: { overflow: 'hidden' } })}
 
       {/* Foto secundaria 1 */}
       {block('maPhoto2', (L) => (
