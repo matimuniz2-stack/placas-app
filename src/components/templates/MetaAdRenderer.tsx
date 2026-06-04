@@ -6,10 +6,9 @@ import type { PhotoState, LayerConfig, LayerId } from '@/types';
 import {
   Home,
   MapPin,
-  Bed,
+  Sofa,
   Bath,
   Car,
-  Maximize,
   Ruler,
   MessageCircle,
   ShieldCheck,
@@ -63,15 +62,31 @@ const PhotoBox: React.FC<{ photo?: PhotoState; boost?: boolean; style: React.CSS
   );
 };
 
-const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string }> = ({ Icon, value, label }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-    <Icon size={34} color={NAVY} strokeWidth={1.7} />
-    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
-      <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK }}>{value}</span>
+// Ícono "m²" (cuadrito redondeado con el texto m² adentro), lineal como los de lucide.
+const M2Icon: React.FC<{ size?: number; color?: string; strokeWidth?: number }> = ({ size = 34, color = '#111827', strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="3.5" stroke={color} strokeWidth={strokeWidth} />
+    <text x="12" y="15.5" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="9" fontWeight="700" fill={color}>m²</text>
+  </svg>
+);
+
+// Spec con ícono. `vertical` = ícono arriba, número y label centrados debajo (estilo aviso).
+const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string; color?: string; vertical?: boolean }> = ({ Icon, value, label, color = NAVY, vertical }) =>
+  vertical ? (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
+      <Icon size={42} color={color} strokeWidth={1.8} />
+      <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 42, color: DARK, lineHeight: 1 }}>{value}</span>
       <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 22, color: GRAY }}>{label}</span>
     </div>
-  </div>
-);
+  ) : (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Icon size={34} color={color} strokeWidth={1.7} />
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
+        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK }}>{value}</span>
+        <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 22, color: GRAY }}>{label}</span>
+      </div>
+    </div>
+  );
 
 const VSep: React.FC = () => <div style={{ width: 1, height: 56, background: HAIR }} />;
 
@@ -204,11 +219,11 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const tagline = tagOverride != null ? tagOverride : (data.microTagline || '').trim();
   const cc = cocheraCount(data);
   const features = [
-    { Icon: Bed, value: data.amb, label: data.amb === '1' ? 'ambiente' : 'ambientes' },
+    { Icon: Sofa, value: data.amb, label: data.amb === '1' ? 'ambiente' : 'ambientes' },
     { Icon: Bath, value: data.baths, label: data.baths === '1' ? 'baño' : 'baños' },
     { Icon: Car, value: cc > 0 ? String(cc) : '', label: cocheraLabel(cc) },
-    { Icon: Maximize, value: data.m2 ? `${data.m2} m²` : '', label: 'cubiertos' },
-    { Icon: Ruler, value: data.lote ? `${data.lote} m²` : '', label: 'lote' },
+    { Icon: M2Icon, value: data.m2 || '', label: 'm² cubiertos' },
+    { Icon: Ruler, value: data.lote || '', label: 'm² lote' },
   ].filter((f) => f.value && String(f.value).trim());
   const benefitTitle = (data.benefitTitle || '').trim();
   const benefitSub = (data.benefitSubtitle || '').trim();
@@ -389,7 +404,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
             {features.map((f, i) => (
               <React.Fragment key={f.label}>
                 {i > 0 && <VSep />}
-                <Feature Icon={f.Icon} value={String(f.value)} label={f.label} />
+                <Feature Icon={f.Icon} value={String(f.value)} label={f.label} color={aviso ? RED : NAVY} vertical={aviso} />
               </React.Fragment>
             ))}
           </div>
