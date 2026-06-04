@@ -126,4 +126,14 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#111827',
     defaultLayers: {},
   },
+
+  // ============== t22: STORY ADS (vertical 1080x1920, top/bottom vacíos, contenido centrado) ==============
+  {
+    id: 't22',
+    name: 'Story Ads',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];

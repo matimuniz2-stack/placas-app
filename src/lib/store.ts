@@ -237,7 +237,7 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarRightOpen: true,
 
       setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set((s) => ({ templateId: id, format: isMetaTemplate(id) ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
+      setTemplate: (id) => set((s) => ({ templateId: id, format: id === 't22' ? 'story' : isMetaTemplate(id) ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),

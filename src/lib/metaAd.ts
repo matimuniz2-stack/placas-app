@@ -84,17 +84,40 @@ export const META3_BASE: Record<string, LayerConfig> = {
 };
 export const META3_BLOCK_IDS = Object.keys(META3_BASE);
 
+// ── t22: Story Ads (vertical 1080×1920). Top y bottom vacíos (safe zones de Meta);
+// contenido centrado: foto grande + datos cortos. Una sola foto, sin CTA ni footer. ──
+export const META4_BASE: Record<string, LayerConfig> = {
+  // Foto hero centrada, tarjeta redondeada
+  maPhoto1: { id: 'maPhoto1', x: 6, y: 14.5, w: 88, h: 38, radius: 28, z: 0, visible: true },
+  // Badge EN VENTA sobre la foto
+  maStatus: { id: 'maStatus', x: 9.5, y: 17.5, w: 27, h: 3.6, z: 10, visible: true },
+  // Título: tipo (rojo) + barrio (negro grande) + barra roja
+  maHead: { id: 'maHead', x: 7, y: 54, w: 62, h: 9, font: 'Outfit', size: 92, color: '#111827', weight: 800, lineHeight: 1.0, z: 5, visible: true },
+  // Marca arriba a la derecha del bloque de info
+  maBrand: { id: 'maBrand', x: 72, y: 54.5, w: 22, h: 8, z: 5, visible: true },
+  // Descripción corta gris
+  maSub: { id: 'maSub', x: 7, y: 69, w: 80, h: 4.5, font: 'Inter', size: 30, color: '#6B7280', weight: 500, lineHeight: 1.35, z: 5, visible: true },
+  // Precio en bloque rojo
+  maPrice: { id: 'maPrice', x: 7, y: 74.5, w: 48, h: 6, font: 'Outfit', size: 92, color: '#ffffff', weight: 800, z: 5, visible: true },
+  // Specs (íconos)
+  maFeats: { id: 'maFeats', x: 7, y: 82.5, w: 86, h: 5, z: 5, visible: true },
+  maFeats2: { id: 'maFeats2', x: 7, y: 88, w: 86, h: 5, z: 5, visible: true },
+};
+export const META4_BLOCK_IDS = Object.keys(META4_BASE);
+
 export function isMetaTemplate(id: string): boolean {
-  return id === 't19' || id === 't20' || id === 't21';
+  return id === 't19' || id === 't20' || id === 't21' || id === 't22';
 }
 export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
   if (templateId === 't20') return META2_BASE;
   if (templateId === 't21') return META3_BASE;
+  if (templateId === 't22') return META4_BASE;
   return META_BASE;
 }
 export function metaBlockIdsFor(templateId: string): string[] {
   if (templateId === 't20') return META2_BLOCK_IDS;
   if (templateId === 't21') return META3_BLOCK_IDS;
+  if (templateId === 't22') return META4_BLOCK_IDS;
   return META_BLOCK_IDS;
 }
 

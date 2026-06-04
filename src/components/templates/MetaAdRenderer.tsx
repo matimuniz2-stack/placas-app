@@ -172,7 +172,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
 
   const t20 = templateId === 't20'; // Aviso Pro
   const t21 = templateId === 't21'; // Aviso Premium
-  const aviso = t20 || t21; // familia "aviso": título rojo+barrio, precio en bloque, apto crédito
+  const t22 = templateId === 't22'; // Story Ads (vertical)
+  const aviso = t20 || t21 || t22; // familia "aviso": título rojo+barrio, precio en bloque, íconos rojos
   const RED = theme.brand || (aviso ? '#E5342B' : '#EF2B2A');
 
   // ── Datos ──
@@ -292,7 +293,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Foto principal */}
       {block('maPhoto1', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto1')!]} boost style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: { overflow: 'hidden' } })}
+      ), { extraStyle: t22 ? { overflow: 'hidden', borderRadius: 28, boxShadow: '0 18px 50px rgba(0,0,0,0.16)' } : { overflow: 'hidden' } })}
 
       {/* Foto secundaria 1 */}
       {block('maPhoto2', (L) => (
