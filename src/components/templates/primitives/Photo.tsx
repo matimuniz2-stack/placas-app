@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LayerConfig } from '@/types';
 import { usePlacaStore } from '@/lib/store';
+import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 
 interface Props {
   defaults: LayerConfig;
@@ -55,6 +56,14 @@ export const Photo: React.FC<Props> = ({ defaults, fullbleed, background }) => {
       onClick={(e) => {
         e.stopPropagation();
         select('photo');
+      }}
+      onDragOver={(e) => { if (isPhotoDrag(e)) e.preventDefault(); }}
+      onDrop={(e) => {
+        const idx = getDragPhoto(e);
+        if (idx == null) return;
+        e.preventDefault();
+        e.stopPropagation();
+        usePlacaStore.getState().setActivePhoto(idx);
       }}
     >
       {!active && (

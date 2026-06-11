@@ -92,6 +92,7 @@ interface PlacaState {
   // slides
   setActiveSlide: (i: number) => void;
   addSlide: (templateId?: string) => void;
+  duplicateSlide: () => void; // clona la placa activa (para hacer variantes)
   removeSlide: (i: number) => void;
   setSlides: (slides: SlideSnapshot[], active: number) => void;
 
@@ -408,6 +409,16 @@ export const usePlacaStore = create<PlacaState>()(
           slides.push(fresh);
           clearUndoHistory();
           return { slides, activeSlide: slides.length - 1, ...loadSlide(fresh) };
+        }),
+      duplicateSlide: () =>
+        set((s) => {
+          const slides = [...s.slides];
+          const snap = snapshotSlide(s);
+          slides[s.activeSlide] = snap;
+          const copy = JSON.parse(JSON.stringify(snap)) as SlideSnapshot;
+          slides.splice(s.activeSlide + 1, 0, copy);
+          clearUndoHistory();
+          return { slides, activeSlide: s.activeSlide + 1, ...loadSlide(copy) };
         }),
       removeSlide: (i) =>
         set((s) => {

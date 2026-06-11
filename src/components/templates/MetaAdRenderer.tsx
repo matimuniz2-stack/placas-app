@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
 import { amenString, abbreviatePrice, cocheraCount, cocheraLabel } from '@/lib/format';
 import { CUSTOM_SLOTS } from '@/lib/metaAd';
+import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 import type { PhotoState, LayerConfig, LayerId } from '@/types';
 import {
   Home,
@@ -295,6 +296,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
     const L = getEffectiveLayer(id as LayerId);
     if (!L || L.visible === false) return null;
     const isSel = interactive && selected === id && editingLayer !== id;
+    // Slots de foto: aceptan soltar una miniatura arrastrada del panel FOTOS.
+    const isPhotoSlot = /^maPhoto\d$/.test(id) || (/^maC\d$/.test(id) && customElements[id]?.type === 'photo');
     return (
       <div
         key={id}
@@ -306,6 +309,20 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
                 select(id as any);
                 const p = photoIdxFor(id);
                 if (p != null && photos[p]) setActive(p);
+              }
+            : undefined
+        }
+        onDragOver={interactive && isPhotoSlot ? (e) => { if (isPhotoDrag(e)) e.preventDefault(); } : undefined}
+        onDrop={
+          interactive && isPhotoSlot
+            ? (e) => {
+                const idx = getDragPhoto(e);
+                if (idx == null) return;
+                e.preventDefault();
+                e.stopPropagation();
+                usePlacaStore.getState().setGalleryCell(id, idx);
+                setActive(idx);
+                select(id as any);
               }
             : undefined
         }

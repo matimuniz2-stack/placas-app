@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePlacaStore } from '@/lib/store';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Copy } from 'lucide-react';
 
 // Pestañas del carrusel (Placa 1 / Placa 2 / +) flotando arriba del canvas.
 // Cada placa tiene su propio template, layout y textos; datos y fotos son compartidos.
@@ -10,6 +10,7 @@ export const SlideTabs: React.FC = () => {
   const active = usePlacaStore((s) => s.activeSlide);
   const setActiveSlide = usePlacaStore((s) => s.setActiveSlide);
   const addSlide = usePlacaStore((s) => s.addSlide);
+  const duplicateSlide = usePlacaStore((s) => s.duplicateSlide);
   const removeSlide = usePlacaStore((s) => s.removeSlide);
   const liveTemplateId = usePlacaStore((s) => s.templateId);
 
@@ -70,6 +71,13 @@ export const SlideTabs: React.FC = () => {
         title="Agregar placa al carrusel"
       >
         <Plus className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={() => duplicateSlide()}
+        className="h-7 w-7 rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-brand transition flex items-center justify-center"
+        title="Duplicar la placa actual (para probar variantes)"
+      >
+        <Copy className="w-3.5 h-3.5" />
       </button>
     </div>
   );

@@ -14,6 +14,7 @@ import { MetaAdRenderer } from './MetaAdRenderer';
 import { amenString, extrasString, priceString, cocheraCount, cocheraLabel } from '@/lib/format';
 import { isMetaTemplate, CUSTOM_SLOTS } from '@/lib/metaAd';
 import { getEffectiveLayer } from '@/lib/store';
+import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 import type { LayerId, PlacaData } from '@/types';
 import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
 
@@ -156,8 +157,17 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         if (PIN_BARRIO.has(tpl.id)) return pinBarrio(data, tpl.id === 't16');
         return data.barrio ? '📍 ' + data.barrio : '';
       case 'price':
-        // Hide entirely if no price entered (avoid orphan "USD")
-        if (!data.price || !data.price.trim()) return '';
+        // Sin precio: en t16 la placa invita a consultar (no queda incompleta);
+        // en el resto se oculta (evita "USD" huérfano).
+        if (!data.price || !data.price.trim()) {
+          if (tpl.id === 't16')
+            return (
+              <span style={{ fontSize: '0.42em', letterSpacing: 5, color: '#9c7a35', fontFamily: "'Inter'", fontWeight: 600 }}>
+                CONSULTAR PRECIO
+              </span>
+            );
+          return '';
+        }
         return priceString(data, { abbreviate });
       case 'amen':
         // Si el usuario escribió una línea custom, respetarla tal cual; si no, en la
@@ -335,6 +345,16 @@ const CustomPhotoLayer: React.FC<{
     <div
       data-layer={interactive ? id : undefined}
       onClick={interactive ? (e) => { e.stopPropagation(); select(id as LayerId); if (photo) setActive(pIdx); } : undefined}
+      onDragOver={interactive ? (e) => { if (isPhotoDrag(e)) e.preventDefault(); } : undefined}
+      onDrop={interactive ? (e) => {
+        const idx = getDragPhoto(e);
+        if (idx == null) return;
+        e.preventDefault();
+        e.stopPropagation();
+        usePlacaStore.getState().setGalleryCell(id, idx);
+        setActive(idx);
+        select(id as LayerId);
+      } : undefined}
       style={{
         position: 'absolute',
         left: `${layer.x}%`,

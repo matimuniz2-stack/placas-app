@@ -2,6 +2,7 @@ import React from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
 import { getTemplate } from '@/components/templates/registry';
 import { galleryCount } from '@/lib/galleryLayout';
+import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 import type { LayerId } from '@/types';
 
 const SHADOW = '0 10px 30px rgba(43,26,20,0.08)';
@@ -14,6 +15,7 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
   const selected = usePlacaStore((s) => s.selectedLayer);
   const select = usePlacaStore((s) => s.selectLayer);
   const setActive = usePlacaStore((s) => s.setActivePhoto);
+  const setGalleryCell = usePlacaStore((s) => s.setGalleryCell);
   const templateId = usePlacaStore((s) => s.templateId);
 
   // Templates con celdas propias en data.ts (t18) usan esa cantidad fija;
@@ -47,6 +49,16 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
             key={id}
             data-layer={id}
             onClick={interactive ? (e) => { e.stopPropagation(); select(id); if (p) setActive(photoIdx); } : undefined}
+            onDragOver={interactive ? (e) => { if (isPhotoDrag(e)) e.preventDefault(); } : undefined}
+            onDrop={interactive ? (e) => {
+              const idx = getDragPhoto(e);
+              if (idx == null) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setGalleryCell(id, idx);
+              setActive(idx);
+              select(id);
+            } : undefined}
             style={{
               position: 'absolute',
               left: `${layer.x}%`,

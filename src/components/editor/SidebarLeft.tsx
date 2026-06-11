@@ -3,6 +3,7 @@ import { usePlacaStore, buildImportSlides } from '@/lib/store';
 import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
 import { extractFromUrl } from '@/lib/urlExtract';
+import { setDragPhoto } from '@/lib/dragPhoto';
 import { amenString } from '@/lib/format';
 import { CropModal } from '@/components/modals/CropModal';
 
@@ -318,7 +319,10 @@ const FotosTab: React.FC = () => {
               <div key={i} className="relative group">
                 <button
                   onClick={() => setActive(i)}
-                  className={`block w-full aspect-square bg-neutral-100 rounded overflow-hidden border-2 transition ${i === activeIdx ? 'border-brand' : 'border-transparent hover:border-neutral-300'}`}
+                  draggable
+                  onDragStart={(e) => setDragPhoto(e, i)}
+                  title="Arrastrá esta foto a cualquier celda de la placa"
+                  className={`block w-full aspect-square bg-neutral-100 rounded overflow-hidden border-2 transition cursor-grab active:cursor-grabbing ${i === activeIdx ? 'border-brand' : 'border-transparent hover:border-neutral-300'}`}
                   style={{ backgroundImage: `url("${p.url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                 />
                 <button
