@@ -49,7 +49,9 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     },
   },
 
-  // ============== t17: ZAMBONI GALERÍA (continuación de t16, grilla de fotos) ==============
+  // ============== t17: ZAMBONI GALERÍA (formato 2026-06-11, armado por el usuario) ==============
+  // Fotos grandes apiladas casi a sangre (las dibuja GalleryGrid con el motor de
+  // galleryLayout.ts), pill VENTA sobre la primera foto, pie con pin + ubicación + logo Z.
   {
     id: 't17',
     name: 'Galería',
@@ -58,17 +60,15 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#2b1a14',
     gallery: true,
     defaultLayers: {
-      // La grilla de fotos la dibuja GalleryGrid: mosaico adaptativo según la cantidad de fotos.
-      // Encabezado: título + subtítulo
-      addr: L({ id: 'addr', x: 7.4, y: 3.6, w: 68, font: 'Playfair Display', size: 72, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
-      lbl: L({ id: 'lbl', x: 7.4, y: 12, w: 60, font: 'Inter', size: 30, color: '#a78b61', weight: 400 }),
-      // Sticker "GALERÍA" arriba a la derecha
-      op: L({ id: 'op', x: 73, y: 4, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
-      // Pie: ubicación con pin, divisor, detalles, logo
-      barrio: L({ id: 'barrio', x: 7.4, y: 90, w: 55, font: 'Inter', size: 32, color: '#2b1a14', weight: 500 }),
-      line: L({ id: 'line', x: 7.4, y: 93.4, w: 50, h: 0.08, bg: 'rgba(199,168,107,0.6)', z: 4 }),
-      amen: L({ id: 'amen', x: 7.4, y: 94.2, w: 60, font: 'Inter', size: 28, color: '#2b1a14' }),
-      logo: L({ id: 'logo', x: 81, y: 90, w: 11, h: 0 }),
+      // Pill "VENTA" sobre la foto superior (estilo t16, sin borde)
+      op: L({ id: 'op', x: 73, y: 2.9, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 28, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 22, z: 30 }),
+      // Pie: hairline + ubicación con pin rojo + logo Z
+      line: L({ id: 'line', x: 3.9, y: 93.3, w: 70, h: 0.08, bg: 'rgba(199,168,107,0.6)', z: 4 }),
+      barrio: L({ id: 'barrio', x: 3.9, y: 94.1, w: 78, font: 'Inter', size: 34, color: '#2b1a14', weight: 500 }),
+      logo: L({ id: 'logo', x: 84.8, y: 92, w: 11, h: 0 }),
+      // Línea de amenities (oculta por defecto; activala con el ojo en Layers —
+      // el import del listing la deja cargada con las amenities detectadas)
+      amen: L({ id: 'amen', x: 3.9, y: 91.2, w: 78, font: 'Inter', size: 26, color: '#2b1a14', visible: false }),
     },
   },
 

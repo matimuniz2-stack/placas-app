@@ -561,14 +561,15 @@ export function currentSlidesSnapshot(): { slides: SlideSnapshot[]; activeSlide:
 }
 
 // Arma el carrusel automático después de importar un listing: placa 1 = Zamboni Pro
-// (foto de portada + datos) y placa 2 = Galería con los ambientes; si el listing
-// traía amenities, van como línea de detalles de la placa 2.
+// (foto de portada + datos) y placa 2 = Galería con los ambientes. Si el listing
+// traía amenities, quedan cargadas en la capa "Detalles" de la placa 2 (oculta por
+// defecto en el formato actual; se activa con el ojo en Layers).
 export function buildImportSlides(amenLine?: string) {
   const s = usePlacaStore.getState();
   const slide1 = blankSlide('t16', 'story');
   const slide2 = blankSlide('t17', 'story');
   if (amenLine && amenLine.trim()) {
-    slide2.textOverrides = { amen: amenLine.trim(), lbl: 'Ambientes y amenities' };
+    slide2.textOverrides = { amen: amenLine.trim() };
   }
   s.setSlides([slide1, slide2], 0);
 }

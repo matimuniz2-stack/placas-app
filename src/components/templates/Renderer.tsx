@@ -167,7 +167,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         return amenString(data);
       case 'op': {
         if (!data.op) return '';
-        const opTxt = tpl.id === 't17' ? 'GALERÍA' : (tpl.id === 't16' || tpl.id === 't18') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
+        const opTxt = tpl.id === 't17' ? data.op.toUpperCase() : (tpl.id === 't16' || tpl.id === 't18') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
       case 'desc':

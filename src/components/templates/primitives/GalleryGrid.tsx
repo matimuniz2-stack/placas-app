@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePlacaStore, getEffectiveLayer } from '@/lib/store';
+import { getTemplate } from '@/components/templates/registry';
 import { galleryCount } from '@/lib/galleryLayout';
 import type { LayerId } from '@/types';
 
@@ -13,8 +14,12 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
   const selected = usePlacaStore((s) => s.selectedLayer);
   const select = usePlacaStore((s) => s.selectLayer);
   const setActive = usePlacaStore((s) => s.setActivePhoto);
+  const templateId = usePlacaStore((s) => s.templateId);
 
-  const count = galleryCount(photos.length);
+  // Templates con celdas propias en data.ts (t18) usan esa cantidad fija;
+  // el resto (t17) usa el motor adaptativo.
+  const ownCells = Object.keys(getTemplate(templateId).defaultLayers).filter((k) => /^g\d$/.test(k)).length;
+  const count = ownCells > 0 ? ownCells : galleryCount(photos.length);
   const rest = Math.max(0, photos.length - 1);
   const extra = rest - count; // fotos que no entran (badge "+N")
 
