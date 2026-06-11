@@ -37,6 +37,8 @@ const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   agent: 'Agente',
   line: 'Línea',
   dot: 'Punto',
+  line2: 'Línea logo',
+  dot2: 'Rombo logo',
   g0: 'Foto 1',
   g1: 'Foto 2',
   g2: 'Foto 3',
@@ -103,13 +105,16 @@ const InspectorTab: React.FC = () => {
   const isMeta = isMetaTemplate(tpl.id);
   // En galería las celdas (g0..) y en Meta Ad / Aviso Pro los bloques no están en
   // defaultLayers, pero los listamos para seleccionarlos/ocultarlos/resetear.
+  // Los elementos custom (+ Texto / + Foto) se listan en TODOS los templates.
+  const customIds = CUSTOM_SLOTS.filter((id) => customElements[id]) as LayerId[];
   const layerIds = (
     isMeta
-      ? [...metaBlockIdsFor(tpl.id), ...CUSTOM_SLOTS.filter((id) => customElements[id])]
+      ? [...metaBlockIdsFor(tpl.id), ...customIds]
       : Array.from(
           new Set([
             ...(Object.keys(tpl.defaultLayers) as LayerId[]),
             ...(tpl.gallery ? galleryCellIds(photos.length) : []),
+            ...customIds,
           ])
         )
   ) as LayerId[];
@@ -118,12 +123,12 @@ const InspectorTab: React.FC = () => {
 
   return (
     <div className="px-3 py-3 space-y-3">
-      {isMeta && (
-        <div className="grid grid-cols-2 gap-1.5">
-          <button className="btn justify-center text-xs" onClick={() => addCustomElement('text')}>+ Texto</button>
-          <button className="btn justify-center text-xs" onClick={() => addCustomElement('photo')}>+ Foto</button>
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-1.5">
+        <button className="btn justify-center text-xs" onClick={() => addCustomElement('text')}>+ Texto</button>
+        <button className="btn justify-center text-xs" onClick={() => addCustomElement('photo')}>+ Foto</button>
+      </div>
+
+      <BgColorField />
       {/* Layers list */}
       <div>
         <div className="section-title mb-2">Layers</div>
@@ -154,15 +159,13 @@ const InspectorTab: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="section-title">{META_LABELS[selected] || LAYER_LABELS[selected] || selected}</span>
               <div className="flex items-center gap-2">
-                {isMeta && (
-                  <button
-                    className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider flex items-center gap-1"
-                    title="Duplicar (Ctrl+D)"
-                    onClick={() => duplicateLayer(selected)}
-                  >
-                    <Copy className="w-3 h-3" /> Duplicar
-                  </button>
-                )}
+                <button
+                  className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider flex items-center gap-1"
+                  title="Duplicar (Ctrl+D)"
+                  onClick={() => duplicateLayer(selected)}
+                >
+                  <Copy className="w-3 h-3" /> Duplicar
+                </button>
                 <button className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider" onClick={() => resetLayer(selected)}>Reset</button>
               </div>
             </div>
@@ -229,6 +232,27 @@ const InspectorTab: React.FC = () => {
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+// Color de fondo de la placa (por slide). Pisa el fondo del template; Reset lo vuelve.
+const BgColorField: React.FC = () => {
+  const bgOverride = usePlacaStore((s) => s.bgOverride);
+  const setBgOverride = usePlacaStore((s) => s.setBgOverride);
+  const templateId = usePlacaStore((s) => s.templateId);
+  const tplBg = ALL_TEMPLATES.find((t) => t.id === templateId)?.bgColor || '#ffffff';
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="section-title">Color de fondo</span>
+        {bgOverride && (
+          <button className="text-[10px] text-neutral-400 hover:text-brand uppercase tracking-wider" onClick={() => setBgOverride(null)}>
+            Reset
+          </button>
+        )}
+      </div>
+      <ColorField v={bgOverride || tplBg} on={(c) => setBgOverride(c)} />
     </div>
   );
 };

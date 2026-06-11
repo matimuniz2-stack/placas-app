@@ -3,6 +3,7 @@ import type { PlacaData } from '@/types';
 export interface ExtractedListing extends Partial<PlacaData> {
   photoUrl?: string;
   photoUrls?: string[];
+  amenities?: string[];
 }
 
 // Client-side extractor that tries our serverless endpoint first.
@@ -11,7 +12,7 @@ export async function extractFromUrl(url: string): Promise<ExtractedListing | nu
   if (!url || !/^https?:\/\//.test(url)) return null;
 
   try {
-    const res = await fetch(`/api/extract?url=${encodeURIComponent(url)}`);
+    const res = await fetch(`/api/extract?url=${encodeURIComponent(url)}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
   } catch {

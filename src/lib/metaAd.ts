@@ -26,33 +26,35 @@ export const META_BASE: Record<string, LayerConfig> = {
 
 export const META_BLOCK_IDS = Object.keys(META_BASE);
 
-// ── t20: Aviso Pro (foto hero arriba + 2 fotos secundarias, precio en bloque rojo,
-// apto crédito, footer blanco). Mismo motor/ids editables que el Meta Ad. ──
+// ── t20: Aviso Pro (Story 1080×1920). Foto hero arriba a sangre + foto secundaria
+// solapada a la derecha; franja blanca central con título/precio/specs/CTA/marca;
+// foto inferior a sangre. Coordenadas en % de 1080×1920. Mismo motor/ids que el Meta Ad. ──
 export const META2_BASE: Record<string, LayerConfig> = {
-  // Foto hero (40% superior, a sangre)
-  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 43, z: 0, visible: true },
-  // Badge EN VENTA sobre la foto
-  maStatus: { id: 'maStatus', x: 2.5, y: 2.8, w: 27, h: 5, z: 10, visible: true },
-  // Título: "DEPARTAMENTO EN" (rojo chico) + "PLAZA / MITRE" (negro grande)
-  maHead: { id: 'maHead', x: 4.5, y: 45, w: 35, h: 18, font: 'Outfit', size: 96, color: '#111827', weight: 800, lineHeight: 1.0, z: 5, visible: true },
-  // Descripción corta gris
-  maSub: { id: 'maSub', x: 4.5, y: 65.5, w: 34, h: 5.5, font: 'Inter', size: 27, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: true },
-  // Precio en bloque rojo
-  maPrice: { id: 'maPrice', x: 4, y: 72.5, w: 41, h: 7.5, font: 'Outfit', size: 92, color: '#ffffff', weight: 800, z: 5, visible: true },
-  // Dos fotos secundarias
-  maPhoto2: { id: 'maPhoto2', x: 40.5, y: 43.8, w: 28.4, h: 19, radius: 24, z: 6, visible: true },
-  maPhoto3: { id: 'maPhoto3', x: 70, y: 43.8, w: 27.5, h: 19, radius: 24, z: 6, visible: true },
-  // Filas de características (tanda 1 abajo full-width; tanda 2 arriba si se divide)
-  maFeats: { id: 'maFeats', x: 4.5, y: 81.5, w: 91, h: 7, z: 5, visible: true },
-  maFeats2: { id: 'maFeats2', x: 4.5, y: 73, w: 91, h: 6, z: 5, visible: true },
-  // CTA WhatsApp (tarjeta blanca con borde)
-  maCta: { id: 'maCta', x: 4, y: 89.2, w: 47, h: 8, z: 5, visible: true },
-  // Apto crédito
-  maBenefit: { id: 'maBenefit', x: 54, y: 90.2, w: 20, h: 6, z: 5, visible: true },
-  // Marca Z + ZAMBONI PROPIEDADES
-  maBrand: { id: 'maBrand', x: 79, y: 87.2, w: 17, h: 10, z: 5, visible: true },
-  // Footer blanco
-  maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: true },
+  // Foto hero (mitad superior, a sangre)
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 45.5, z: 0, visible: true },
+  // Badge EN VENTA arriba a la derecha, sobre la foto
+  maStatus: { id: 'maStatus', x: 70, y: 14, w: 25, h: 4, z: 10, visible: true },
+  // Foto secundaria solapada (baño): pisa la esquina inferior derecha del hero y baja a la franja blanca
+  maPhoto2: { id: 'maPhoto2', x: 52, y: 30, w: 46, h: 31, radius: 24, z: 6, visible: true },
+  // Título: "CASA EN" (rojo chico) + barrio negro grande + barra roja
+  maHead: { id: 'maHead', x: 3.5, y: 46, w: 46, h: 16, font: 'Outfit', size: 96, color: '#111827', weight: 800, lineHeight: 1.0, z: 5, visible: true },
+  // Descripción: oculta por defecto (este layout no la usa; se activa desde Capas si se quiere)
+  maSub: { id: 'maSub', x: 3.5, y: 62, w: 46, h: 5, font: 'Inter', size: 27, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
+  // Precio en bloque rojo (columna izquierda)
+  maPrice: { id: 'maPrice', x: 3.5, y: 64, w: 48, h: 7.5, font: 'Outfit', size: 92, color: '#ffffff', weight: 800, z: 5, visible: true },
+  // Specs con íconos a la derecha, en la fila del precio (tanda 1; tanda 2 arriba si se divide)
+  maFeats: { id: 'maFeats', x: 55, y: 63.5, w: 43, h: 8, z: 5, visible: true },
+  maFeats2: { id: 'maFeats2', x: 55, y: 55.5, w: 43, h: 6, z: 5, visible: true },
+  // CTA WhatsApp (tarjeta blanca con borde) abajo a la izquierda
+  maCta: { id: 'maCta', x: 3.5, y: 74.5, w: 44, h: 7.5, z: 5, visible: true },
+  // Apto crédito (solo si la propiedad lo es)
+  maBenefit: { id: 'maBenefit', x: 55, y: 73, w: 24, h: 5, z: 5, visible: true },
+  // Marca Z + ZAMBONI abajo a la derecha
+  maBrand: { id: 'maBrand', x: 79.5, y: 71, w: 18, h: 10, z: 5, visible: true },
+  // Foto inferior a sangre (cocina) hasta el borde
+  maPhoto3: { id: 'maPhoto3', x: 0, y: 82.5, w: 100, h: 17.5, radius: 0, z: 1, visible: true },
+  // Footer: oculto (este layout llega a sangre con la foto inferior)
+  maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: false },
 };
 
 export const META2_BLOCK_IDS = Object.keys(META2_BASE);
@@ -107,6 +109,22 @@ export const META4_BLOCK_IDS = Object.keys(META4_BASE);
 
 export function isMetaTemplate(id: string): boolean {
   return id === 't19' || id === 't20' || id === 't21' || id === 't22';
+}
+
+// Versión del schema de layout de los templates meta. Subir este número cuando se
+// rediseñan las posiciones por defecto (META*_BASE): los borradores guardados con una
+// versión vieja descartan sus overrides de layout al cargar, así toman el diseño nuevo
+// (se conservan datos, fotos, tema). Ver loadLastState en App.tsx.
+export const META_LAYOUT_VERSION = 2;
+
+// Formato FIJO de cada template meta: sus capas están diseñadas en % para una
+// relación de aspecto concreta, así que cambiar de formato rompe el layout.
+// Meta Ad (t19) = Post 4:5; Aviso Pro/Premium (t20/t21) y Story Ads (t22) = Story 9:16.
+// `null` = el template no impone formato (el usuario elige libremente).
+export function metaFixedFormat(id: string): 'post' | 'story' | null {
+  if (id === 't19') return 'post';
+  if (id === 't20' || id === 't21' || id === 't22') return 'story';
+  return null;
 }
 export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
   if (templateId === 't20') return META2_BASE;

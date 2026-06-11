@@ -13,6 +13,9 @@ const L = (cfg: Partial<LayerConfig> & { id: LayerId }): LayerConfig =>
 
 export const ALL_TEMPLATES_DATA: TemplateDef[] = [
   // ============== t16: ZAMBONI EDITORIAL (foto top + panel crema premium) ==============
+  // Rediseño 2026-06-11 según reference "Alvear y Colón": kicker dorado uppercase,
+  // título serif gigante, logo Z con subrayado dorado + rombo, specs con separadores,
+  // pin rojo en la ubicación.
   {
     id: 't16',
     name: 'Zamboni Pro',
@@ -21,26 +24,28 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#2b1a14',
     // Fundido al borde inferior de la foto (easing en varios pasos para que no sea lineal)
     overlay:
-      'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 49%, rgba(244,235,221,0.15) 52.5%, rgba(244,235,221,0.4) 55.5%, rgba(244,235,221,0.68) 58%, rgba(244,235,221,0.9) 60%, #f4ebdd 61%, #f4ebdd 100%)',
+      'linear-gradient(180deg, rgba(244,235,221,0) 0%, rgba(244,235,221,0) 44%, rgba(244,235,221,0.15) 47.5%, rgba(244,235,221,0.4) 50.5%, rgba(244,235,221,0.68) 53%, rgba(244,235,221,0.9) 55%, #f4ebdd 56%, #f4ebdd 100%)',
     defaultLayers: {
-      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 61, z: 0 }),
-      // Sticker "EN VENTA" arriba a la derecha, separado del borde (no choca con los 3 puntitos de IG)
-      op: L({ id: 'op', x: 75.5, y: 6.3, w: 22, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
-      // Etiqueta "— en venta"
-      lbl: L({ id: 'lbl', x: 7.4, y: 60.4, w: 50, font: 'Cormorant Garamond', size: 32, color: '#a78b61', italic: true, letterSpacing: 1 }),
-      // Logo a la derecha del panel
-      logo: L({ id: 'logo', x: 76.5, y: 60.5, w: 17, h: 0 }),
-      // Título grande (ej: "Departamento en Playa Grande")
-      addr: L({ id: 'addr', x: 7.4, y: 63.5, w: 62, font: 'Playfair Display', size: 84, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
-      // Divisor con rombo
-      line: L({ id: 'line', x: 7.4, y: 74.5, w: 57, h: 0.1, bg: 'rgba(199,168,107,0.55)', z: 4 }),
-      dot: L({ id: 'dot', x: 35.5, y: 73.9, w: 2, h: 1.13, bg: '#c7a86b', rotation: 45, z: 6 }),
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 56, z: 0 }),
+      // Sticker "EN VENTA" arriba a la derecha (sin borde, como el reference)
+      op: L({ id: 'op', x: 73.5, y: 6.3, w: 23, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 28, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 22, z: 30 }),
+      // Kicker dorado: "DEPTO EN VENTA"
+      lbl: L({ id: 'lbl', x: 7.4, y: 59.8, w: 60, font: 'Inter', size: 30, color: '#9c7a35', weight: 700, letterSpacing: 7, uppercase: true }),
+      // Título serif gigante (ej: "Alvear y Colón")
+      addr: L({ id: 'addr', x: 7.4, y: 62.8, w: 67, font: 'Playfair Display', size: 104, color: '#241710', weight: 700, lineHeight: 1.02 }),
+      // Logo Z a la derecha del título, con subrayado dorado + rombo debajo
+      logo: L({ id: 'logo', x: 79.5, y: 60.8, w: 13.5, h: 0 }),
+      line2: L({ id: 'line2', x: 78.5, y: 69.6, w: 15, h: 0.08, bg: 'rgba(199,168,107,0.8)', z: 4 }),
+      dot2: L({ id: 'dot2', x: 85.4, y: 69.2, w: 1.3, h: 0.73, bg: '#c7a86b', rotation: 45, z: 6 }),
+      // Divisor largo con rombo al centro
+      line: L({ id: 'line', x: 7.4, y: 72.7, w: 62, h: 0.08, bg: 'rgba(199,168,107,0.55)', z: 4 }),
+      dot: L({ id: 'dot', x: 37.4, y: 72.1, w: 2, h: 1.13, bg: '#c7a86b', rotation: 45, z: 6 }),
       // Precio en rojo
-      price: L({ id: 'price', x: 7.4, y: 77, w: 85, font: 'Playfair Display', size: 106, color: '#d9221f', weight: 700, lineHeight: 1 }),
-      // Línea de detalles
-      amen: L({ id: 'amen', x: 7.4, y: 86, w: 85, font: 'Inter', size: 36, color: '#2b1a14', letterSpacing: 0.5 }),
-      // Ubicación con pin (ej: "📍 Mar del Plata"), con divisor fino arriba
-      barrio: L({ id: 'barrio', x: 7.4, y: 90, w: 57, font: 'Inter', size: 34, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.6)', padding: 20 }),
+      price: L({ id: 'price', x: 7.4, y: 75.8, w: 85, font: 'Playfair Display', size: 110, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      // Línea de detalles con íconos dorados y separadores verticales
+      amen: L({ id: 'amen', x: 7.4, y: 85.6, w: 85, font: 'Inter', size: 38, color: '#2b1a14', letterSpacing: 0.3 }),
+      // Ubicación con pin rojo + divisor fino arriba (ej: "Loma de Colón, Mar del Plata")
+      barrio: L({ id: 'barrio', x: 7.4, y: 90.3, w: 85.2, font: 'Inter', size: 36, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.6)', padding: 24 }),
     },
   },
 

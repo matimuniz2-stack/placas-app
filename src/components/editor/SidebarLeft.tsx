@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePlacaStore } from '@/lib/store';
+import { usePlacaStore, buildImportSlides } from '@/lib/store';
 import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
 import { extractFromUrl } from '@/lib/urlExtract';
@@ -68,11 +68,6 @@ const DatosTab: React.FC = () => {
 
   const handlePaste = async () => {
     if (!pasteUrl) return;
-    // Confirm before overwriting existing data
-    const hasExisting = !!(data.addr || data.barrio || data.price);
-    if (hasExisting && !confirm('Esto va a reemplazar los datos actuales del placa y las fotos cargadas. ¿Continuar?')) {
-      return;
-    }
     setPasting(true);
     setProgress('Extrayendo datos…');
     try {
@@ -82,21 +77,35 @@ const DatosTab: React.FC = () => {
         return;
       }
 
-      const { photoUrl, photoUrls, ...rest } = extracted;
+      const { photoUrl, photoUrls, amenities, ...rest } = extracted;
       patchData(rest);
 
-      const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 6);
-      if (urls.length === 0) return;
+      // Línea de amenities para la placa 2 (Galería de ambientes)
+      const amenLine = (amenities || []).slice(0, 6).join(' · ');
 
-      const { addPhotos: addPhotosNow } = usePlacaStore.getState();
-      const downloaded: string[] = [];
-      for (let i = 0; i < urls.length; i++) {
-        setProgress(`Descargando foto ${i + 1}/${urls.length}…`);
-        const data = await fetchAsDataUrl(urls[i]);
-        if (data) downloaded.push(data);
+      // 7 fotos: portada (placa 1) + hasta 6 ambientes (placa 2)
+      const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 7);
+
+      if (urls.length) {
+        const { addPhotos: addPhotosNow, clearPhotos } = usePlacaStore.getState();
+        const downloaded: string[] = [];
+        for (let i = 0; i < urls.length; i++) {
+          setProgress(`Descargando foto ${i + 1}/${urls.length}…`);
+          const data = await fetchAsDataUrl(urls[i]);
+          if (data) downloaded.push(data);
+        }
+        if (downloaded.length) {
+          // Propiedad nueva: las fotos del listing reemplazan a las anteriores
+          // (la portada queda en el índice 0 y los ambientes en 1..6 para la placa 2).
+          clearPhotos();
+          addPhotosNow(downloaded);
+        } else alert('No se pudieron descargar las fotos del listing (CORS o tamaño).');
       }
-      if (downloaded.length) addPhotosNow(downloaded);
-      else alert('No se pudieron descargar las fotos del listing (CORS o tamaño).');
+
+      // Carrusel automático: placa 1 = Zamboni Pro (portada + datos),
+      // placa 2 = Galería con los ambientes + amenities.
+      setProgress('Armando placas…');
+      buildImportSlides(amenLine);
     } catch (e: any) {
       alert('Error: ' + (e.message || e));
     } finally {

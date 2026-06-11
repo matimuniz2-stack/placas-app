@@ -95,6 +95,8 @@ function extractImages(html: string, url: string): string[] {
   // Filter out tiny / non-content images
   const filtered = decoded.filter((u) => {
     if (/avatar|logo|icon|sprite|placeholder|spinner|loader|favicon/i.test(u)) return false;
+    // Tokko: tfw_images son el branding de la inmobiliaria (logo), no fotos de la propiedad
+    if (/tokkobroker\.com\/tfw_images\//i.test(u)) return false;
     // skip very small images (heuristic: width param < 200)
     const sizeMatch = u.match(/(\d+)px[-_x]/);
     if (sizeMatch && parseInt(sizeMatch[1]) < 200) return false;
@@ -109,6 +111,52 @@ function extractImages(html: string, url: string): string[] {
   }
 
   return Array.from(dedup.values()).slice(0, 10);
+}
+
+// Amenities/características que buscamos en el texto del listing. La clave es la
+// regex; el valor, la etiqueta linda para la placa.
+const AMENITY_PATTERNS: [RegExp, string][] = [
+  [/pileta|piscina/i, 'Pileta'],
+  [/parrilla/i, 'Parrilla'],
+  [/quincho/i, 'Quincho'],
+  [/balc[oó]n/i, 'Balcón'],
+  [/terraza/i, 'Terraza'],
+  [/jard[ií]n/i, 'Jardín'],
+  [/patio/i, 'Patio'],
+  [/gimnasio|\bgym\b/i, 'Gimnasio'],
+  [/\bsum\b|sal[oó]n de usos/i, 'SUM'],
+  [/solarium|solárium/i, 'Solarium'],
+  [/jacuzzi|hidromasaje/i, 'Hidromasaje'],
+  [/seguridad|vigilancia|porter[ií]a 24/i, 'Seguridad'],
+  [/lavadero|laundry/i, 'Lavadero'],
+  [/baulera/i, 'Baulera'],
+  [/ascensor/i, 'Ascensor'],
+  [/aire acondicionado|\ba\/?a\b/i, 'Aire acond.'],
+  [/calefacci[oó]n|radiadores|losa radiante/i, 'Calefacción'],
+  [/amoblado|amueblado/i, 'Amoblado'],
+  [/vista al mar|frente al mar/i, 'Vista al mar'],
+  [/apto profesional/i, 'Apto profesional'],
+  [/apto cr[eé]dito/i, 'Apto crédito'],
+  [/mascotas/i, 'Acepta mascotas'],
+];
+
+// Texto visible del HTML (sin scripts/estilos/tags) para buscar amenities; los
+// listings las muestran como ítems de características, no en los metadatos OG.
+function visibleText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+function extractAmenities(html: string, ogText: string): string[] {
+  const text = `${ogText} ${visibleText(html).slice(0, 60000)}`;
+  const found: string[] = [];
+  for (const [re, label] of AMENITY_PATTERNS) {
+    if (re.test(text)) found.push(label);
+  }
+  return found;
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -155,19 +203,35 @@ export default async function handler(req: Request): Promise<Response> {
     }
 
     let barrio = '';
-    const barrioMatch = ogTitle.match(/(?:en|,)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s*[-·,|]|$)/);
-    if (barrioMatch) barrio = barrioMatch[1].trim();
-
     let addr = '';
-    const addrMatch = ogTitle.match(/^([^|·]+?)(?:\s+en\s+|,)/i);
-    if (addrMatch) addr = addrMatch[1].trim();
-    if (!addr && ogTitle) addr = ogTitle.split('-')[0].split('|')[0].trim();
+    let tipoPropiedad = '';
+    let op: 'Venta' | 'Alquiler' = /alquiler|rent/i.test(text) ? 'Alquiler' : 'Venta';
 
-    const op: 'Venta' | 'Alquiler' = /alquiler|rent/i.test(text) ? 'Alquiler' : 'Venta';
+    // Patrón Tokko / sitios de inmobiliarias: "Tipo en Operación en Barrio - Dirección"
+    // (ej: "Departamento en Alquiler-Venta en Guemes - Las Heras al 2900").
+    const structured = ogTitle.match(
+      /^([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)\s+en\s+(Alquiler[-\s]?Venta|Venta[-\s]?Alquiler|Venta|Alquiler)\s+en\s+(.+?)\s+-\s+(.+)$/i
+    );
+    if (structured) {
+      tipoPropiedad = structured[1].trim();
+      op = /venta/i.test(structured[2]) ? 'Venta' : 'Alquiler';
+      barrio = structured[3].trim();
+      addr = structured[4].trim();
+    } else {
+      const barrioMatch = ogTitle.match(/(?:en|,)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s*[-·,|]|$)/);
+      if (barrioMatch) barrio = barrioMatch[1].trim();
+      const addrMatch = ogTitle.match(/^([^|·]+?)(?:\s+en\s+|,)/i);
+      if (addrMatch) addr = addrMatch[1].trim();
+      if (!addr && ogTitle) addr = ogTitle.split('-')[0].split('|')[0].trim();
+    }
+
+    const amenities = extractAmenities(html, text);
+    const cocheraMatch = text.match(/(\d+)?\s*cocheras?/i) || (/cochera|garaje|garage/i.test(visibleText(html)) ? ([null, ''] as any) : null);
 
     const out = {
       addr,
       barrio,
+      ...(tipoPropiedad ? { tipoPropiedad } : {}),
       amb: ambMatch ? ambMatch[1] : '',
       m2: m2Match ? m2Match[1] || m2Match[2] || m2Match[3] || '' : '',
       baths: bathsMatch ? bathsMatch[1] : '',
@@ -175,6 +239,9 @@ export default async function handler(req: Request): Promise<Response> {
       currency,
       op,
       desc: firstSentence(ogDesc),
+      cochera: cocheraMatch ? ('Sí' as const) : ('No' as const),
+      cocheras: cocheraMatch && cocheraMatch[1] ? cocheraMatch[1] : '',
+      amenities,
       photoUrl: photos[0] || '',
       photoUrls: photos,
       listingUrl: url,

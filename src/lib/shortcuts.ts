@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { usePlacaStore, useTemporalStore } from './store';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
-import { isMetaTemplate } from './metaAd';
 
 export function useGlobalShortcuts() {
   useEffect(() => {
@@ -28,8 +27,8 @@ export function useGlobalShortcuts() {
       const s = usePlacaStore.getState();
       const sel = s.selectedLayer;
 
-      // Copiar / pegar / duplicar capas (Meta Ad / Aviso Pro). Cmd/Ctrl + C / V / D.
-      if (meta && isMetaTemplate(s.templateId)) {
+      // Copiar / pegar / duplicar capas (todos los templates). Cmd/Ctrl + C / V / D.
+      if (meta) {
         const k = e.key.toLowerCase();
         if (k === 'd') { if (sel) { e.preventDefault(); s.duplicateLayer(sel); } return; }
         if (k === 'c') { if (sel) { e.preventDefault(); s.copyLayer(sel); } return; }

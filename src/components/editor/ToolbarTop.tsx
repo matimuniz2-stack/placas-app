@@ -16,7 +16,8 @@ import {
   Keyboard,
   Github,
 } from 'lucide-react';
-import { usePlacaStore, useTemporalStore } from '@/lib/store';
+import { usePlacaStore, useTemporalStore, currentSlidesSnapshot } from '@/lib/store';
+import { metaFixedFormat } from '@/lib/metaAd';
 import { downloadDataUrl, captureToDataUrl, buildFilename, exportCarouselZip, downloadBlob } from '@/lib/export';
 import { getShareUrl } from '@/lib/share';
 import { CaptionModal } from '@/components/modals/CaptionModal';
@@ -74,7 +75,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
 
   const sizeNow = FORMAT_SIZES[format];
 
-  const doExport = async (kind: 'png' | 'jpg' | 'both' | 'carousel', resolution: 1 | 2 | 3 = 1) => {
+  const doExport = async (kind: 'png' | 'jpg' | 'both' | 'carousel' | 'slides', resolution: 1 | 2 | 3 = 1) => {
     if (!placaRef.current) return;
     setExporting(true);
     try {
@@ -112,6 +113,27 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         });
         usePlacaStore.setState({ activePhotoIdx: origIdx });
         downloadBlob(blob, `zamboni_carrusel_${templateId}_${format}.zip`);
+      } else if (kind === 'slides') {
+        // Exporta TODAS las placas del carrusel (Placa 1, Placa 2, …), cada una con su template.
+        const { slides, activeSlide: origActive } = currentSlidesSnapshot();
+        if (slides.length < 2) {
+          alert('Agregá una segunda placa con el botón + arriba del canvas.');
+          return;
+        }
+        const blob = await exportCarouselZip({
+          count: slides.length,
+          zipName: `zamboni_${(data.barrio || 'placas').toLowerCase().replace(/\s+/g, '_')}_carrusel`,
+          onProgress: () => {},
+          generateSlide: async (i) => {
+            usePlacaStore.getState().setActiveSlide(i);
+            await new Promise((r) => setTimeout(r, 300));
+            const f = usePlacaStore.getState().format;
+            const size = FORMAT_SIZES[f];
+            return await captureToDataUrl(placaRef.current!, size.w, size.h, 'png', resolution);
+          },
+        });
+        usePlacaStore.getState().setActiveSlide(origActive);
+        downloadBlob(blob, `zamboni_placas_carrusel.zip`);
       }
     } catch (e: any) {
       alert('Error exportando: ' + (e.message || e));
@@ -156,23 +178,34 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
 
         <div className="w-px h-6 bg-neutral-200 mx-2" />
 
-        {/* Format toggle */}
-        <div className="bg-neutral-100 rounded p-0.5 flex gap-0.5">
-          <button
-            onClick={() => { if (templateId !== 't19') setFormat('story'); }}
-            disabled={templateId === 't19'}
-            title={templateId === 't19' ? 'El Meta Ad es 4:5 (Post)' : undefined}
-            className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'story' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${templateId === 't19' ? 'opacity-40 cursor-not-allowed' : ''}`}
-          >
-            <Smartphone className="w-3 h-3" /> Story
-          </button>
-          <button
-            onClick={() => setFormat('post')}
-            className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'post' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`}
-          >
-            <Square className="w-3 h-3" /> Post
-          </button>
-        </div>
+        {/* Format toggle. Los templates meta fijan su formato (su layout solo
+            funciona en su relación de aspecto): el botón del otro formato se bloquea. */}
+        {(() => {
+          const locked = metaFixedFormat(templateId); // 'story' | 'post' | null
+          const lockTitle = locked
+            ? `Este template es ${locked === 'post' ? '4:5 (Post)' : '9:16 (Story)'}`
+            : undefined;
+          return (
+            <div className="bg-neutral-100 rounded p-0.5 flex gap-0.5">
+              <button
+                onClick={() => { if (locked !== 'post') setFormat('story'); }}
+                disabled={locked === 'post'}
+                title={locked === 'post' ? lockTitle : undefined}
+                className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'story' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${locked === 'post' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                <Smartphone className="w-3 h-3" /> Story
+              </button>
+              <button
+                onClick={() => { if (locked !== 'story') setFormat('post'); }}
+                disabled={locked === 'story'}
+                title={locked === 'story' ? lockTitle : undefined}
+                className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'post' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${locked === 'story' ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                <Square className="w-3 h-3" /> Post
+              </button>
+            </div>
+          );
+        })()}
 
         <div className="w-px h-6 bg-neutral-200 mx-2" />
 
@@ -280,7 +313,7 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
   );
 };
 
-const ExportMenu: React.FC<{ onExport: (k: 'png' | 'jpg' | 'both' | 'carousel', r?: 1 | 2 | 3) => void; disabled: boolean }> = ({ onExport, disabled }) => {
+const ExportMenu: React.FC<{ onExport: (k: 'png' | 'jpg' | 'both' | 'carousel' | 'slides', r?: 1 | 2 | 3) => void; disabled: boolean }> = ({ onExport, disabled }) => {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   React.useEffect(() => {
@@ -305,7 +338,8 @@ const ExportMenu: React.FC<{ onExport: (k: 'png' | 'jpg' | 'both' | 'carousel', 
           <MenuItem label="JPG" sub="más liviano" onClick={() => { onExport('jpg', 2); close(); }} />
           <div className="divider my-1" />
           <MenuItem label="Story + Post" sub="dos archivos" onClick={() => { onExport('both', 1); close(); }} />
-          <MenuItem label="Carrusel ZIP" sub="todas las fotos" onClick={() => { onExport('carousel', 1); close(); }} />
+          <MenuItem label="Carrusel placas ZIP" sub="placa 1 + placa 2…" onClick={() => { onExport('slides', 1); close(); }} />
+          <MenuItem label="Carrusel fotos ZIP" sub="misma placa, todas las fotos" onClick={() => { onExport('carousel', 1); close(); }} />
         </div>
       )}
     </div>

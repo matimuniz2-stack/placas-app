@@ -9,10 +9,11 @@ import type {
   LayerConfig,
   LayerId,
   CustomEl,
+  SlideSnapshot,
 } from '@/types';
 import { ALL_TEMPLATES } from '@/components/templates/registry';
 import { galleryCellBase } from './galleryLayout';
-import { customElBase, CUSTOM_SLOTS, isMetaTemplate, metaBaseFor, META_BASE, META2_BASE } from './metaAd';
+import { customElBase, CUSTOM_SLOTS, isMetaTemplate, metaBaseFor, metaFixedFormat, META_BASE, META2_BASE } from './metaAd';
 import { amenString } from './format';
 
 // Snapshot de una capa para copiar/pegar/duplicar en el Meta Ad: geometría + estilo
@@ -32,6 +33,12 @@ interface PlacaState {
   textOverrides: Partial<Record<LayerId, string>>; // texto editado in-canvas (doble click)
   selectedLayer: LayerId | null;
   editingLayer: LayerId | null; // capa en edición de texto in-canvas
+  bgOverride: string | null; // color de fondo elegido por el usuario (pisa el del template)
+
+  // slides (carrusel): la slide activa vive en los campos de arriba; `slides` guarda
+  // los snapshots (el de la activa puede estar desactualizado hasta el próximo switch).
+  slides: SlideSnapshot[];
+  activeSlide: number;
 
   // photos
   photos: PhotoState[];
@@ -80,6 +87,13 @@ interface PlacaState {
 
   patchTheme: (p: Partial<ThemeState>) => void;
   setAgent: (a: AgentProfile | null) => void;
+  setBgOverride: (c: string | null) => void;
+
+  // slides
+  setActiveSlide: (i: number) => void;
+  addSlide: (templateId?: string) => void;
+  removeSlide: (i: number) => void;
+  setSlides: (slides: SlideSnapshot[], active: number) => void;
 
   applyPreset: (p: {
     format: Format;
@@ -205,6 +219,63 @@ function placeSnapshot(s: PlacaState, snap: LayerSnapshot): Partial<PlacaState> 
   };
 }
 
+// ── Slides (carrusel de placas) ─────────────────────────────────────────────
+// Snapshot del diseño de la slide activa (lo que cambia por placa).
+function snapshotSlide(s: PlacaState): SlideSnapshot {
+  return {
+    templateId: s.templateId,
+    variantId: s.variantId,
+    format: s.format,
+    layerOverrides: s.layerOverrides,
+    textOverrides: s.textOverrides,
+    galleryCells: s.galleryCells,
+    customElements: s.customElements,
+    activePhotoIdx: s.activePhotoIdx,
+    bgOverride: s.bgOverride,
+    badges: s.badges,
+  };
+}
+
+// Campos del estado live que carga un snapshot al activarse.
+function loadSlide(sl: SlideSnapshot): Partial<PlacaState> {
+  return {
+    templateId: sl.templateId,
+    variantId: sl.variantId,
+    format: metaFixedFormat(sl.templateId) ?? sl.format,
+    layerOverrides: sl.layerOverrides || {},
+    textOverrides: sl.textOverrides || {},
+    galleryCells: sl.galleryCells || {},
+    customElements: sl.customElements || {},
+    activePhotoIdx: sl.activePhotoIdx ?? 0,
+    bgOverride: sl.bgOverride ?? null,
+    badges: sl.badges || [],
+    selectedLayer: null,
+    editingLayer: null,
+  };
+}
+
+// Slide nueva "en blanco" para un template dado.
+export function blankSlide(templateId: string, format: Format): SlideSnapshot {
+  return {
+    templateId,
+    variantId: 'default',
+    format: metaFixedFormat(templateId) ?? format,
+    layerOverrides: {},
+    textOverrides: {},
+    galleryCells: {},
+    customElements: {},
+    activePhotoIdx: 0,
+    bgOverride: null,
+    badges: [],
+  };
+}
+
+// Cambiar de slide invalida el historial de undo (sería confuso deshacer "a través"
+// de otra placa).
+function clearUndoHistory() {
+  try { (usePlacaStore as any).temporal.getState().clear(); } catch {}
+}
+
 export const usePlacaStore = create<PlacaState>()(
   temporal(
     (set, get) => ({
@@ -216,6 +287,10 @@ export const usePlacaStore = create<PlacaState>()(
       textOverrides: {},
       selectedLayer: null,
       editingLayer: null,
+      bgOverride: null,
+
+      slides: [blankSlide('t16', 'story')],
+      activeSlide: 0,
 
       photos: [],
       activePhotoIdx: 0,
@@ -236,8 +311,10 @@ export const usePlacaStore = create<PlacaState>()(
       sidebarLeftOpen: true,
       sidebarRightOpen: true,
 
-      setFormat: (f) => set({ format: f }),
-      setTemplate: (id) => set((s) => ({ templateId: id, format: id === 't22' ? 'story' : isMetaTemplate(id) ? 'post' : s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
+      // El formato de los templates meta está fijado (su layout solo funciona en su
+      // relación de aspecto): se ignora el cambio manual si el template lo impone.
+      setFormat: (f) => set((s) => ({ format: metaFixedFormat(s.templateId) ?? f })),
+      setTemplate: (id) => set((s) => ({ templateId: id, format: metaFixedFormat(id) ?? s.format, layerOverrides: {}, textOverrides: {}, galleryCells: {}, selectedLayer: null, editingLayer: null })),
       setVariant: (id) => set({ variantId: id }),
       patchData: (p) => set((s) => ({ data: { ...s.data, ...p } })),
       setData: (d) => set({ data: d }),
@@ -311,6 +388,44 @@ export const usePlacaStore = create<PlacaState>()(
 
       patchTheme: (p) => set((s) => ({ theme: { ...s.theme, ...p } })),
       setAgent: (a) => set({ agent: a }),
+      setBgOverride: (c) => set({ bgOverride: c }),
+
+      setActiveSlide: (i) =>
+        set((s) => {
+          if (i === s.activeSlide || i < 0 || i >= s.slides.length) return {} as any;
+          const slides = [...s.slides];
+          slides[s.activeSlide] = snapshotSlide(s);
+          clearUndoHistory();
+          return { slides, activeSlide: i, ...loadSlide(slides[i]) };
+        }),
+      addSlide: (templateId) =>
+        set((s) => {
+          const slides = [...s.slides];
+          slides[s.activeSlide] = snapshotSlide(s);
+          // Por defecto la nueva placa alterna: si la actual es Zamboni Pro, sigue Galería.
+          const tid = templateId || (s.templateId === 't16' ? 't17' : 't16');
+          const fresh = blankSlide(tid, s.format);
+          slides.push(fresh);
+          clearUndoHistory();
+          return { slides, activeSlide: slides.length - 1, ...loadSlide(fresh) };
+        }),
+      removeSlide: (i) =>
+        set((s) => {
+          if (s.slides.length <= 1 || i < 0 || i >= s.slides.length) return {} as any;
+          const slides = [...s.slides];
+          slides[s.activeSlide] = snapshotSlide(s);
+          slides.splice(i, 1);
+          const nextActive = Math.min(i === s.activeSlide ? i : s.activeSlide > i ? s.activeSlide - 1 : s.activeSlide, slides.length - 1);
+          clearUndoHistory();
+          return { slides, activeSlide: nextActive, ...loadSlide(slides[nextActive]) };
+        }),
+      setSlides: (slides, active) =>
+        set(() => {
+          if (!slides.length) return {} as any;
+          const i = Math.max(0, Math.min(active, slides.length - 1));
+          clearUndoHistory();
+          return { slides, activeSlide: i, ...loadSlide(slides[i]) };
+        }),
 
       // Aplica un boceto guardado: reemplaza SOLO el diseño (template, layout,
       // tema, formato). No toca data, fotos, badges ni agente de la propiedad.
@@ -360,7 +475,6 @@ export const usePlacaStore = create<PlacaState>()(
 
       duplicateLayer: (id) =>
         set((s) => {
-          if (!isMetaTemplate(s.templateId)) return {} as any; // solo Meta Ad / Aviso Pro tienen slots custom
           const snap = buildSnapshot(s, id);
           if (!snap) return {} as any;
           return placeSnapshot(s, snap) as any;
@@ -372,7 +486,7 @@ export const usePlacaStore = create<PlacaState>()(
         }),
       pasteLayer: () =>
         set((s) => {
-          if (!isMetaTemplate(s.templateId) || !s.metaClipboard) return {} as any;
+          if (!s.metaClipboard) return {} as any;
           return placeSnapshot(s, s.metaClipboard) as any;
         }),
 
@@ -392,6 +506,9 @@ export const usePlacaStore = create<PlacaState>()(
           textOverrides: {},
           selectedLayer: null,
           editingLayer: null,
+          bgOverride: null,
+          slides: [blankSlide('t16', 'story')],
+          activeSlide: 0,
           photos: [],
           activePhotoIdx: 0,
           theme: DEFAULT_THEME,
@@ -418,6 +535,8 @@ export const usePlacaStore = create<PlacaState>()(
           showGrid: _g,
           snapToGrid: _s,
           metaClipboard: _cb,
+          slides: _sl,
+          activeSlide: _as,
           ...rest
         } = state;
         return rest as any;
@@ -432,6 +551,27 @@ export function useTemporalStore<T>(selector: (state: any) => T): T {
   return useStore(usePlacaStore.temporal, selector);
 }
 useTemporalStore.getState = () => (usePlacaStore as any).temporal.getState();
+
+// Slides con el estado live fusionado en la activa (para guardar/exportar).
+export function currentSlidesSnapshot(): { slides: SlideSnapshot[]; activeSlide: number } {
+  const s = usePlacaStore.getState();
+  const slides = [...s.slides];
+  slides[s.activeSlide] = snapshotSlide(s);
+  return { slides, activeSlide: s.activeSlide };
+}
+
+// Arma el carrusel automático después de importar un listing: placa 1 = Zamboni Pro
+// (foto de portada + datos) y placa 2 = Galería con los ambientes; si el listing
+// traía amenities, van como línea de detalles de la placa 2.
+export function buildImportSlides(amenLine?: string) {
+  const s = usePlacaStore.getState();
+  const slide1 = blankSlide('t16', 'story');
+  const slide2 = blankSlide('t17', 'story');
+  if (amenLine && amenLine.trim()) {
+    slide2.textOverrides = { amen: amenLine.trim(), lbl: 'Ambientes y amenities' };
+  }
+  s.setSlides([slide1, slide2], 0);
+}
 
 export function getCurrentTemplate() {
   const id = usePlacaStore.getState().templateId;

@@ -19,6 +19,8 @@ export type LayerId =
   | 'num'
   | 'line'
   | 'dot'
+  | 'line2'
+  | 'dot2'
   | 'g0'
   | 'g1'
   | 'g2'
@@ -118,6 +120,24 @@ export interface CustomEl {
   font?: string;
   align?: Align;
   photoIdx?: number;
+}
+
+/**
+ * Snapshot del diseño de UNA placa dentro del carrusel (placa 1, placa 2, …).
+ * Los datos de la propiedad y las fotos son compartidos entre todas las slides;
+ * acá vive solo lo que cambia por placa: template, layout y contenido editado.
+ */
+export interface SlideSnapshot {
+  templateId: string;
+  variantId: string;
+  format: Format;
+  layerOverrides: Partial<Record<LayerId, Partial<LayerConfig>>>;
+  textOverrides: Partial<Record<LayerId, string>>;
+  galleryCells: Record<string, number>;
+  customElements: Record<string, CustomEl>;
+  activePhotoIdx: number;
+  bgOverride: string | null;
+  badges: string[];
 }
 
 export interface PhotoState {

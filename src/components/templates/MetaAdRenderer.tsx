@@ -121,6 +121,33 @@ const MetaText: React.FC<{
 
   if (!interactive || !editing) return <>{children}</>;
 
+  // Estilo del modo edición: tamaño cómodo (los títulos gigantes se editan a una
+  // fuente legible, no a 90px), fondo claro y caja que envuelve y crece sola, así el
+  // texto nunca se desborda ni se superpone mientras se escribe.
+  const baseFs = typeof style.fontSize === 'number' ? style.fontSize : 28;
+  const editFs = Math.max(18, Math.min(baseFs, 38));
+  const editStyle: React.CSSProperties = {
+    ...style,
+    fontSize: editFs,
+    lineHeight: 1.25,
+    color: '#111827',
+    background: 'rgba(255,255,255,0.97)',
+    borderRadius: 8,
+    padding: '6px 10px',
+    height: 'auto',
+    minWidth: 120,
+    maxWidth: '100%',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+    outline: '2px solid #de1f1a',
+    outlineOffset: 2,
+    cursor: 'text',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+    overflow: 'visible',
+    zIndex: 999,
+  };
+
   const commit = () => {
     const t = ref.current?.innerText ?? '';
     if (commitText) commitText(t);
@@ -135,6 +162,12 @@ const MetaText: React.FC<{
       suppressContentEditableWarning
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
+      onPaste={(e) => {
+        // Pegar SIEMPRE como texto plano (sin colores/fuentes de la página de origen).
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+      }}
       onBlur={commit}
       onKeyDown={(e) => {
         e.stopPropagation();
@@ -146,7 +179,7 @@ const MetaText: React.FC<{
           setEditingLayer(null);
         }
       }}
-      style={{ ...style, outline: '2px solid #de1f1a', outlineOffset: 2, cursor: 'text', whiteSpace: 'pre-wrap' }}
+      style={editStyle}
     >
       {editText}
     </div>
@@ -196,7 +229,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       headLines = headOverride.split('\n');
       headEdit = headOverride;
     } else {
-      const l0 = `${(data.tipoPropiedad || 'Propiedad').trim()} en`.toUpperCase();
+      const l0 = `${(data.tipoPropiedad || 'Propiedad').trim()} en ${(data.op || 'Venta').trim()}`.toUpperCase();
       const barrioWords = (data.barrio || '').toUpperCase().split(/\s+/).filter(Boolean);
       headLines = [l0, ...barrioWords];
       headEdit = headLines.join('\n');
@@ -297,7 +330,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#fff', fontFamily: BODY, overflow: 'hidden' }}>
+    // El fondo lo pinta el PlacaRenderer (template o color elegido por el usuario).
+    <div style={{ position: 'absolute', inset: 0, fontFamily: BODY, overflow: 'hidden' }}>
       {/* Foto principal */}
       {block('maPhoto1', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto1')!]} boost style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
@@ -371,12 +405,12 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           const s: React.CSSProperties = { fontFamily: `'${L.font || 'Inter'}', sans-serif`, fontWeight: L.weight ?? 500, fontSize: L.size ?? 28, color: L.color ?? GRAY, lineHeight: L.lineHeight ?? 1.3 };
           return (
             <MetaText id="maSub" interactive={interactive} editText={subtitle} style={s}>
-              <div style={{ ...s, display: '-webkit-box', WebkitLineClamp: aviso ? 3 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <div style={{ ...s, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                 {subtitle}
               </div>
             </MetaText>
           );
-        })}
+        }, { extraStyle: { height: 'auto', overflow: 'visible' } })}
 
       {/* Precio. t19: texto rojo con barra. t20: bloque rojo sólido con texto blanco. */}
       {hasPrice &&

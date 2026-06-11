@@ -9,9 +9,10 @@ interface Props {
   className?: string;
   interactive?: boolean;
   editable?: boolean; // permite editar el texto con doble click
+  commitText?: (t: string) => void; // dónde guardar el texto editado (default: textOverrides)
 }
 
-export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, interactive = true, editable }) => {
+export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, interactive = true, editable, commitText }) => {
   const override = usePlacaStore((s) => s.layerOverrides[id]) || {};
   const selected = usePlacaStore((s) => s.selectedLayer === id);
   const select = usePlacaStore((s) => s.selectLayer);
@@ -40,7 +41,8 @@ export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, 
 
   const commit = () => {
     const text = ref.current?.innerText ?? '';
-    setTextOverride(id, text);
+    if (commitText) commitText(text);
+    else setTextOverride(id, text);
     setEditingLayer(null);
   };
 
@@ -72,6 +74,11 @@ export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, 
     cursor: editing ? 'text' : interactive ? 'pointer' : 'default',
     pointerEvents: interactive ? 'auto' : 'none',
     whiteSpace: 'pre-wrap',
+    // El texto siempre envuelve y crece dentro de la caja; nunca se recorta ni se
+    // desborda en una línea infinita (palabras/URLs largas se parten).
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+    overflow: 'visible',
   };
 
   return (
@@ -85,6 +92,11 @@ export const TextLayer: React.FC<Props> = ({ id, defaults, children, className, 
       onClick={interactive && !editing ? (e) => { e.stopPropagation(); select(id); } : (e) => e.stopPropagation()}
       onDoubleClick={interactive && editable && !editing ? (e) => { e.stopPropagation(); select(id); setEditingLayer(id); } : undefined}
       onMouseDown={editing ? (e) => e.stopPropagation() : undefined}
+      onPaste={editing ? (e) => {
+        // Pegar SIEMPRE como texto plano (sin formato de la página de origen).
+        e.preventDefault();
+        document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+      } : undefined}
       onBlur={editing ? commit : undefined}
       onKeyDown={
         editing
