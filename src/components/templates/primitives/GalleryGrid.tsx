@@ -20,8 +20,6 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
   // el resto (t17) usa el motor adaptativo.
   const ownCells = Object.keys(getTemplate(templateId).defaultLayers).filter((k) => /^g\d$/.test(k)).length;
   const count = ownCells > 0 ? ownCells : galleryCount(photos.length);
-  const rest = Math.max(0, photos.length - 1);
-  const extra = rest - count; // fotos que no entran (badge "+N")
 
   return (
     <>
@@ -33,7 +31,6 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
         const photoIdx = galleryCells[id] ?? i + 1; // +1: saltear la portada
         const p = photos[photoIdx];
         const isSel = interactive && selected === id;
-        const isLast = i === count - 1;
 
         const bgStyle: React.CSSProperties = p
           ? {
@@ -84,25 +81,6 @@ export const GalleryGrid: React.FC<{ interactive?: boolean }> = ({ interactive =
                 }}
               >
                 FOTO {i + 1}
-              </div>
-            )}
-            {isLast && extra > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 16,
-                  bottom: 16,
-                  background: 'rgba(43,26,20,0.78)',
-                  color: '#f4ebdd',
-                  fontFamily: 'Inter',
-                  fontWeight: 600,
-                  fontSize: 26,
-                  letterSpacing: 0.5,
-                  padding: '8px 18px',
-                  borderRadius: 999,
-                }}
-              >
-                +{extra}
               </div>
             )}
           </div>
