@@ -577,11 +577,52 @@ export function currentSlidesSnapshot(): { slides: SlideSnapshot[]; activeSlide:
 // defecto en el formato actual; se activa con el ojo en Layers).
 export function buildImportSlides(amenLine?: string) {
   const s = usePlacaStore.getState();
-  const slide1 = blankSlide('t16', 'story');
+  // Placa 1 = Editorial minimal (t24, el diseño #30); Placa 2 = Galería de ambientes.
+  const slide1 = blankSlide('t24', 'story');
   const slide2 = blankSlide('t17', 'story');
   if (amenLine && amenLine.trim()) {
     slide2.textOverrides = { amen: amenLine.trim() };
   }
+  s.setSlides([slide1, slide2], 0);
+}
+
+// Reordena las fotos para que la elegida quede de PORTADA (índice 0) y sea la activa.
+// La usa el botón "Elegir portada con IA" (sin rearmar slides ni tocar datos).
+export function setCoverPhoto(idx: number) {
+  const s = usePlacaStore.getState();
+  if (!Number.isInteger(idx) || idx <= 0 || idx >= s.photos.length) return;
+  const rest = s.photos.filter((_, i) => i !== idx);
+  const reordered = [s.photos[idx], ...rest];
+  usePlacaStore.setState({ photos: reordered, activePhotoIdx: 0 });
+}
+
+// Aplica el armado de la IA: reordena las fotos (portada al índice 0, galería detrás
+// en el orden elegido) y arma las 2 placas (Zamboni Pro + Galería) con badges y la
+// línea de amenities ya visible. Las decisiones de qué foto/título/copy las tomó Claude.
+export function applyAiAssembly(opts: {
+  photoOrder: number[]; // índices de fotos en el nuevo orden: [portada, galería…]
+  amenLine?: string;
+  badges?: string[];
+}) {
+  const s = usePlacaStore.getState();
+  const valid = opts.photoOrder.filter((i) => Number.isInteger(i) && i >= 0 && i < s.photos.length);
+  const seen = new Set(valid);
+  const rest = s.photos.map((_, i) => i).filter((i) => !seen.has(i));
+  const finalOrder = [...valid, ...rest];
+  const reordered = finalOrder.map((i) => s.photos[i]);
+  if (reordered.length) usePlacaStore.setState({ photos: reordered, activePhotoIdx: 0 });
+
+  const slide1 = blankSlide('t16', 'story');
+  slide1.activePhotoIdx = 0;
+  slide1.badges = opts.badges || [];
+
+  const slide2 = blankSlide('t17', 'story');
+  if (opts.amenLine && opts.amenLine.trim()) {
+    slide2.textOverrides = { amen: opts.amenLine.trim() };
+    // En t17 la línea de amenities viene oculta por defecto: la hacemos visible.
+    slide2.layerOverrides = { amen: { visible: true } as any };
+  }
+
   s.setSlides([slide1, slide2], 0);
 }
 

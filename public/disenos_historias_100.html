@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zamboni · 100 diseños de placa-historia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    background:#0e0e10; color:#e8e8e8; padding:32px 24px 80px;
+  }
+  .head { max-width:1400px; margin:0 auto 28px; }
+  .head h1 { font-size:26px; font-weight:700; letter-spacing:-0.5px; }
+  .head p { color:#9a9a9a; margin-top:8px; font-size:14px; max-width:760px; line-height:1.5; }
+  .head .controls { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
+  .head button {
+    font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
+    background:#1d1d22; color:#cfcfcf; border:1px solid #2e2e36; border-radius:999px;
+    padding:7px 14px; transition:.15s;
+  }
+  .head button:hover { background:#26262e; color:#fff; }
+  .head button.active { background:#d9221f; color:#fff; border-color:#d9221f; }
+
+  .grid {
+    max-width:1400px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
+    gap:28px 24px;
+  }
+  .cell { display:flex; flex-direction:column; gap:8px; }
+  .cap { font-size:11px; color:#8a8a8a; display:flex; justify-content:space-between; gap:8px; }
+  .cap b { color:#d9221f; font-weight:700; }
+  .cap span { color:#bbb; }
+
+  /* ===== PLACA (9:16) ===== */
+  .placa {
+    position:relative; width:100%; aspect-ratio:9/16; border-radius:14px;
+    overflow:hidden; background:var(--bg); color:var(--ink);
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    --pad: 7.2%;
+  }
+  .placa .ph { position:absolute; background-size:cover; background-position:center; }
+  .placa .z {
+    position:absolute; font-weight:700; color:var(--accent); line-height:.8;
+    font-size:34px; letter-spacing:-2px;
+  }
+  .placa .op {
+    position:absolute; background:var(--accent); color:#fff; font-weight:700;
+    font-size:10px; letter-spacing:2px; text-transform:uppercase; padding:6px 11px;
+    border-radius:6px; z-index:5;
+  }
+  .placa .kick {
+    color:var(--gold); font-weight:700; font-size:10.5px; letter-spacing:2.5px;
+    text-transform:uppercase;
+  }
+  .placa .title {
+    font-weight:700; line-height:1.02; letter-spacing:-1px; color:var(--ink);
+    font-size:30px; margin:7px 0;
+  }
+  .placa .price { font-weight:700; color:var(--accent); font-size:34px; letter-spacing:-0.5px; }
+  .placa .ccy { font-size:.62em; }
+  .placa .divider { display:flex; align-items:center; gap:7px; margin:9px 0; }
+  .placa .divider span { height:1px; background:var(--gold); opacity:.55; flex:1; }
+  .placa .divider i { width:6px; height:6px; background:var(--gold); transform:rotate(45deg); flex-shrink:0; }
+  .placa .attrs { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; font-weight:500; color:var(--ink); }
+  .placa .attrs .it { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+  .placa .attrs .it svg { width:13px; height:13px; stroke:var(--gold); }
+  .placa .attrs .sep { width:1px; height:13px; background:color-mix(in srgb, var(--ink) 22%, transparent); }
+  .placa .loc { display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500; color:var(--ink); }
+  .placa .loc svg { width:13px; height:13px; fill:var(--accent); stroke:var(--bg); flex-shrink:0; }
+  .placa .body { position:absolute; }
+
+  /* ---- LAYOUT 1: Clásico (foto arriba, panel abajo con fade) ---- */
+  .lay1 .ph { top:0; left:0; right:0; height:57%; }
+  .lay1 .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, transparent 55%, var(--bg)); }
+  .lay1 .op { top:4.5%; right:var(--pad); }
+  .lay1 .body { left:var(--pad); right:var(--pad); top:59%; }
+  .lay1 .z { right:var(--pad); top:60.5%; }
+
+  /* ---- LAYOUT 2: Centrado ---- */
+  .lay2 .ph { top:0; left:0; right:0; height:55%; }
+  .lay2 .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, transparent 55%, var(--bg)); }
+  .lay2 .op { top:4.5%; left:50%; transform:translateX(-50%); }
+  .lay2 .body { left:8%; right:8%; top:58%; text-align:center; }
+  .lay2 .divider { justify-content:center; }
+  .lay2 .divider span { flex:0 0 38px; }
+  .lay2 .attrs { justify-content:center; }
+  .lay2 .loc { justify-content:center; }
+  .lay2 .z { display:none; }
+
+  /* ---- LAYOUT 3: Foto full + tarjeta flotante ---- */
+  .lay3 .ph { inset:0; }
+  .lay3 .op { top:4.5%; right:var(--pad); }
+  .lay3 .body { left:5%; right:5%; bottom:4%; background:var(--bg); border-radius:14px; padding:18px 16px; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+  .lay3 .z { right:18px; bottom:auto; top:auto; }
+  .lay3 .z { position:static; float:right; font-size:26px; margin-top:-4px; }
+
+  /* ---- LAYOUT 4: Foto full + scrim, texto sobre foto ---- */
+  .lay4 { --ink:#ffffff; }
+  .lay4 .ph { inset:0; }
+  .lay4 .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,.82) 18%, rgba(0,0,0,.15) 50%, transparent 70%); }
+  .lay4 .op { top:4.5%; right:var(--pad); }
+  .lay4 .body { left:var(--pad); right:var(--pad); bottom:5%; }
+  .lay4 .title { color:#fff; }
+  .lay4 .kick { color:#f0d9a0; }
+  .lay4 .loc, .lay4 .attrs { color:#f3f3f3; }
+  .lay4 .divider span { background:rgba(255,255,255,.4); }
+  .lay4 .z { right:var(--pad); top:5%; }
+
+  /* ---- LAYOUT 5: Split 50/50 sólido ---- */
+  .lay5 .ph { top:0; left:0; right:0; height:50%; }
+  .lay5 .op { top:4.5%; right:var(--pad); }
+  .lay5 .body { left:var(--pad); right:var(--pad); top:55%; }
+  .lay5 .title { font-size:33px; }
+  .lay5 .z { right:var(--pad); top:51.5%; }
+
+  /* ---- LAYOUT 6: Foto enmarcada ---- */
+  .lay6 .ph { top:5%; left:6%; right:6%; height:48%; border-radius:10px; }
+  .lay6 .op { top:8%; right:11%; }
+  .lay6 .body { left:var(--pad); right:var(--pad); top:58%; }
+  .lay6 .z { right:var(--pad); top:6%; }
+
+  /* ---- LAYOUT 7: Arco (foto con base redondeada) ---- */
+  .lay7 .ph { top:0; left:0; right:0; height:54%; border-bottom-left-radius:90px; border-bottom-right-radius:90px; }
+  .lay7 .op { top:4.5%; right:var(--pad); }
+  .lay7 .body { left:var(--pad); right:var(--pad); top:59%; text-align:center; }
+  .lay7 .divider { justify-content:center; }
+  .lay7 .divider span { flex:0 0 34px; }
+  .lay7 .attrs, .lay7 .loc { justify-content:center; }
+  .lay7 .z { display:none; }
+
+  /* ---- LAYOUT 8: Editorial, precio gigante ---- */
+  .lay8 .ph { top:0; left:0; right:0; height:42%; }
+  .lay8 .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(to bottom, transparent 60%, var(--bg)); }
+  .lay8 .op { top:4.5%; right:var(--pad); }
+  .lay8 .body { left:var(--pad); right:var(--pad); top:46%; }
+  .lay8 .title { font-size:26px; }
+  .lay8 .price { font-size:50px; line-height:.95; margin:4px 0 6px; }
+  .lay8 .z { right:var(--pad); top:43.5%; font-size:28px; }
+
+  /* ---- LAYOUT 9: Barra lateral ---- */
+  .lay9 { --ink:#ffffff; }
+  .lay9 .ph { inset:0; }
+  .lay9 .ph::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.32) 42%, transparent 68%); }
+  .lay9 .op { top:4.5%; right:var(--pad); }
+  .lay9 .body { left:var(--pad); right:24%; bottom:6%; }
+  .lay9 .title { color:#fff; font-size:32px; }
+  .lay9 .kick { color:#f0d9a0; }
+  .lay9 .attrs, .lay9 .loc { color:#f3f3f3; }
+  .lay9 .divider span { background:rgba(255,255,255,.4); }
+  .lay9 .z { left:var(--pad); top:5%; color:#fff; }
+
+  /* ---- LAYOUT 10: Minimal ---- */
+  .lay10 .ph { top:0; left:0; right:0; height:64%; }
+  .lay10 .op { top:4.5%; left:var(--pad); background:transparent; color:var(--accent); border:1.5px solid var(--accent); }
+  .lay10 .body { left:var(--pad); right:var(--pad); top:68%; }
+  .lay10 .kick { font-size:9.5px; letter-spacing:3px; }
+  .lay10 .title { font-size:25px; font-weight:500; }
+  .lay10 .price { font-size:26px; font-weight:600; }
+  .lay10 .divider { display:none; }
+  .lay10 .attrs { font-size:11px; margin-top:8px; opacity:.85; }
+  .lay10 .loc { margin-top:7px; font-size:11.5px; }
+  .lay10 .z { right:var(--pad); top:65.5%; font-size:26px; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Zamboni · 100 diseños de placa-historia</h1>
+    <p>Variaciones sobre tu placa (9:16 para historias de WhatsApp / Instagram). 10 layouts × 10 paletas · fuente Space Grotesk. Pasá el dato real; acá van de ejemplo los de Las Heras 3200. Decime los números que te gustan y los llevamos a la app.</p>
+    <div class="controls" id="filters"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+<script>
+const DATA = {
+  op: 'EN VENTA',
+  kicker: 'DEPTO EN VENTA',
+  title: 'Exclusivo 4 ambientes',
+  ccy: 'USD',
+  price: '390.000',
+  loc: 'Las Heras 3200, Mar del Plata',
+  attrs: [
+    { ic:'bed',  t:'4 amb' },
+    { ic:'area', t:'155 m²' },
+    { ic:'bath', t:'3 baños' },
+    { ic:'car',  t:'1 cochera' },
+  ],
+};
+
+// Fotos de frente (se cyclan). Si no cargan, queda el color de fondo.
+const PHOTOS = [
+  'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=720&q=80',
+  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=720&q=80',
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=720&q=80',
+  'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=720&q=80',
+];
+
+const ICONS = {
+  bed:  '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
+  area: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></svg>',
+  bath: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16a1 1 0 0 1 1 1v2a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-2a1 1 0 0 1 1-1zM6 12V5a2 2 0 0 1 2-2 2 2 0 0 1 2 2M5 19l-1 2M20 19l1 2"/></svg>',
+  car:  '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l1.5-4.5A2 2 0 0 1 8.4 7h7.2a2 2 0 0 1 1.9 1.5L19 13M5 13h14v4H5zM7 17v2M17 17v2M7 13.5h.01M17 13.5h.01"/></svg>',
+};
+const PIN = '<svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5" fill="#fff" stroke="none"/></svg>';
+
+const PALETTES = [
+  { n:'Crema clásico', bg:'#f4ebdd', ink:'#241710', accent:'#d9221f', gold:'#c7a86b' },
+  { n:'Noche dorada',  bg:'#1c1715', ink:'#f4ebdd', accent:'#e23b35', gold:'#c9a86b' },
+  { n:'Blanco editorial', bg:'#ffffff', ink:'#0e0e0e', accent:'#d9221f', gold:'#b08c3f' },
+  { n:'Navy premium',  bg:'#15243c', ink:'#f4f1ea', accent:'#e3b23c', gold:'#e3b23c' },
+  { n:'Terracota',     bg:'#f3e3d3', ink:'#3a2218', accent:'#c2521f', gold:'#b07a3f' },
+  { n:'Sage',          bg:'#e8ece2', ink:'#2b3526', accent:'#c0392b', gold:'#9a8c52' },
+  { n:'Carbón ámbar',  bg:'#1a1a1a', ink:'#f5f5f0', accent:'#e8a33d', gold:'#e8a33d' },
+  { n:'Borgoña',       bg:'#f5ece6', ink:'#3d1420', accent:'#7a1f3d', gold:'#b08c3f' },
+  { n:'Noir',          bg:'#0c0c0c', ink:'#ffffff', accent:'#ff3b30', gold:'#8a8a8a' },
+  { n:'Bosque crema',  bg:'#eef0e8', ink:'#1f2e1f', accent:'#2f6b4f', gold:'#b89b54' },
+];
+
+const LAYOUTS = [
+  'Clásico', 'Centrado', 'Tarjeta flotante', 'Sobre foto', 'Split sólido',
+  'Enmarcada', 'Arco', 'Precio gigante', 'Barra lateral', 'Minimal',
+];
+
+function attrsHTML() {
+  return DATA.attrs.map((a,i) =>
+    (i>0 ? '<span class="sep"></span>' : '') +
+    `<span class="it">${ICONS[a.ic]||''}${a.t}</span>`
+  ).join('');
+}
+
+function placaHTML(layIdx, pal, photo) {
+  return `
+  <div class="placa lay${layIdx+1}" style="--bg:${pal.bg};--ink:${pal.ink};--accent:${pal.accent};--gold:${pal.gold}">
+    <div class="ph" style="background-image:url('${photo}')"></div>
+    <div class="op">${DATA.op}</div>
+    <div class="z">Z</div>
+    <div class="body">
+      <div class="kick">${DATA.kicker}</div>
+      <h2 class="title">${DATA.title}</h2>
+      <div class="divider"><span></span><i></i><span></span></div>
+      <div class="price"><span class="ccy">${DATA.ccy}</span> ${DATA.price}</div>
+      <div class="attrs">${attrsHTML()}</div>
+      <div class="loc">${PIN}${DATA.loc}</div>
+    </div>
+  </div>`;
+}
+
+const grid = document.getElementById('grid');
+let n = 0;
+const cards = [];
+// 10 layouts × 10 paletas = 100
+for (let p = 0; p < PALETTES.length; p++) {
+  for (let l = 0; l < LAYOUTS.length; l++) {
+    n++;
+    const pal = PALETTES[p];
+    const photo = PHOTOS[(n-1) % PHOTOS.length];
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.lay = l;
+    cell.dataset.pal = p;
+    cell.innerHTML = placaHTML(l, pal, photo) +
+      `<div class="cap"><b>#${n}</b><span>${LAYOUTS[l]} · ${pal.n}</span></div>`;
+    grid.appendChild(cell);
+    cards.push(cell);
+  }
+}
+
+// Filtros por layout
+const filters = document.getElementById('filters');
+const allBtn = document.createElement('button');
+allBtn.textContent = 'Todos'; allBtn.className = 'active';
+filters.appendChild(allBtn);
+LAYOUTS.forEach((name, i) => {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => {
+    document.querySelectorAll('#filters button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    cards.forEach(c => c.classList.toggle('hidden', c.dataset.lay != i));
+  };
+  filters.appendChild(b);
+});
+allBtn.onclick = () => {
+  document.querySelectorAll('#filters button').forEach(x => x.classList.remove('active'));
+  allBtn.classList.add('active');
+  cards.forEach(c => c.classList.remove('hidden'));
+};
+</script>
+</body>
+</html>

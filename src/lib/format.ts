@@ -33,16 +33,55 @@ export function cocheraLabel(n: number): string {
   return n === 1 ? 'cochera' : 'cocheras';
 }
 
+// Definición ÚNICA de los datos clave que pueden ir en la línea de atributos.
+// `defaultOn`: amb/m²/baños/cochera se muestran solos si tienen valor; los extras
+// (apto crédito, expensas, antigüedad) van apagados hasta que el usuario los prenda.
+// `label(d)` devuelve el texto del chip o null si la propiedad no tiene ese dato.
+export const ATTR_DEFS: { key: string; defaultOn: boolean; label: (d: PlacaData) => string | null }[] = [
+  { key: 'amb', defaultOn: true, label: (d) => (d.amb ? `${d.amb} amb` : null) },
+  { key: 'm2', defaultOn: true, label: (d) => (d.m2 ? `${d.m2} m²` : null) },
+  { key: 'baths', defaultOn: true, label: (d) => (d.baths ? `${d.baths} ${d.baths === '1' ? 'baño' : 'baños'}` : null) },
+  { key: 'cochera', defaultOn: true, label: (d) => { const c = cocheraCount(d); return c > 0 ? `${c} ${cocheraLabel(c)}` : null; } },
+  { key: 'aptoCredito', defaultOn: false, label: (d) => (d.aptoCredito ? 'Apto crédito' : null) },
+  { key: 'expensas', defaultOn: false, label: (d) => (d.expensas ? `Expensas $${d.expensas}` : null) },
+  { key: 'antiguedad', defaultOn: false, label: (d) => {
+      if (d.antiguedad == null || d.antiguedad === '') return null;
+      const n = parseInt(d.antiguedad, 10);
+      return !isNaN(n) && n === 0 ? 'A estrenar' : `${d.antiguedad} años`;
+    } },
+];
+
+export interface AttrItem { key: string; label: string; }
+
+// Atributos que VAN en la placa (tienen valor y están habilitados).
+export function attrItems(d: PlacaData): AttrItem[] {
+  const on = d.attrsOn || {};
+  const out: AttrItem[] = [];
+  for (const def of ATTR_DEFS) {
+    const enabled = on[def.key] ?? def.defaultOn;
+    if (!enabled) continue;
+    const label = def.label(d);
+    if (label) out.push({ key: def.key, label });
+  }
+  return out;
+}
+
+// Todos los atributos que la propiedad TIENE (con valor), con su estado on/off — para
+// la UI de "Datos clave" (chips para prender/apagar cada uno).
+export function attrChips(d: PlacaData): { key: string; label: string; on: boolean }[] {
+  const on = d.attrsOn || {};
+  const out: { key: string; label: string; on: boolean }[] = [];
+  for (const def of ATTR_DEFS) {
+    const label = def.label(d);
+    if (label) out.push({ key: def.key, label, on: on[def.key] ?? def.defaultOn });
+  }
+  return out;
+}
+
 export function amenString(d: PlacaData): string {
   // Si el usuario escribió un texto manual, ese tiene prioridad sobre el auto.
   if (d.amenText && d.amenText.trim()) return d.amenText;
-  const parts: string[] = [];
-  if (d.amb) parts.push(`${d.amb} amb`);
-  if (d.m2) parts.push(`${d.m2} m²`);
-  if (d.baths) parts.push(`${d.baths} baños`);
-  const cc = cocheraCount(d);
-  if (cc > 0) parts.push(`${cc} ${cocheraLabel(cc)}`);
-  return parts.join(' · ');
+  return attrItems(d).map((a) => a.label).join(' · ');
 }
 
 export function extrasString(d: PlacaData): string {

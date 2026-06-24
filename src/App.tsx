@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { StartScreen } from './components/screens/StartScreen';
 import { ToolbarTop } from './components/editor/ToolbarTop';
 import { SidebarLeft } from './components/editor/SidebarLeft';
 import { SidebarRight } from './components/editor/SidebarRight';
@@ -12,6 +13,8 @@ import { isMetaTemplate, metaFixedFormat, META_LAYOUT_VERSION } from './lib/meta
 
 const App: React.FC = () => {
   const placaRef = useRef<HTMLDivElement>(null);
+  // Si el link es un share, entramos directo al editor; si no, mostramos la pantalla de inicio.
+  const [view, setView] = useState<'start' | 'editor'>(() => (readShareFromUrl() ? 'editor' : 'start'));
   useGlobalShortcuts();
 
   // Hydrate state from share link or last saved
@@ -96,6 +99,10 @@ const App: React.FC = () => {
     });
     return () => { unsub(); clearTimeout(saveTimer); };
   }, []);
+
+  if (view === 'start') {
+    return <StartScreen onEnter={() => setView('editor')} />;
+  }
 
   return (
     <div className="flex flex-col h-screen w-screen bg-neutral-50 overflow-hidden">

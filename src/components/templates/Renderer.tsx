@@ -11,12 +11,12 @@ import { AgentLayer } from './primitives/AgentLayer';
 import { MapLayer } from './primitives/MapLayer';
 import { GalleryGrid } from './primitives/GalleryGrid';
 import { MetaAdRenderer } from './MetaAdRenderer';
-import { amenString, extrasString, priceString, cocheraCount, cocheraLabel } from '@/lib/format';
+import { amenString, extrasString, priceString, cocheraCount, cocheraLabel, attrItems } from '@/lib/format';
 import { isMetaTemplate, CUSTOM_SLOTS } from '@/lib/metaAd';
 import { getEffectiveLayer } from '@/lib/store';
 import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 import type { LayerId, PlacaData } from '@/types';
-import { Bed, Bath, Maximize, Car, MapPin } from 'lucide-react';
+import { Bed, Bath, Maximize, Car, MapPin, Landmark, Receipt, Sparkles } from 'lucide-react';
 
 // El overlay de t16 (fundido de la foto al panel crema) tiene el color de fondo
 // horneado en el gradiente: si el usuario cambia el fondo, lo regeneramos con su color.
@@ -35,21 +35,26 @@ function fadeOverlay(bg: string): string | undefined {
 }
 
 // Templates (familia editorial crema) que muestran la línea de detalles con íconos.
-const ICON_AMEN = new Set(['t16']);
+const ICON_AMEN = new Set(['t16', 't23', 't24']);
 const AMEN_ACCENT = '#b08c3f'; // dorado/bronce editorial
 // Templates que muestran la ubicación con pin rojo dibujado (no emoji).
-const PIN_BARRIO = new Set(['t16', 't17', 't18']);
+const PIN_BARRIO = new Set(['t16', 't17', 't18', 't23', 't24']);
 
 // Línea de detalles con dibujitos (ambientes, m², baños, cochera) y separadores
 // verticales finos entre ítems (estilo aviso editorial). Los íconos escalan con el
 // font-size de la capa (1em) y van en dorado; el texto hereda el color de la capa.
+const ATTR_ICONS: Record<string, React.ElementType> = {
+  amb: Bed,
+  m2: Maximize,
+  baths: Bath,
+  cochera: Car,
+  aptoCredito: Landmark,
+  expensas: Receipt,
+  antiguedad: Sparkles,
+};
+
 function amenIcons(d: PlacaData): React.ReactNode {
-  const items: { Icon: React.ElementType; label: string }[] = [];
-  if (d.amb) items.push({ Icon: Bed, label: `${d.amb} amb` });
-  if (d.m2) items.push({ Icon: Maximize, label: `${d.m2} m²` });
-  if (d.baths) items.push({ Icon: Bath, label: `${d.baths} ${d.baths === '1' ? 'baño' : 'baños'}` });
-  const cc = cocheraCount(d);
-  if (cc > 0) items.push({ Icon: Car, label: `${cc} ${cocheraLabel(cc)}` });
+  const items = attrItems(d).map((a) => ({ Icon: ATTR_ICONS[a.key] || Maximize, label: a.label }));
   if (!items.length) return '';
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65em', width: '100%' }}>
@@ -67,9 +72,9 @@ function amenIcons(d: PlacaData): React.ReactNode {
 }
 
 // Ubicación con pin rojo dibujado: "Barrio, Ciudad" (la ciudad solo si está cargada).
-function pinBarrio(d: PlacaData, withCity: boolean): React.ReactNode {
-  if (!d.barrio && !(withCity && d.city)) return '';
-  const text = [d.barrio, withCity ? d.city : ''].filter(Boolean).join(', ');
+function pinLine(primary: string, city: string): React.ReactNode {
+  const text = [primary, city].filter(Boolean).join(', ');
+  if (!text) return '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45em' }}>
       <MapPin style={{ width: '1em', height: '1em', color: '#d9221f', flexShrink: 0 }} strokeWidth={2.2} fill="#d9221f" stroke="#f4ebdd" />
@@ -151,10 +156,20 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
   const getContent = (id: LayerId): React.ReactNode => {
     switch (id) {
       case 'addr':
+        // Si hay un título-diferencial (modo "Armar con IA"), ese es el título grande;
+        // si no, va la dirección como antes.
+        if (data.titulo && data.titulo.trim()) return data.titulo;
         if (!data.addr && !data.barrio) return '';
         return data.addr;
       case 'barrio':
-        if (PIN_BARRIO.has(tpl.id)) return pinBarrio(data, tpl.id === 't16');
+        if (PIN_BARRIO.has(tpl.id)) {
+          // Cuando el título es el diferencial, abajo (pin) va la DIRECCIÓN + ciudad;
+          // si no, va el barrio + ciudad (modo manual clásico).
+          const useAddr = !!(data.titulo && data.titulo.trim());
+          const primary = useAddr ? data.addr : data.barrio;
+          const city = tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' ? data.city || '' : '';
+          return pinLine(primary, city);
+        }
         return data.barrio ? '📍 ' + data.barrio : '';
       case 'price':
         // Sin precio: en t16 la placa invita a consultar (no queda incompleta);
@@ -227,6 +242,23 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         <Photo defaults={tpl.defaultLayers.photo as any} />
       )}
 
+      {/* Tarjeta crema flotante (t21): sobre la foto full-bleed, detrás del texto */}
+      {tpl.floatingCard && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '4%',
+            right: '4%',
+            top: '62%',
+            bottom: '3%',
+            background: bgOverride || tpl.bgColor || '#f4ebdd',
+            borderRadius: 30,
+            boxShadow: '0 14px 44px rgba(0,0,0,0.32)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* Overlay opcional (re-coloreado si el usuario cambió el fondo) */}
       {tpl.overlay && (
         <div style={{ position: 'absolute', inset: 0, background: (bgOverride && fadeOverlay(bgOverride)) || tpl.overlay, zIndex: 1, pointerEvents: 'none' }} />
@@ -240,10 +272,16 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         let defaults = applyVariant(baseDefaults, lid);
         // t16: el título se achica solo según el largo para no pisar el divisor
         // (el override manual de tamaño manda).
-        if (tpl.id === 't16' && lid === 'addr' && overrides.addr?.size == null) {
-          const txt = (noOverrides ? undefined : textOverrides.addr) ?? data.addr ?? '';
+        if ((tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24') && lid === 'addr' && overrides.addr?.size == null) {
+          const txt = (noOverrides ? undefined : textOverrides.addr) ?? (data.titulo?.trim() || data.addr) ?? '';
           const len = Math.max(0, ...txt.split('\n').map((l) => l.length));
-          defaults = { ...defaults, size: len <= 13 ? 104 : len <= 18 ? 84 : len <= 24 ? 72 : 60 };
+          if (tpl.id === 't23') {
+            defaults = { ...defaults, size: len <= 12 ? 92 : len <= 20 ? 78 : len <= 30 ? 66 : 56 };
+          } else if (tpl.id === 't24') {
+            defaults = { ...defaults, size: len <= 12 ? 92 : len <= 20 ? 78 : len <= 30 ? 66 : 56 };
+          } else {
+            defaults = { ...defaults, size: len <= 13 ? 104 : len <= 18 ? 84 : len <= 24 ? 72 : 60 };
+          }
         }
         const ov = overrides[lid];
         const visible = ov?.visible ?? defaults.visible;

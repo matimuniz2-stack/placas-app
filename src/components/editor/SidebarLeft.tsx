@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { usePlacaStore, buildImportSlides } from '@/lib/store';
-import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop } from 'lucide-react';
+import { Upload, Image, X, FileDown, Wand2, Trash2, Link2, Crop, ScanLine, Sparkles } from 'lucide-react';
 import { removeBackground } from '@/lib/bgRemove';
-import { extractFromUrl } from '@/lib/urlExtract';
+import { importFromUrl } from '@/lib/importListing';
+import { extractFromImage } from '@/lib/visionExtract';
+import { assembleWithAI } from '@/lib/aiAssemble';
+import { pickCoverWithAI } from '@/lib/pickCover';
 import { setDragPhoto } from '@/lib/dragPhoto';
-import { amenString } from '@/lib/format';
+import { amenString, attrChips } from '@/lib/format';
 import { CropModal } from '@/components/modals/CropModal';
+import type { PlacaData } from '@/types';
 
 type Tab = 'datos' | 'fotos' | 'agente';
 
@@ -46,77 +50,139 @@ const DatosTab: React.FC = () => {
   const [pasting, setPasting] = useState(false);
   const [pasteUrl, setPasteUrl] = useState('');
   const [progress, setProgress] = useState<string>('');
-
-  const fetchAsDataUrl = async (url: string, timeoutMs = 8000): Promise<string | null> => {
-    try {
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(url, { mode: 'cors', signal: controller.signal });
-      clearTimeout(t);
-      if (!res.ok) return null;
-      const b = await res.blob();
-      if (b.size > 8 * 1024 * 1024) return null; // skip > 8MB
-      return await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.onerror = () => reject(r.error);
-        r.readAsDataURL(b);
-      });
-    } catch {
-      return null;
-    }
-  };
+  const [visionBusy, setVisionBusy] = useState(false);
+  const [visionNote, setVisionNote] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState('');
+  const [aiPermuta, setAiPermuta] = useState(false);
+  const [aiNotes, setAiNotes] = useState('');
 
   const handlePaste = async () => {
     if (!pasteUrl) return;
     setPasting(true);
     setProgress('Extrayendo datos…');
     try {
-      const extracted = await extractFromUrl(pasteUrl);
-      if (!extracted) {
-        alert('No se pudo extraer datos de esa URL. Probá con Mercado Libre, Zonaprop o Argenprop.');
-        return;
+      const r = await importFromUrl(pasteUrl, setProgress);
+      if (!r.photoCount) {
+        // Datos sí, fotos no (CORS/tamaño): avisamos sin bloquear.
+        setProgress('');
       }
-
-      const { photoUrl, photoUrls, amenities, ...rest } = extracted;
-      patchData(rest);
-
-      // Línea de amenities para la placa 2 (Galería de ambientes)
-      const amenLine = (amenities || []).slice(0, 6).join(' · ');
-
-      // 7 fotos: portada (placa 1) + hasta 6 ambientes (placa 2)
-      const urls = (photoUrls && photoUrls.length ? photoUrls : photoUrl ? [photoUrl] : []).slice(0, 7);
-
-      if (urls.length) {
-        const { addPhotos: addPhotosNow, clearPhotos } = usePlacaStore.getState();
-        const downloaded: string[] = [];
-        for (let i = 0; i < urls.length; i++) {
-          setProgress(`Descargando foto ${i + 1}/${urls.length}…`);
-          const data = await fetchAsDataUrl(urls[i]);
-          if (data) downloaded.push(data);
-        }
-        if (downloaded.length) {
-          // Propiedad nueva: las fotos del listing reemplazan a las anteriores
-          // (la portada queda en el índice 0 y los ambientes en 1..6 para la placa 2).
-          clearPhotos();
-          addPhotosNow(downloaded);
-        } else alert('No se pudieron descargar las fotos del listing (CORS o tamaño).');
-      }
-
-      // Carrusel automático: placa 1 = Zamboni Pro (portada + datos),
-      // placa 2 = Galería con los ambientes + amenities.
-      setProgress('Armando placas…');
-      buildImportSlides(amenLine);
     } catch (e: any) {
-      alert('Error: ' + (e.message || e));
+      alert('Error: ' + (e?.message || e));
     } finally {
       setPasting(false);
       setProgress('');
     }
   };
 
+  // Foto/captura borrador → Claude visión lee y ordena los datos → autollena las placas.
+  // Reemplaza el viaje a ChatGPT: el "diseño lindo" lo pone el template solo.
+  const handleVisionImage = async (file: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setVisionBusy(true);
+    setVisionNote('Leyendo el borrador con IA…');
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(file);
+      });
+
+      const extracted = await extractFromImage(dataUrl);
+      if (!extracted) {
+        setVisionNote('');
+        return;
+      }
+      const { photoUrl, photoUrls, amenities, layoutNote, ...rest } = extracted as any;
+      patchData(rest);
+
+      const amenLine = (amenities || []).slice(0, 6).join(' · ');
+      setVisionNote('Armando placas…');
+      buildImportSlides(amenLine);
+      setVisionNote(layoutNote ? `✓ ${layoutNote}` : '✓ Datos cargados. Sumá la foto buena en la pestaña Fotos.');
+    } catch (e: any) {
+      if (e?.message === 'NO_API_KEY') {
+        setVisionNote('Falta tu API key de Claude. Cargala en el botón ✨ Caption (se guarda una sola vez).');
+      } else {
+        setVisionNote('Error: ' + (e?.message || e));
+      }
+    } finally {
+      setVisionBusy(false);
+    }
+  };
+
+  // "Armá los textos por mí": la IA saca el título-diferencial + confirma tipo/operación.
+  // No toca las fotos: la portada la elegís vos en la pestaña Fotos.
+  const handleAssemble = async () => {
+    setAiBusy(true);
+    setAiNote('La IA está sacando el título…');
+    try {
+      const r = await assembleWithAI({
+        permuta: aiPermuta,
+        aptoCredito: !!usePlacaStore.getState().data.aptoCredito,
+        notes: aiNotes,
+      });
+      setAiNote(r.note ? `✓ ${r.note}` : '✓ Placa armada. Revisá y ajustá lo que quieras.');
+    } catch (e: any) {
+      if (e?.message === 'NO_API_KEY') {
+        setAiNote('Falta tu API key de Claude. Cargala en el botón ✨ Caption (se guarda una sola vez).');
+      } else {
+        setAiNote('Error: ' + (e?.message || e));
+      }
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  // Permite pegar la captura directo con Ctrl+V sobre la zona.
+  const handlePasteEvent = (e: React.ClipboardEvent) => {
+    const item = Array.from(e.clipboardData?.items || []).find((i) => i.type.startsWith('image/'));
+    if (item) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        handleVisionImage(file);
+      }
+    }
+  };
+
   return (
     <div className="space-y-3">
+      {/* Killer feature: sacar el título-diferencial con IA (texto; la portada la elige el usuario) */}
+      <div className="bg-gradient-to-br from-brand/10 to-amber-100/40 border border-brand/30 rounded-md p-2.5">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-brand" />
+          <span className="text-[10px] font-bold tracking-[1.5px] uppercase text-brand">Título con IA</span>
+        </div>
+        <p className="text-[10px] text-neutral-600 leading-tight mb-2">
+          La IA saca un <b>título-gancho</b> de la propiedad (ej "Exclusivo 4 ambientes") y confirma
+          tipo y operación. La portada la elegís vos en la pestaña Fotos.
+        </p>
+        <label className="flex items-center gap-1.5 mb-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={aiPermuta}
+            onChange={(e) => setAiPermuta(e.target.checked)}
+            className="accent-brand"
+          />
+          <span className="text-[11px] text-neutral-700">Toma permuta</span>
+        </label>
+        <textarea
+          className="input w-full text-xs resize-none mb-1.5"
+          rows={2}
+          placeholder="Notas para la IA (opcional): qué destacar, detalles especiales…"
+          value={aiNotes}
+          onChange={(e) => setAiNotes(e.target.value)}
+          disabled={aiBusy}
+        />
+        <button className="btn btn-primary w-full text-xs" disabled={aiBusy} onClick={handleAssemble}>
+          {aiBusy ? 'Pensando…' : '✨ Sacar título con IA'}
+        </button>
+        {aiNote && <div className="text-[10px] text-brand mt-1.5 font-medium leading-tight">{aiNote}</div>}
+      </div>
+
       {/* Killer feature: paste URL */}
       <div className="bg-brand/5 border border-brand/20 rounded-md p-2.5">
         <div className="flex items-center gap-1.5 mb-1.5">
@@ -140,6 +206,42 @@ const DatosTab: React.FC = () => {
         )}
       </div>
 
+      {/* Foto borrador → IA lee y ordena (reemplaza el viaje a ChatGPT) */}
+      <div
+        className="bg-amber-50 border border-amber-300/60 rounded-md p-2.5"
+        onPaste={handlePasteEvent}
+        tabIndex={0}
+      >
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <ScanLine className="w-3 h-3 text-amber-700" />
+          <span className="text-[10px] font-bold tracking-[1.5px] uppercase text-amber-700">Foto borrador → IA</span>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleVisionImage(f);
+            e.target.value = '';
+          }}
+        />
+        <button
+          className="btn btn-primary w-full text-xs"
+          disabled={visionBusy}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {visionBusy ? 'Leyendo…' : 'Subir / pegar captura'}
+        </button>
+        <div className="text-[10px] text-amber-700/80 mt-1.5 leading-tight">
+          Subí (o pegá con Ctrl+V acá) la placa que armás a mano. Claude lee los datos y llena las 2 placas.
+        </div>
+        {visionNote && (
+          <div className="text-[10px] text-amber-800 mt-1.5 font-medium">{visionNote}</div>
+        )}
+      </div>
+
       <div>
         <label className="label">Operación</label>
         <div className="grid grid-cols-2 gap-1.5">
@@ -156,6 +258,7 @@ const DatosTab: React.FC = () => {
       </div>
 
       <Field label="Tipo de propiedad" v={data.tipoPropiedad || ''} on={(v) => patchData({ tipoPropiedad: v })} ph="ej: Departamento" />
+      <Field label="Título (gancho)" v={data.titulo || ''} on={(v) => patchData({ titulo: v })} ph="ej: Exclusivo 4 ambientes" />
       <Field label="Dirección" v={data.addr} on={(v) => patchData({ addr: v })} />
       <Field label="Barrio" v={data.barrio} on={(v) => patchData({ barrio: v })} />
 
@@ -180,14 +283,16 @@ const DatosTab: React.FC = () => {
         <label className="label">Línea de detalles (editable)</label>
         <input
           className="input"
-          value={data.amenText || ''}
-          placeholder={amenString(data) || 'ej: 3 amb · 85 m² · 2 baños · cochera'}
+          value={data.amenText || amenString(data)}
+          placeholder="ej: 3 amb · 85 m² · 2 baños · cochera"
           onChange={(e) => patchData({ amenText: e.target.value })}
         />
         <p className="text-[10px] text-neutral-400 mt-1 leading-snug">
-          Vacío = se arma solo con amb/m²/baños/cochera. Escribí acá para personalizarla (ej: agregar "balcón", "apto profesional").
+          Vacío = se arma solo con los datos clave de abajo. Escribí acá para personalizarla a mano.
         </p>
       </div>
+
+      <DatosClave data={data} patchData={patchData} />
 
       <div>
         <Field
@@ -260,6 +365,32 @@ const Field: React.FC<{ label: string; v: string; on: (v: string) => void; ph?: 
   </div>
 );
 
+// Chips on/off de los datos clave que van en la línea de atributos de la placa.
+// Tocar un chip lo muestra/oculta (attrsOn). Los valores se editan en los Fields de arriba.
+const DatosClave: React.FC<{ data: PlacaData; patchData: (p: Partial<PlacaData>) => void }> = ({ data, patchData }) => {
+  const chips = attrChips(data);
+  if (!chips.length) return null;
+  const toggle = (key: string, on: boolean) =>
+    patchData({ attrsOn: { ...(data.attrsOn || {}), [key]: !on } });
+  return (
+    <div>
+      <label className="label">Datos clave (en la placa)</label>
+      <div className="flex flex-wrap gap-1.5">
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => toggle(c.key, c.on)}
+            className={`text-[11px] px-2.5 py-1 rounded-full border transition ${c.on ? 'bg-brand text-white border-brand' : 'bg-white text-neutral-400 border-neutral-300 line-through'}`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] text-neutral-400 mt-1 leading-snug">Tocá para mostrar/ocultar cada dato. Prendé "Apto crédito", "Expensas" o "A estrenar" para sumarlos. Editá los valores en los campos de arriba.</p>
+    </div>
+  );
+};
+
 const FotosTab: React.FC = () => {
   const photos = usePlacaStore((s) => s.photos);
   const activeIdx = usePlacaStore((s) => s.activePhotoIdx);
@@ -270,7 +401,26 @@ const FotosTab: React.FC = () => {
   const replaceUrl = usePlacaStore((s) => s.replacePhotoUrl);
   const [bgLoading, setBgLoading] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverNote, setCoverNote] = useState('');
   const active = photos[activeIdx];
+
+  const handlePickCover = async () => {
+    setCoverBusy(true);
+    setCoverNote('Mirando las fotos…');
+    try {
+      const r = await pickCoverWithAI();
+      setCoverNote(r.reason ? `✓ Portada: ${r.reason}` : '✓ Portada elegida');
+    } catch (e: any) {
+      if (e?.message === 'NO_API_KEY') {
+        setCoverNote('Falta tu API key de Claude (botón ✨ Caption). Las fotos quedan igual.');
+      } else {
+        setCoverNote('No se pudo (quedan igual): ' + (e?.message || e));
+      }
+    } finally {
+      setCoverBusy(false);
+    }
+  };
 
   const handleFiles = (files: FileList | File[]) => {
     const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
@@ -334,6 +484,15 @@ const FotosTab: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {photos.length > 1 && (
+            <div>
+              <button className="btn w-full justify-center text-xs" disabled={coverBusy} onClick={handlePickCover}>
+                <Sparkles className="w-3.5 h-3.5" /> {coverBusy ? 'Eligiendo…' : 'Elegir portada con IA'}
+              </button>
+              {coverNote && <div className="text-[10px] text-brand mt-1 font-medium leading-tight">{coverNote}</div>}
+            </div>
+          )}
 
           {active && (
             <>

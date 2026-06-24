@@ -141,4 +141,70 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#111827',
     defaultLayers: {},
   },
+
+  // ============== t23: TARJETA FLOTANTE (foto full-bleed + tarjeta crema flotante) ==============
+  // Elegido de la galería de 100 diseños. La foto cubre toda la placa y la info va en una
+  // tarjeta crema con sombra, flotando abajo. Mantiene el logo Z original (subrayado dorado +
+  // rombo). Fuente Space Grotesk. El título grande usa el diferencial (data.titulo); abajo, la
+  // dirección con pin. NO tiene layer `photo` → la foto va de fondo full-bleed (la elige el usuario).
+  // ⚠️ id t23: t21 ya está tomado por "Aviso Premium" (meta).
+  {
+    id: 't23',
+    name: 'Tarjeta flotante',
+    category: 'premium',
+    bgColor: '#f4ebdd',
+    textColor: '#2b1a14',
+    floatingCard: true,
+    defaultLayers: {
+      op: L({ id: 'op', x: 70.5, y: 4.5, w: 25.5, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Space Grotesk', size: 28, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 12, z: 30 }),
+      // Tarjeta compacta abajo (~tercio inferior): se ve ~62% de la foto arriba.
+      // Kicker dorado
+      lbl: L({ id: 'lbl', x: 8.5, y: 64, w: 60, font: 'Space Grotesk', size: 26, color: '#9c7a35', weight: 700, letterSpacing: 6, uppercase: true }),
+      // Título grande (diferencial) — 2 líneas; auto-shrink en Renderer
+      addr: L({ id: 'addr', x: 8.5, y: 66.2, w: 64, font: 'Space Grotesk', size: 70, color: '#241710', weight: 700, lineHeight: 1.05 }),
+      // Logo Z original (a la derecha del título) + subrayado dorado y rombo
+      logo: L({ id: 'logo', x: 79.5, y: 66, w: 13, h: 0 }),
+      line2: L({ id: 'line2', x: 78.5, y: 74.4, w: 14, h: 0.08, bg: 'rgba(199,168,107,0.8)', z: 4 }),
+      dot2: L({ id: 'dot2', x: 84.9, y: 74, w: 1.3, h: 0.73, bg: '#c7a86b', rotation: 45, z: 6 }),
+      // Divisor con rombo
+      line: L({ id: 'line', x: 8.5, y: 77, w: 58, h: 0.09, bg: 'rgba(199,168,107,0.55)', z: 4 }),
+      dot: L({ id: 'dot', x: 36, y: 76.3, w: 2.1, h: 1.18, bg: '#c7a86b', rotation: 45, z: 6 }),
+      // Precio grande en rojo
+      price: L({ id: 'price', x: 8.5, y: 79.4, w: 84, font: 'Space Grotesk', size: 92, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      // Atributos con íconos
+      amen: L({ id: 'amen', x: 8.5, y: 87.8, w: 85, font: 'Space Grotesk', size: 33, color: '#2b1a14', letterSpacing: 0.3 }),
+      // Ubicación con pin (dirección) + hairline arriba, pegada al pie de la tarjeta
+      barrio: L({ id: 'barrio', x: 8.5, y: 92.3, w: 84, font: 'Space Grotesk', size: 32, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.55)', padding: 24 }),
+    },
+  },
+
+  // ============== t24: EDITORIAL MINIMAL (diseño #30 de la galería de 100) ==============
+  // Foto arriba ~64% (se ve bien el ambiente) + panel blanco abajo, tipografía fina
+  // Space Grotesk, tag "EN VENTA" con borde (outline), precio rojo, logo Z original a la
+  // derecha. El título usa el diferencial (data.titulo); abajo la dirección con pin.
+  // Color switcheable (blanco por defecto, crema vía bgOverride). Sin divisor (minimal).
+  {
+    id: 't24',
+    name: 'Editorial minimal',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#0e0e0e',
+    defaultLayers: {
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 64, z: 0 }),
+      // Tag "EN VENTA" outline (borde rojo, fondo transparente) arriba-izq sobre la foto
+      op: L({ id: 'op', x: 5, y: 4.5, w: 0, h: 0, bg: 'transparent', border: '2px solid #d9221f', color: '#d9221f', font: 'Space Grotesk', size: 26, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 8, z: 30 }),
+      // Kicker dorado tenue
+      lbl: L({ id: 'lbl', x: 7, y: 66.5, w: 62, font: 'Space Grotesk', size: 27, color: '#b08c3f', weight: 600, letterSpacing: 5, uppercase: true }),
+      // Título (diferencial) — peso medio, elegante; 2 líneas; auto-shrink en Renderer
+      addr: L({ id: 'addr', x: 7, y: 69.2, w: 68, font: 'Space Grotesk', size: 78, color: '#0e0e0e', weight: 500, lineHeight: 1.05 }),
+      // Logo Z original a la derecha (mismo asset de siempre)
+      logo: L({ id: 'logo', x: 80, y: 67, w: 12.5, h: 0 }),
+      // Precio rojo
+      price: L({ id: 'price', x: 7, y: 82, w: 86, font: 'Space Grotesk', size: 90, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      // Datos clave con íconos (respeta attrsOn)
+      amen: L({ id: 'amen', x: 7, y: 89.6, w: 86, font: 'Space Grotesk', size: 34, color: '#0e0e0e', letterSpacing: 0.3 }),
+      // Ubicación con pin (dirección + ciudad)
+      barrio: L({ id: 'barrio', x: 7, y: 93.8, w: 86, font: 'Space Grotesk', size: 34, color: '#0e0e0e', weight: 500 }),
+    },
+  },
 ];

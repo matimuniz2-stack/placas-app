@@ -67,6 +67,13 @@ function extractImages(html: string, url: string): string[] {
     const apRe = /https?:\/\/[\w.-]*aprcdn\.com\/[^"'\s)]+/gi;
     while ((m = apRe.exec(html))) out.add(m[0]);
   }
+  // Tokko / ficha.info (microsites Next.js): las fotos NO están en <img> ni en og:image,
+  // viven en un array JSON embebido como static.tokkobroker.com/pictures/<id>_<hash>.jpg.
+  // (Solo /pictures/ — /logos/, /sm_pics/ (el og), /userprofile/ son branding, no la propiedad.)
+  if (/tokkobroker|ficha\.info/i.test(url + html)) {
+    const tkRe = /https?:\/\/[\w.-]*tokkobroker\.com\/pictures\/\w+\.(?:jpg|jpeg|webp|png)/gi;
+    while ((m = tkRe.exec(html))) out.add(m[0]);
+  }
 
   // Generic: <img src> from product galleries
   const imgRe = /<img[^>]+(?:data-src|src)=["']([^"']+\.(?:jpg|jpeg|webp|png)[^"']*)["']/gi;
@@ -97,6 +104,10 @@ function extractImages(html: string, url: string): string[] {
     if (/avatar|logo|icon|sprite|placeholder|spinner|loader|favicon/i.test(u)) return false;
     // Tokko: tfw_images son el branding de la inmobiliaria (logo), no fotos de la propiedad
     if (/tokkobroker\.com\/tfw_images\//i.test(u)) return false;
+    // Tokko: sm_pics/<id>_og.jpg es la miniatura del og:image (chica/comprimida) —
+    // si hay fotos reales en /pictures/ usamos esas en alta resolución.
+    if (/tokkobroker\.com\/sm_pics\//i.test(u)) return false;
+    if (/tokkobroker\.com\/userprofile\//i.test(u)) return false;
     // skip very small images (heuristic: width param < 200)
     const sizeMatch = u.match(/(\d+)px[-_x]/);
     if (sizeMatch && parseInt(sizeMatch[1]) < 200) return false;
@@ -110,7 +121,94 @@ function extractImages(html: string, url: string): string[] {
     if (!dedup.has(key)) dedup.set(key, u);
   }
 
-  return Array.from(dedup.values()).slice(0, 10);
+  return Array.from(dedup.values()).slice(0, 30);
+}
+
+// Parser del payload de Tokko (ficha.info y microsites Next.js de inmobiliarias).
+// Los datos vienen como JSON con comillas escapadas (\") dentro del HTML. Desescapamos
+// una vez y leemos los campos con regex normales. Devuelve solo lo que encuentra.
+function parseTokkoJson(html: string): Partial<{
+  addr: string; barrio: string; city: string; tipoPropiedad: string;
+  amb: string; m2: string; baths: string; price: string; currency: 'USD' | 'ARS';
+  op: 'Venta' | 'Alquiler'; expensas: string; antiguedad: string; desc: string;
+  cochera: 'Sí' | 'No'; cocheras: string; aptoCredito: boolean;
+}> {
+  const j = html.replace(/\\"/g, '"').replace(/\\u003c/g, '<').replace(/\\u003e/g, '>');
+  const out: any = {};
+
+  // operations: {"Sale":["USD 77.000"]} | {"Rent":["$ 350.000"]}
+  const opM = j.match(/"operations":\{"(Sale|Rent|TemporaryRent|Lease)":\["([^"]+)"/i);
+  if (opM) {
+    out.op = /sale/i.test(opM[1]) ? 'Venta' : 'Alquiler';
+    const priceStr = opM[2];
+    const cur = /usd|u\$s|us\$/i.test(priceStr) ? 'USD' : 'ARS';
+    out.currency = cur;
+    const num = priceStr.replace(/[^\d]/g, '');
+    if (num) out.price = num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  // type: {"id":2,"name":"Departamento"}
+  const typeM = j.match(/"type":\{"id":\d+,"name":"([^"]+)"/i);
+  if (typeM) out.tipoPropiedad = typeM[1].trim();
+
+  // address / location
+  const addrM = j.match(/"(?:fake_address|address)":"([^"]+)"/i);
+  if (addrM) out.addr = addrM[1].trim();
+  const locM = j.match(/"location":"([^"]+)"/i);
+  if (locM) {
+    const parts = locM[1].split('|').map((s) => s.trim()).filter(Boolean);
+    if (parts.length) out.city = parts[0];
+    // si hay un segmento de barrio antes de la ciudad/zona, usalo
+    if (parts.length >= 4) out.barrio = parts[0];
+  }
+  // Barrio: Tokko mete la zona en la descripción ("Zona Aldrey", "Barrio Norte").
+  // El location suele ser región (Mar Del Plata | Costa Atlántica), así que buscamos acá.
+  if (!out.barrio) {
+    const zonaM = j.match(/(?:[Zz]ona|[Bb]arrio|[Bb][°º]\.?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ]+(?:\s+(?:de|del|la)\s+[A-ZÁÉÍÓÚ][a-záéíóúñ]+)?)/);
+    if (zonaM) out.barrio = zonaM[1].trim();
+  }
+
+  // atributos {"key":"room_amount","name":"Ambientes","value":2}
+  // valor numérico directo, o string "37 m²" + "original_value":37
+  const attrNum = (key: string): string | null => {
+    const re = new RegExp(`"key":"${key}"[^}]*?"value":\\s*(?:"([^"]*)"|([0-9.]+))`, 'i');
+    const m = j.match(re);
+    if (!m) return null;
+    const raw = (m[1] ?? m[2] ?? '').trim();
+    const digits = raw.replace(/[^\d]/g, '');
+    return digits || null;
+  };
+  const origNum = (key: string): string | null => {
+    const m = j.match(new RegExp(`"key":"${key}"[^}]*?"original_value":\\s*([0-9.]+)`, 'i'));
+    return m ? m[1].replace(/\..*$/, '') : null;
+  };
+
+  const amb = attrNum('room_amount');
+  if (amb) out.amb = amb;
+  const baths = attrNum('bathroom_amount');
+  if (baths) out.baths = baths;
+  const m2 = origNum('roofed_surface') || origNum('total_surface') || origNum('surface');
+  if (m2) out.m2 = m2;
+  const parking = attrNum('parking_lot_amount') || attrNum('garage');
+  if (parking) { out.cocheras = parking; out.cochera = parseInt(parking) > 0 ? 'Sí' : 'No'; }
+
+  // antigüedad: "A estrenar"/"A construir" → 0 años; número → ese número
+  const ageM = j.match(/"key":"age"[^}]*?"value":"([^"]*)"/i);
+  if (ageM) {
+    const v = ageM[1].toLowerCase();
+    if (/estrenar|nuevo|a construir|en construcc/i.test(v)) out.antiguedad = '0';
+    else { const n = v.replace(/[^\d]/g, ''); if (n) out.antiguedad = n; }
+  }
+
+  // apto crédito
+  const credM = j.match(/"key":"credit_eligible"[^}]*?"value":"([^"]*)"/i);
+  if (credM && /\b(s[ií]|apto)\b/i.test(credM[1])) out.aptoCredito = true;
+
+  // expensas: aparecen en la descripción como "Expensas: $102.000"
+  const expM = j.match(/expensas?\s*:?\s*\$?\s*([\d.]+)/i);
+  if (expM) out.expensas = expM[1].replace(/[^\d]/g, '');
+
+  return out;
 }
 
 // Amenities/características que buscamos en el texto del listing. La clave es la
@@ -228,7 +326,9 @@ export default async function handler(req: Request): Promise<Response> {
     const amenities = extractAmenities(html, text);
     const cocheraMatch = text.match(/(\d+)?\s*cocheras?/i) || (/cochera|garaje|garage/i.test(visibleText(html)) ? ([null, ''] as any) : null);
 
-    const out = {
+    // Datos base (OG / título). Para sitios Tokko (ficha.info, microsites de
+    // inmobiliarias) parseamos el JSON embebido, que trae todo mucho más completo.
+    const out: any = {
       addr,
       barrio,
       ...(tipoPropiedad ? { tipoPropiedad } : {}),
@@ -246,6 +346,14 @@ export default async function handler(req: Request): Promise<Response> {
       photoUrls: photos,
       listingUrl: url,
     };
+
+    if (/tokkobroker|ficha\.info/i.test(url + html)) {
+      const tk = parseTokkoJson(html);
+      // Los campos del JSON de Tokko pisan a los del OG cuando existen.
+      for (const [k, v] of Object.entries(tk)) {
+        if (v !== undefined && v !== null && v !== '') out[k] = v;
+      }
+    }
     return new Response(JSON.stringify(out), {
       headers: {
         'Content-Type': 'application/json',

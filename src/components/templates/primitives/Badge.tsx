@@ -15,6 +15,7 @@ export const BADGE_PRESETS: BadgeDef[] = [
   { id: 'exclusivo', label: 'EXCLUSIVO', bg: '#c9a86b', fg: '#1c1715' },
   { id: 'vendido', label: 'VENDIDO', bg: '#2d6b3c', fg: '#ffffff' },
   { id: 'apertura', label: 'ABIERTO HOY', bg: '#0066cc', fg: '#ffffff' },
+  { id: 'permuta', label: 'TOMA PERMUTA', bg: '#9c7a35', fg: '#ffffff' },
 ];
 
 export const Badges: React.FC = () => {

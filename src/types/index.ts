@@ -94,6 +94,7 @@ export interface PlacaData {
   cochera: 'Sí' | 'No';
   cocheras?: string; // cantidad de cocheras (numérico). Si está, manda sobre cochera Sí/No.
   tipoPropiedad?: string; // ej: "Departamento" (título del Aviso Pro)
+  titulo?: string; // gancho/diferencial que va de TÍTULO grande en t16 (ej "Exclusivo 4 ambientes"). Si está, la dirección baja al pie.
   aptoCredito?: boolean; // muestra el bloque "APTO CRÉDITO" (Aviso Pro)
   price: string;
   currency: 'USD' | 'ARS';
@@ -103,6 +104,9 @@ export interface PlacaData {
   desc?: string;
   listingUrl?: string;
   amenText?: string; // override manual de la línea de detalles (amb · m² · baños…)
+  // Datos clave on/off en la placa (claves: amb, m2, baths, cochera, aptoCredito, expensas, antiguedad).
+  // undefined = defaults (core on, extras off). Ver ATTR_DEFS en lib/format.ts.
+  attrsOn?: Record<string, boolean>;
   // Campos del aviso Meta Ad (t19)
   city?: string;
   lote?: string;
@@ -173,6 +177,7 @@ export interface TemplateDef {
   textColor?: string;
   overlay?: string; // CSS for ::after-like overlay
   gallery?: boolean; // renderiza grilla editorial de varias fotos (GalleryGrid)
+  floatingCard?: boolean; // foto full-bleed + tarjeta crema flotante con la info (t21)
   thumbnail?: string;
   render?: (data: PlacaData, ctx: RenderContext) => React.ReactNode;
 }
