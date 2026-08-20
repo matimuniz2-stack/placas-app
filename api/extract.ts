@@ -211,6 +211,96 @@ function parseTokkoJson(html: string): Partial<{
   return out;
 }
 
+// Parser de zambonipropiedades.com (sitio propio, Astro). La página trae un
+// JSON-LD schema.org RealEstateListing completo (título limpio, precio, ciudad,
+// descripción y TODAS las fotos en resolución completa /img/props/<id>_N.webp)
+// más los specs visibles (Superficie / Cubiertos / Ambientes / Baños) como pares
+// .k/.v y el barrio en el div .addr ("Rumencó Joven — Mar del Plata").
+function parseZamboniSite(html: string): Partial<{
+  addr: string; barrio: string; city: string; tipoPropiedad: string;
+  amb: string; m2: string; baths: string; price: string; currency: 'USD' | 'ARS';
+  op: 'Venta' | 'Alquiler'; desc: string; cochera: 'Sí' | 'No'; cocheras: string;
+  amenities: string[]; photoUrls: string[];
+}> {
+  const out: any = {};
+
+  // JSON-LD RealEstateListing (puede haber otros bloques ld+json: org, breadcrumbs)
+  let ld: any = null;
+  const ldRe = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi;
+  let lm: RegExpExecArray | null;
+  while ((lm = ldRe.exec(html))) {
+    if (!/RealEstateListing/.test(lm[1])) continue;
+    try { ld = JSON.parse(lm[1]); } catch { /* sigue */ }
+    if (ld) break;
+  }
+  if (ld) {
+    if (ld.name) out.addr = cleanText(String(ld.name));
+    if (ld.description) out.desc = firstSentence(String(ld.description));
+    if (ld.address?.addressLocality) out.city = cleanText(String(ld.address.addressLocality));
+    if (ld.offers?.price) {
+      out.price = String(ld.offers.price).replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      out.currency = ld.offers.priceCurrency === 'ARS' ? 'ARS' : 'USD';
+    }
+    // category: "Venta · Casa"
+    if (ld.category) {
+      const [opPart, tipoPart] = String(ld.category).split('·').map((s: string) => s.trim());
+      if (/alquiler/i.test(opPart || '')) out.op = 'Alquiler';
+      else if (/venta/i.test(opPart || '')) out.op = 'Venta';
+      if (tipoPart) out.tipoPropiedad = tipoPart;
+    }
+    // Fotos full-res, en el orden del sitio
+    if (Array.isArray(ld.image) && ld.image.length) {
+      out.photoUrls = ld.image.filter((u: any) => typeof u === 'string').slice(0, 30);
+    }
+    // Amenities: solo de la descripción de la propiedad (el texto completo de la
+    // página incluye las tarjetas de propiedades similares → falsos positivos).
+    if (ld.description) {
+      const found: string[] = [];
+      for (const [re, label] of AMENITY_PATTERNS) {
+        if (re.test(String(ld.description))) found.push(label);
+      }
+      if (found.length) out.amenities = found;
+    }
+  }
+
+  // Título visible (h1) — más confiable que el og:title (que trae "· barrio — Zamboni")
+  const h1M = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+  if (h1M) out.addr = cleanText(h1M[1]);
+
+  // Barrio + ciudad del div .addr: "Rumencó Joven — Mar del Plata"
+  const addrDivM = html.match(/class="addr"[^>]*>([\s\S]{0,400}?)<\/div>/i);
+  if (addrDivM) {
+    const t = cleanText(addrDivM[1].replace(/<[^>]+>/g, ' '));
+    const [b, c] = t.split(/\s+[—–]\s+/).map((s) => s.trim());
+    if (b) out.barrio = b;
+    if (c && !out.city) out.city = c;
+  }
+
+  // Specs .k/.v: Superficie / Cubiertos / Ambientes / Baños / Dormitorios / Cochera(s)
+  const specs: Record<string, string> = {};
+  const kvRe = /class="k"[^>]*>([^<]+)<[\s\S]{0,200}?class="v"[^>]*>([^<]+)</gi;
+  let km: RegExpExecArray | null;
+  while ((km = kvRe.exec(html))) specs[cleanText(km[1]).toLowerCase()] = cleanText(km[2]);
+  const num = (s?: string) => (s || '').replace(/[^\d]/g, '');
+  if (specs['ambientes']) out.amb = num(specs['ambientes']);
+  if (specs['baños'] || specs['banos']) out.baths = num(specs['baños'] || specs['banos']);
+  // m²: superficie total primero (es el dato que va en la placa); si no, cubiertos
+  const sup = specs['superficie'] || specs['sup. total'] || specs['cubiertos'] || specs['sup. cubierta'];
+  if (sup) out.m2 = num(sup);
+  const cocheraSpec = Object.keys(specs).find((k) => /cochera/.test(k));
+  if (cocheraSpec) {
+    const n = num(specs[cocheraSpec]);
+    out.cocheras = n || '';
+    out.cochera = !n || parseInt(n) > 0 ? 'Sí' : 'No';
+  } else if (ld?.description && /cochera|garaje|garage/i.test(String(ld.description))) {
+    out.cochera = 'Sí';
+  } else {
+    out.cochera = 'No';
+  }
+
+  return out;
+}
+
 // Amenities/características que buscamos en el texto del listing. La clave es la
 // regex; el valor, la etiqueta linda para la placa.
 const AMENITY_PATTERNS: [RegExp, string][] = [
@@ -353,6 +443,15 @@ export default async function handler(req: Request): Promise<Response> {
       for (const [k, v] of Object.entries(tk)) {
         if (v !== undefined && v !== null && v !== '') out[k] = v;
       }
+    }
+
+    // Sitio propio: el JSON-LD + specs traen todo más limpio y las fotos full-res.
+    if (/zambonipropiedades\.com/i.test(url)) {
+      const zb = parseZamboniSite(html);
+      for (const [k, v] of Object.entries(zb)) {
+        if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length)) out[k] = v;
+      }
+      if (zb.photoUrls?.length) out.photoUrl = zb.photoUrls[0];
     }
     return new Response(JSON.stringify(out), {
       headers: {

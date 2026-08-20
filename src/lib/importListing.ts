@@ -39,7 +39,16 @@ export async function importFromUrl(url: string, onProgress?: (m: string) => voi
   }
 
   const { photoUrl, photoUrls, amenities, ...rest } = extracted as any;
-  usePlacaStore.getState().patchData(rest);
+  // Campos que el extractor puede NO traer se limpian explícitamente: si quedaran
+  // los de la propiedad anterior (título-gancho, expensas…), la placa mezclaría datos.
+  usePlacaStore.getState().patchData({
+    titulo: '',
+    expensas: '',
+    antiguedad: '',
+    amenText: '',
+    attrsOn: undefined,
+    ...rest,
+  });
 
   // Línea de amenities para la Placa 2 (galería de ambientes).
   const amenLine = ((amenities as string[]) || []).slice(0, 6).join(' · ');
