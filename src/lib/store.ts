@@ -281,7 +281,7 @@ export const usePlacaStore = create<PlacaState>()(
   temporal(
     (set, get) => ({
       format: 'story',
-      templateId: 't16',
+      templateId: 't25',
       variantId: 'default',
       data: DEFAULT_DATA,
       layerOverrides: {},
@@ -290,7 +290,7 @@ export const usePlacaStore = create<PlacaState>()(
       editingLayer: null,
       bgOverride: null,
 
-      slides: [blankSlide('t16', 'story')],
+      slides: [blankSlide('t25', 'story')],
       activeSlide: 0,
 
       photos: [],
@@ -403,8 +403,9 @@ export const usePlacaStore = create<PlacaState>()(
         set((s) => {
           const slides = [...s.slides];
           slides[s.activeSlide] = snapshotSlide(s);
-          // Por defecto la nueva placa alterna: si la actual es Zamboni Pro, sigue Galería.
-          const tid = templateId || (s.templateId === 't16' ? 't17' : 't16');
+          // Por defecto la nueva placa alterna: portada Nano → sigue Nano Galería
+          // (y Zamboni Pro → Galería, para carruseles viejos).
+          const tid = templateId || (s.templateId === 't25' ? 't26' : s.templateId === 't16' ? 't17' : 't25');
           const fresh = blankSlide(tid, s.format);
           slides.push(fresh);
           clearUndoHistory();
@@ -510,7 +511,7 @@ export const usePlacaStore = create<PlacaState>()(
       resetAll: () =>
         set({
           format: 'story',
-          templateId: 't16',
+          templateId: 't25',
           variantId: 'default',
           data: { ...DEFAULT_DATA, addr: '', barrio: '', amb: '', m2: '', baths: '', cochera: 'Sí', price: '', currency: 'USD', op: 'Venta', expensas: '', antiguedad: '', desc: '', listingUrl: '' },
           layerOverrides: {},
@@ -518,7 +519,7 @@ export const usePlacaStore = create<PlacaState>()(
           selectedLayer: null,
           editingLayer: null,
           bgOverride: null,
-          slides: [blankSlide('t16', 'story')],
+          slides: [blankSlide('t25', 'story')],
           activeSlide: 0,
           photos: [],
           activePhotoIdx: 0,
@@ -571,15 +572,14 @@ export function currentSlidesSnapshot(): { slides: SlideSnapshot[]; activeSlide:
   return { slides, activeSlide: s.activeSlide };
 }
 
-// Arma el carrusel automático después de importar un listing: placa 1 = Zamboni Pro
-// (foto de portada + datos) y placa 2 = Galería con los ambientes. Si el listing
-// traía amenities, quedan cargadas en la capa "Detalles" de la placa 2 (oculta por
-// defecto en el formato actual; se activa con el ojo en Layers).
+// Arma el carrusel automático después de importar un listing: placa 1 = Nano
+// (foto de portada + datos, diseño "Nano Banana 2") y placa 2 = Nano Galería con los
+// ambientes. Si el listing traía amenities, quedan cargadas en la capa "Detalles" de
+// la placa 2 (oculta por defecto en el formato actual; se activa con el ojo en Layers).
 export function buildImportSlides(amenLine?: string) {
   const s = usePlacaStore.getState();
-  // Placa 1 = Editorial minimal (t24, el diseño #30); Placa 2 = Galería de ambientes.
-  const slide1 = blankSlide('t24', 'story');
-  const slide2 = blankSlide('t17', 'story');
+  const slide1 = blankSlide('t25', 'story');
+  const slide2 = blankSlide('t26', 'story');
   if (amenLine && amenLine.trim()) {
     slide2.textOverrides = { amen: amenLine.trim() };
   }
@@ -597,7 +597,7 @@ export function setCoverPhoto(idx: number) {
 }
 
 // Aplica el armado de la IA: reordena las fotos (portada al índice 0, galería detrás
-// en el orden elegido) y arma las 2 placas (Zamboni Pro + Galería) con badges y la
+// en el orden elegido) y arma las 2 placas (Nano + Nano Galería) con badges y la
 // línea de amenities ya visible. Las decisiones de qué foto/título/copy las tomó Claude.
 export function applyAiAssembly(opts: {
   photoOrder: number[]; // índices de fotos en el nuevo orden: [portada, galería…]
@@ -612,11 +612,11 @@ export function applyAiAssembly(opts: {
   const reordered = finalOrder.map((i) => s.photos[i]);
   if (reordered.length) usePlacaStore.setState({ photos: reordered, activePhotoIdx: 0 });
 
-  const slide1 = blankSlide('t16', 'story');
+  const slide1 = blankSlide('t25', 'story');
   slide1.activePhotoIdx = 0;
   slide1.badges = opts.badges || [];
 
-  const slide2 = blankSlide('t17', 'story');
+  const slide2 = blankSlide('t26', 'story');
   if (opts.amenLine && opts.amenLine.trim()) {
     slide2.textOverrides = { amen: opts.amenLine.trim() };
     // En t17 la línea de amenities viene oculta por defecto: la hacemos visible.

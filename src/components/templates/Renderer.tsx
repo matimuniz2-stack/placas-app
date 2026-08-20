@@ -35,10 +35,14 @@ function fadeOverlay(bg: string): string | undefined {
 }
 
 // Templates (familia editorial crema) que muestran la línea de detalles con íconos.
-const ICON_AMEN = new Set(['t16', 't23', 't24']);
+const ICON_AMEN = new Set(['t16', 't23', 't24', 't25']);
 const AMEN_ACCENT = '#b08c3f'; // dorado/bronce editorial
+// Familia Nano (t25/t26): layout centrado estilo "Nano Banana 2" — íconos oscuros con
+// separador "/", pin de línea oscuro y pie de marca Z + wordmark.
+const NANO = new Set(['t25', 't26']);
+const NANO_INK = '#232434';
 // Templates que muestran la ubicación con pin rojo dibujado (no emoji).
-const PIN_BARRIO = new Set(['t16', 't17', 't18', 't23', 't24']);
+const PIN_BARRIO = new Set(['t16', 't17', 't18', 't23', 't24', 't25']);
 
 // Línea de detalles con dibujitos (ambientes, m², baños, cochera) y separadores
 // verticales finos entre ítems (estilo aviso editorial). Los íconos escalan con el
@@ -53,16 +57,21 @@ const ATTR_ICONS: Record<string, React.ElementType> = {
   antiguedad: Sparkles,
 };
 
-function amenIcons(d: PlacaData): React.ReactNode {
+function amenIcons(d: PlacaData, nano?: boolean): React.ReactNode {
   const items = attrItems(d).map((a) => ({ Icon: ATTR_ICONS[a.key] || Maximize, label: a.label }));
   if (!items.length) return '';
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65em', width: '100%' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: nano ? 'center' : undefined, gap: '0.65em', width: '100%' }}>
       {items.map(({ Icon, label }, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <span style={{ width: 1, height: '1.15em', background: 'rgba(43,26,20,0.18)', flexShrink: 0 }} />}
+          {i > 0 &&
+            (nano ? (
+              <span style={{ color: 'rgba(35,36,52,0.35)', fontWeight: 400, flexShrink: 0 }}>/</span>
+            ) : (
+              <span style={{ width: 1, height: '1.15em', background: 'rgba(43,26,20,0.18)', flexShrink: 0 }} />
+            ))}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3em', whiteSpace: 'nowrap' }}>
-            <Icon style={{ width: '1em', height: '1em', color: AMEN_ACCENT, flexShrink: 0 }} strokeWidth={1.9} />
+            <Icon style={{ width: '1em', height: '1em', color: nano ? NANO_INK : AMEN_ACCENT, flexShrink: 0 }} strokeWidth={nano ? 2 : 1.9} />
             {label}
           </span>
         </React.Fragment>
@@ -71,13 +80,18 @@ function amenIcons(d: PlacaData): React.ReactNode {
   );
 }
 
-// Ubicación con pin rojo dibujado: "Barrio, Ciudad" (la ciudad solo si está cargada).
-function pinLine(primary: string, city: string): React.ReactNode {
-  const text = [primary, city].filter(Boolean).join(', ');
+// Ubicación con pin dibujado. Editorial crema: pin rojo relleno + "Barrio, Ciudad".
+// Nano: pin de línea oscuro + "Barrio · Ciudad", centrado.
+function pinLine(primary: string, city: string, nano?: boolean): React.ReactNode {
+  const text = [primary, city].filter(Boolean).join(nano ? ' · ' : ', ');
   if (!text) return '';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45em' }}>
-      <MapPin style={{ width: '1em', height: '1em', color: '#d9221f', flexShrink: 0 }} strokeWidth={2.2} fill="#d9221f" stroke="#f4ebdd" />
+      {nano ? (
+        <MapPin style={{ width: '1em', height: '1em', color: NANO_INK, flexShrink: 0 }} strokeWidth={2.1} fill="none" stroke={NANO_INK} />
+      ) : (
+        <MapPin style={{ width: '1em', height: '1em', color: '#d9221f', flexShrink: 0 }} strokeWidth={2.2} fill="#d9221f" stroke="#f4ebdd" />
+      )}
       {text}
     </span>
   );
@@ -167,17 +181,17 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           // si no, va el barrio + ciudad (modo manual clásico).
           const useAddr = !!(data.titulo && data.titulo.trim());
           const primary = useAddr ? data.addr : data.barrio;
-          const city = tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' ? data.city || '' : '';
-          return pinLine(primary, city);
+          const city = tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' || tpl.id === 't25' ? data.city || '' : '';
+          return pinLine(primary, city, NANO.has(tpl.id));
         }
         return data.barrio ? '📍 ' + data.barrio : '';
       case 'price':
         // Sin precio: en t16 la placa invita a consultar (no queda incompleta);
         // en el resto se oculta (evita "USD" huérfano).
         if (!data.price || !data.price.trim()) {
-          if (tpl.id === 't16')
+          if (tpl.id === 't16' || tpl.id === 't25')
             return (
-              <span style={{ fontSize: '0.42em', letterSpacing: 5, color: '#9c7a35', fontFamily: "'Inter'", fontWeight: 600 }}>
+              <span style={{ fontSize: '0.42em', letterSpacing: 5, color: tpl.id === 't25' ? '#8a8580' : '#9c7a35', fontFamily: "'Inter'", fontWeight: 600 }}>
                 CONSULTAR PRECIO
               </span>
             );
@@ -188,11 +202,12 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         // Si el usuario escribió una línea custom, respetarla tal cual; si no, en la
         // familia crema (t16) mostrar la línea con dibujitos.
         if (data.amenText && data.amenText.trim()) return data.amenText;
-        if (ICON_AMEN.has(tpl.id)) return amenIcons(data);
+        if (ICON_AMEN.has(tpl.id)) return amenIcons(data, NANO.has(tpl.id));
         return amenString(data);
       case 'op': {
+        if (tpl.id === 't26') return 'POR DENTRO';
         if (!data.op) return '';
-        const opTxt = tpl.id === 't17' ? data.op.toUpperCase() : (tpl.id === 't16' || tpl.id === 't18') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
+        const opTxt = tpl.id === 't17' ? data.op.toUpperCase() : (tpl.id === 't16' || tpl.id === 't18' || tpl.id === 't25') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
       case 'desc':
@@ -200,8 +215,12 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
       case 'extras':
         return extrasString(data);
       case 'tag':
+        // Familia Nano: el tag es el wordmark del pie de marca (junto al logo Z).
+        if (NANO.has(tpl.id)) return 'ZAMBONI';
         return data.barrio;
       case 'lbl':
+        if (tpl.id === 't25') return 'zambonipropiedades.com';
+        if (tpl.id === 't26') return 'Más fotos en zambonipropiedades.com';
         return (tpl.id === 't17' || tpl.id === 't18') ? 'Más imágenes de la propiedad' : tpl.id === 't16' ? kickerText(data) : data.op;
       case 'num':
         return '01';
@@ -272,13 +291,18 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         let defaults = applyVariant(baseDefaults, lid);
         // t16: el título se achica solo según el largo para no pisar el divisor
         // (el override manual de tamaño manda).
-        if ((tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24') && lid === 'addr' && overrides.addr?.size == null) {
+        if ((tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' || NANO.has(tpl.id)) && lid === 'addr' && overrides.addr?.size == null) {
           const txt = (noOverrides ? undefined : textOverrides.addr) ?? (data.titulo?.trim() || data.addr) ?? '';
           const len = Math.max(0, ...txt.split('\n').map((l) => l.length));
           if (tpl.id === 't23') {
             defaults = { ...defaults, size: len <= 12 ? 92 : len <= 20 ? 78 : len <= 30 ? 66 : 56 };
           } else if (tpl.id === 't24') {
             defaults = { ...defaults, size: len <= 12 ? 92 : len <= 20 ? 78 : len <= 30 ? 66 : 56 };
+          } else if (tpl.id === 't25') {
+            // Centrado a 88% de ancho: entra más texto por línea que en los editoriales
+            defaults = { ...defaults, size: len <= 14 ? 100 : len <= 22 ? 90 : len <= 34 ? 82 : len <= 44 ? 70 : 60 };
+          } else if (tpl.id === 't26') {
+            defaults = { ...defaults, size: len <= 16 ? 84 : len <= 26 ? 74 : len <= 38 ? 66 : 56 };
           } else {
             defaults = { ...defaults, size: len <= 13 ? 104 : len <= 18 ? 84 : len <= 24 ? 72 : 60 };
           }

@@ -116,9 +116,9 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       // Meta Ad: bloques de texto fijos + elementos custom de tipo texto.
       const st = usePlacaStore.getState();
       // La línea de detalles con íconos (Zamboni Pro) no se edita in-canvas.
-      if (lid === 'amen' && st.templateId === 't16' && !(st.data.amenText && st.data.amenText.trim())) return;
+      if (lid === 'amen' && ['t16', 't25'].includes(st.templateId) && !(st.data.amenText && st.data.amenText.trim())) return;
       // Ídem la ubicación con pin dibujado (se edita desde el campo Barrio).
-      if (lid === 'barrio' && ['t16', 't17', 't18'].includes(st.templateId) && st.textOverrides['barrio'] === undefined) return;
+      if (lid === 'barrio' && ['t16', 't17', 't18', 't25'].includes(st.templateId) && st.textOverrides['barrio'] === undefined) return;
       const isMetaText =
         META_TEXT_EDITABLE.has(lid) ||
         (/^maC\d$/.test(lid) && st.customElements[lid]?.type === 'text');

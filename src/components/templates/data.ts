@@ -207,4 +207,62 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       barrio: L({ id: 'barrio', x: 7, y: 93.8, w: 86, font: 'Space Grotesk', size: 34, color: '#0e0e0e', weight: 500 }),
     },
   },
+
+  // ============== t25: NANO (adaptación del diseño "Nano Banana 2" — 2026-08-20) ==============
+  // Foto arriba ~55% con corte limpio (sin fundido), panel blanco cálido abajo y TODO
+  // centrado: pill roja "EN VENTA" a caballo del borde foto/panel, título serif oscuro,
+  // precio serif rojo, detalles con íconos oscuros separados por "/", ubicación con pin
+  // de línea, y pie de marca Z + wordmark ZAMBONI + zambonipropiedades.com en gris.
+  {
+    id: 't25',
+    name: 'Nano',
+    category: 'premium',
+    bgColor: '#fbfaf8',
+    textColor: '#232434',
+    defaultLayers: {
+      photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 55, z: 0 }),
+      // Pill "EN VENTA" centrada, montada sobre el borde de la foto
+      op: L({ id: 'op', x: 36.5, y: 53.1, w: 27, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 30, weight: 800, align: 'center', letterSpacing: 2, uppercase: true, padding: 20, radius: 60, z: 30 }),
+      // Título serif oscuro centrado (2 líneas; auto-shrink en Renderer)
+      addr: L({ id: 'addr', x: 6, y: 59.2, w: 88, font: 'Playfair Display', size: 88, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
+      // Precio serif rojo centrado
+      price: L({ id: 'price', x: 6, y: 70.8, w: 88, font: 'Playfair Display', size: 88, color: '#d9221f', weight: 700, align: 'center', lineHeight: 1 }),
+      // Detalles con íconos de línea oscuros y separadores "/"
+      amen: L({ id: 'amen', x: 5, y: 78.6, w: 90, font: 'Inter', size: 36, color: '#232434', letterSpacing: 0.2 }),
+      // Ubicación con pin de línea: "Barrio · Ciudad"
+      barrio: L({ id: 'barrio', x: 5, y: 83.2, w: 90, font: 'Inter', size: 36, color: '#232434', weight: 500, align: 'center' }),
+      // Pie de marca: Z rojo + wordmark ZAMBONI (tag) + web en gris (lbl)
+      logo: L({ id: 'logo', x: 32.4, y: 87.8, w: 6.2, h: 0 }),
+      tag: L({ id: 'tag', x: 40.4, y: 88.6, w: 40, font: 'Inter', size: 44, color: '#232434', weight: 800, letterSpacing: 10, uppercase: true }),
+      lbl: L({ id: 'lbl', x: 10, y: 93.6, w: 80, font: 'Inter', size: 30, color: '#8a8580', align: 'center', letterSpacing: 0.5 }),
+    },
+  },
+
+  // ============== t26: NANO GALERÍA (placa 2 de la familia Nano — variante "mosaico") ==============
+  // Pill "POR DENTRO" centrada arriba, título serif, 1 foto grande + 2 chicas con
+  // esquinas redondeadas, "Más fotos en zambonipropiedades.com" y pie de marca Z+ZAMBONI
+  // (arriba de la franja que tapa la interfaz de historias).
+  {
+    id: 't26',
+    name: 'Nano Galería',
+    category: 'premium',
+    bgColor: '#fbfaf8',
+    textColor: '#232434',
+    gallery: true,
+    defaultLayers: {
+      op: L({ id: 'op', x: 36.5, y: 3.2, w: 27, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 28, weight: 800, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 60, z: 30 }),
+      addr: L({ id: 'addr', x: 6, y: 8.4, w: 88, font: 'Playfair Display', size: 74, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
+      // Mosaico: 1 grande + 2 chicas
+      g0: L({ id: 'g0', x: 5, y: 19.5, w: 90, h: 31, radius: 24, z: 2 }),
+      g1: L({ id: 'g1', x: 5, y: 52.5, w: 43.8, h: 18.5, radius: 24, z: 2 }),
+      g2: L({ id: 'g2', x: 51.2, y: 52.5, w: 43.8, h: 18.5, radius: 24, z: 2 }),
+      // Línea de detalles (oculta por defecto; el import la deja cargada y la activa)
+      amen: L({ id: 'amen', x: 6, y: 73, w: 88, font: 'Inter', size: 30, color: '#232434', visible: false }),
+      // "Más fotos en zambonipropiedades.com"
+      lbl: L({ id: 'lbl', x: 6, y: 77.2, w: 88, font: 'Inter', size: 36, color: '#232434', weight: 500, align: 'center' }),
+      // Pie de marca Z + ZAMBONI
+      logo: L({ id: 'logo', x: 32.4, y: 82.2, w: 6.2, h: 0 }),
+      tag: L({ id: 'tag', x: 40.4, y: 83, w: 40, font: 'Inter', size: 44, color: '#232434', weight: 800, letterSpacing: 10, uppercase: true }),
+    },
+  },
 ];
