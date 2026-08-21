@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Gill Sans MT — fuente de marca Zamboni. Self-hosted (TTF de la máquina de Mati)
+   para que renderice igual en el deploy y que html-to-image la embeba en los exports. */
+@font-face { font-family: 'Gill Sans MT'; src: url('/fonts/GillSansMT.ttf') format('truetype'); font-weight: 400; font-style: normal; }
+@font-face { font-family: 'Gill Sans MT'; src: url('/fonts/GillSansMT-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; }
+@font-face { font-family: 'Gill Sans MT'; src: url('/fonts/GillSansMT-Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; }
+@font-face { font-family: 'Gill Sans MT'; src: url('/fonts/GillSansMT-BoldItalic.ttf') format('truetype'); font-weight: 700; font-style: italic; }
+
 @layer base {
   :root {
     --brand: #de1f1a;

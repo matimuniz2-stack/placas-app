@@ -193,7 +193,7 @@ const InspectorTab: React.FC = () => {
                   <div>
                     <label className="label">Fuente</label>
                     <select className="select" value={layer.font || ''} onChange={(e) => patchLayer(selected, { font: e.target.value })}>
-                      {['Inter', 'Bebas Neue', 'Cormorant Garamond', 'DM Serif Display', 'Marcellus', 'Tenor Sans', 'IBM Plex Mono', 'Cinzel', 'Playfair Display', 'Space Grotesk', 'Italiana', 'Anton', 'JetBrains Mono', 'Outfit'].map((f) => (
+                      {['Gill Sans MT', 'Inter', 'Bebas Neue', 'Cormorant Garamond', 'DM Serif Display', 'Marcellus', 'Tenor Sans', 'IBM Plex Mono', 'Cinzel', 'Playfair Display', 'Space Grotesk', 'Italiana', 'Anton', 'JetBrains Mono', 'Outfit'].map((f) => (
                         <option key={f} value={f}>{f}</option>
                       ))}
                     </select>

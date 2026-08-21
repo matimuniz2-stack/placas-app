@@ -47,6 +47,15 @@ export async function importFromUrl(url: string, onProgress?: (m: string) => voi
     antiguedad: '',
     amenText: '',
     attrsOn: undefined,
+    // Campos de emprendimiento/detalle: si quedan de la prop anterior, la placa
+    // sale con "EN POZO", entrega o tipos de cochera/m² equivocados.
+    enPozo: false,
+    entrega: '',
+    financiacion: false,
+    destacados: [],
+    m2Tipo: '',
+    toilette: false,
+    cocheraTipo: '',
     ...rest,
   });
 

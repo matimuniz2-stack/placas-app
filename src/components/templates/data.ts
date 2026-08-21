@@ -32,7 +32,7 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       // Kicker dorado: "DEPTO EN VENTA"
       lbl: L({ id: 'lbl', x: 7.4, y: 59.8, w: 60, font: 'Inter', size: 30, color: '#9c7a35', weight: 700, letterSpacing: 7, uppercase: true }),
       // Título serif gigante (ej: "Alvear y Colón")
-      addr: L({ id: 'addr', x: 7.4, y: 62.8, w: 67, font: 'Playfair Display', size: 104, color: '#241710', weight: 700, lineHeight: 1.02 }),
+      addr: L({ id: 'addr', x: 7.4, y: 62.8, w: 67, font: 'Gill Sans MT', size: 104, color: '#241710', weight: 700, lineHeight: 1.02 }),
       // Logo Z a la derecha del título, con subrayado dorado + rombo debajo
       logo: L({ id: 'logo', x: 79.5, y: 60.8, w: 13.5, h: 0 }),
       line2: L({ id: 'line2', x: 78.5, y: 69.6, w: 15, h: 0.08, bg: 'rgba(199,168,107,0.8)', z: 4 }),
@@ -41,7 +41,7 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       line: L({ id: 'line', x: 7.4, y: 72.7, w: 62, h: 0.08, bg: 'rgba(199,168,107,0.55)', z: 4 }),
       dot: L({ id: 'dot', x: 37.4, y: 72.1, w: 2, h: 1.13, bg: '#c7a86b', rotation: 45, z: 6 }),
       // Precio en rojo
-      price: L({ id: 'price', x: 7.4, y: 75.8, w: 85, font: 'Playfair Display', size: 110, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      price: L({ id: 'price', x: 7.4, y: 75.8, w: 85, font: 'Gill Sans MT', size: 110, color: '#d9221f', weight: 700, lineHeight: 1 }),
       // Línea de detalles con íconos dorados y separadores verticales
       amen: L({ id: 'amen', x: 7.4, y: 85.6, w: 85, font: 'Inter', size: 38, color: '#2b1a14', letterSpacing: 0.3 }),
       // Ubicación con pin rojo + divisor fino arriba (ej: "Loma de Colón, Mar del Plata")
@@ -89,7 +89,7 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       g4: L({ id: 'g4', x: 51, y: 52.6, w: 41.59, h: 15, radius: 22, z: 2 }),
       g5: L({ id: 'g5', x: 7.41, y: 68.34, w: 85.65, h: 20.26, radius: 22, z: 2 }),
       // Título + subtítulo (movidos por el usuario)
-      addr: L({ id: 'addr', x: 7.41, y: 4.75, w: 68, font: 'Playfair Display', size: 72, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
+      addr: L({ id: 'addr', x: 7.41, y: 4.75, w: 68, font: 'Gill Sans MT', size: 72, color: '#2b1a14', weight: 700, lineHeight: 1.0 }),
       lbl: L({ id: 'lbl', x: 20.25, y: 20.84, w: 60, font: 'Inter', size: 30, color: '#a78b61', weight: 400 }),
       // Sticker (texto "EN VENTA") reubicado al centro-arriba y más angosto
       op: L({ id: 'op', x: 50.25, y: 9.53, w: 19.9, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 24, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 32, border: '2px solid rgba(255,255,255,0.9)', z: 30 }),
@@ -156,12 +156,12 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#2b1a14',
     floatingCard: true,
     defaultLayers: {
-      op: L({ id: 'op', x: 70.5, y: 4.5, w: 25.5, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Space Grotesk', size: 28, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 12, z: 30 }),
+      op: L({ id: 'op', x: 70.5, y: 4.5, w: 25.5, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Gill Sans MT', size: 28, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 12, z: 30 }),
       // Tarjeta compacta abajo (~tercio inferior): se ve ~62% de la foto arriba.
       // Kicker dorado
-      lbl: L({ id: 'lbl', x: 8.5, y: 64, w: 60, font: 'Space Grotesk', size: 26, color: '#9c7a35', weight: 700, letterSpacing: 6, uppercase: true }),
+      lbl: L({ id: 'lbl', x: 8.5, y: 64, w: 60, font: 'Gill Sans MT', size: 26, color: '#9c7a35', weight: 700, letterSpacing: 6, uppercase: true }),
       // Título grande (diferencial) — 2 líneas; auto-shrink en Renderer
-      addr: L({ id: 'addr', x: 8.5, y: 66.2, w: 64, font: 'Space Grotesk', size: 70, color: '#241710', weight: 700, lineHeight: 1.05 }),
+      addr: L({ id: 'addr', x: 8.5, y: 66.2, w: 64, font: 'Gill Sans MT', size: 70, color: '#241710', weight: 700, lineHeight: 1.05 }),
       // Logo Z original (a la derecha del título) + subrayado dorado y rombo
       logo: L({ id: 'logo', x: 79.5, y: 66, w: 13, h: 0 }),
       line2: L({ id: 'line2', x: 78.5, y: 74.4, w: 14, h: 0.08, bg: 'rgba(199,168,107,0.8)', z: 4 }),
@@ -170,11 +170,11 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       line: L({ id: 'line', x: 8.5, y: 77, w: 58, h: 0.09, bg: 'rgba(199,168,107,0.55)', z: 4 }),
       dot: L({ id: 'dot', x: 36, y: 76.3, w: 2.1, h: 1.18, bg: '#c7a86b', rotation: 45, z: 6 }),
       // Precio grande en rojo
-      price: L({ id: 'price', x: 8.5, y: 79.4, w: 84, font: 'Space Grotesk', size: 92, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      price: L({ id: 'price', x: 8.5, y: 79.4, w: 84, font: 'Gill Sans MT', size: 92, color: '#d9221f', weight: 700, lineHeight: 1 }),
       // Atributos con íconos
-      amen: L({ id: 'amen', x: 8.5, y: 87.8, w: 85, font: 'Space Grotesk', size: 33, color: '#2b1a14', letterSpacing: 0.3 }),
+      amen: L({ id: 'amen', x: 8.5, y: 87.8, w: 85, font: 'Gill Sans MT', size: 33, color: '#2b1a14', letterSpacing: 0.3 }),
       // Ubicación con pin (dirección) + hairline arriba, pegada al pie de la tarjeta
-      barrio: L({ id: 'barrio', x: 8.5, y: 92.3, w: 84, font: 'Space Grotesk', size: 32, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.55)', padding: 24 }),
+      barrio: L({ id: 'barrio', x: 8.5, y: 92.3, w: 84, font: 'Gill Sans MT', size: 32, color: '#2b1a14', weight: 500, borderTop: '1px solid rgba(199,168,107,0.55)', padding: 24 }),
     },
   },
 
@@ -192,19 +192,19 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     defaultLayers: {
       photo: L({ id: 'photo', x: 0, y: 0, w: 100, h: 64, z: 0 }),
       // Tag "EN VENTA" outline (borde rojo, fondo transparente) arriba-izq sobre la foto
-      op: L({ id: 'op', x: 5, y: 4.5, w: 0, h: 0, bg: 'transparent', border: '2px solid #d9221f', color: '#d9221f', font: 'Space Grotesk', size: 26, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 8, z: 30 }),
+      op: L({ id: 'op', x: 5, y: 4.5, w: 0, h: 0, bg: 'transparent', border: '2px solid #d9221f', color: '#d9221f', font: 'Gill Sans MT', size: 26, weight: 700, align: 'center', letterSpacing: 2, uppercase: true, padding: 16, radius: 8, z: 30 }),
       // Kicker dorado tenue
-      lbl: L({ id: 'lbl', x: 7, y: 66.5, w: 62, font: 'Space Grotesk', size: 27, color: '#b08c3f', weight: 600, letterSpacing: 5, uppercase: true }),
+      lbl: L({ id: 'lbl', x: 7, y: 66.5, w: 62, font: 'Gill Sans MT', size: 27, color: '#b08c3f', weight: 600, letterSpacing: 5, uppercase: true }),
       // Título (diferencial) — peso medio, elegante; 2 líneas; auto-shrink en Renderer
-      addr: L({ id: 'addr', x: 7, y: 69.2, w: 68, font: 'Space Grotesk', size: 78, color: '#0e0e0e', weight: 500, lineHeight: 1.05 }),
+      addr: L({ id: 'addr', x: 7, y: 69.2, w: 68, font: 'Gill Sans MT', size: 78, color: '#0e0e0e', weight: 500, lineHeight: 1.05 }),
       // Logo Z original a la derecha (mismo asset de siempre)
       logo: L({ id: 'logo', x: 80, y: 67, w: 12.5, h: 0 }),
       // Precio rojo
-      price: L({ id: 'price', x: 7, y: 82, w: 86, font: 'Space Grotesk', size: 90, color: '#d9221f', weight: 700, lineHeight: 1 }),
+      price: L({ id: 'price', x: 7, y: 82, w: 86, font: 'Gill Sans MT', size: 90, color: '#d9221f', weight: 700, lineHeight: 1 }),
       // Datos clave con íconos (respeta attrsOn)
-      amen: L({ id: 'amen', x: 7, y: 89.6, w: 86, font: 'Space Grotesk', size: 34, color: '#0e0e0e', letterSpacing: 0.3 }),
+      amen: L({ id: 'amen', x: 7, y: 89.6, w: 86, font: 'Gill Sans MT', size: 34, color: '#0e0e0e', letterSpacing: 0.3 }),
       // Ubicación con pin (dirección + ciudad)
-      barrio: L({ id: 'barrio', x: 7, y: 93.8, w: 86, font: 'Space Grotesk', size: 34, color: '#0e0e0e', weight: 500 }),
+      barrio: L({ id: 'barrio', x: 7, y: 93.8, w: 86, font: 'Gill Sans MT', size: 34, color: '#0e0e0e', weight: 500 }),
     },
   },
 
@@ -224,16 +224,23 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       // Pill "EN VENTA" centrada, montada sobre el borde de la foto
       op: L({ id: 'op', x: 36.5, y: 53.1, w: 27, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 30, weight: 800, align: 'center', letterSpacing: 2, uppercase: true, padding: 20, radius: 60, z: 30 }),
       // Título serif oscuro centrado (2 líneas; auto-shrink en Renderer)
-      addr: L({ id: 'addr', x: 6, y: 59.2, w: 88, font: 'Playfair Display', size: 88, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
+      addr: L({ id: 'addr', x: 6, y: 59.2, w: 88, font: 'Gill Sans MT', size: 88, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
       // Precio serif rojo centrado
-      price: L({ id: 'price', x: 6, y: 70.8, w: 88, font: 'Playfair Display', size: 88, color: '#d9221f', weight: 700, align: 'center', lineHeight: 1 }),
-      // Detalles con íconos de línea oscuros y separadores "/"
-      amen: L({ id: 'amen', x: 5, y: 78.6, w: 90, font: 'Inter', size: 36, color: '#232434', letterSpacing: 0.2 }),
+      price: L({ id: 'price', x: 6, y: 70.8, w: 88, font: 'Gill Sans MT', size: 88, color: '#d9221f', weight: 700, align: 'center', lineHeight: 1 }),
+      // Línea de detalles con íconos "/" — APAGADA por defecto: los datos van como
+      // burbujas (extras). Se puede prender desde el inspector si se prefiere.
+      amen: L({ id: 'amen', x: 5, y: 78.6, w: 90, font: 'Inter', size: 36, color: '#232434', letterSpacing: 0.2, visible: false }),
+      // Burbujas: datos de la prop (amb / m² / baños / cochera) + destacados a mano.
+      // Es el formato default Nano; el Renderer re-apila las posiciones.
+      extras: L({ id: 'extras', x: 2, y: 73.0, w: 96, font: 'Inter', size: 34, color: '#232434', align: 'center' }),
+      // Box "ENTREGA ESTIMADA · JULIO 2028" (solo si hay fecha de entrega)
+      desc: L({ id: 'desc', x: 5, y: 84.4, w: 90, font: 'Inter', size: 32, color: '#232434', align: 'center' }),
       // Ubicación con pin de línea: "Barrio · Ciudad"
       barrio: L({ id: 'barrio', x: 5, y: 83.2, w: 90, font: 'Inter', size: 36, color: '#232434', weight: 500, align: 'center' }),
       // Pie de marca: Z rojo + wordmark ZAMBONI (tag) + web en gris (lbl)
       logo: L({ id: 'logo', x: 32.4, y: 87.8, w: 6.2, h: 0 }),
-      tag: L({ id: 'tag', x: 40.4, y: 88.6, w: 40, font: 'Inter', size: 44, color: '#232434', weight: 800, letterSpacing: 10, uppercase: true }),
+      // Wordmark ajustado por el usuario (2026-08-21): más grande y sin tracking ancho.
+      tag: L({ id: 'tag', x: 40.4, y: 88.6, w: 25, font: 'Gill Sans MT', size: 49, color: '#232434', weight: 700, letterSpacing: 0, uppercase: true }),
       lbl: L({ id: 'lbl', x: 10, y: 93.6, w: 80, font: 'Inter', size: 30, color: '#8a8580', align: 'center', letterSpacing: 0.5 }),
     },
   },
@@ -250,19 +257,21 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#232434',
     gallery: true,
     defaultLayers: {
-      op: L({ id: 'op', x: 36.5, y: 3.2, w: 27, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 28, weight: 800, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 60, z: 30 }),
-      addr: L({ id: 'addr', x: 6, y: 8.4, w: 88, font: 'Playfair Display', size: 74, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
-      // Mosaico: 1 grande + 2 chicas
-      g0: L({ id: 'g0', x: 5, y: 19.5, w: 90, h: 31, radius: 24, z: 2 }),
-      g1: L({ id: 'g1', x: 5, y: 52.5, w: 43.8, h: 18.5, radius: 24, z: 2 }),
-      g2: L({ id: 'g2', x: 51.2, y: 52.5, w: 43.8, h: 18.5, radius: 24, z: 2 }),
+      // Layout definido por el usuario (2026-08-21): 3 fotos grandes apiladas a lo
+      // ancho, separación uniforme, pie de marca abajo. Reemplaza al mosaico 1+2.
+      op: L({ id: 'op', x: 36.5, y: 3.9, w: 27, h: 0, bg: '#d9221f', color: '#ffffff', font: 'Inter', size: 28, weight: 800, align: 'center', letterSpacing: 2, uppercase: true, padding: 18, radius: 60, z: 30 }),
+      addr: L({ id: 'addr', x: 6, y: 8.2, w: 88, font: 'Gill Sans MT', size: 74, color: '#232434', weight: 700, align: 'center', lineHeight: 1.08 }),
+      // 3 fotos full-width apiladas (gap uniforme 0.8)
+      g0: L({ id: 'g0', x: 5, y: 16.4, w: 90, h: 23.6, radius: 24, z: 2 }),
+      g1: L({ id: 'g1', x: 5, y: 40.8, w: 90, h: 23.6, radius: 24, z: 2 }),
+      g2: L({ id: 'g2', x: 5, y: 65.2, w: 90, h: 23.6, radius: 24, z: 2 }),
       // Línea de detalles (oculta por defecto; el import la deja cargada y la activa)
-      amen: L({ id: 'amen', x: 6, y: 73, w: 88, font: 'Inter', size: 30, color: '#232434', visible: false }),
+      amen: L({ id: 'amen', x: 6, y: 77, w: 88, font: 'Inter', size: 30, color: '#232434', visible: false }),
       // "Más fotos en zambonipropiedades.com"
-      lbl: L({ id: 'lbl', x: 6, y: 77.2, w: 88, font: 'Inter', size: 36, color: '#232434', weight: 500, align: 'center' }),
-      // Pie de marca Z + ZAMBONI
-      logo: L({ id: 'logo', x: 32.4, y: 82.2, w: 6.2, h: 0 }),
-      tag: L({ id: 'tag', x: 40.4, y: 83, w: 40, font: 'Inter', size: 44, color: '#232434', weight: 800, letterSpacing: 10, uppercase: true }),
+      lbl: L({ id: 'lbl', x: 6, y: 89.7, w: 88, font: 'Inter', size: 36, color: '#232434', weight: 500, align: 'center' }),
+      // Pie de marca Z + ZAMBONI (mismo wordmark que t25: grande y sin tracking)
+      logo: L({ id: 'logo', x: 31.4, y: 93.1, w: 6.2, h: 0 }),
+      tag: L({ id: 'tag', x: 38.9, y: 93.3, w: 25, font: 'Gill Sans MT', size: 49, color: '#232434', weight: 700, letterSpacing: 0, uppercase: true }),
     },
   },
 ];

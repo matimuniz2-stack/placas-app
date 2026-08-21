@@ -16,7 +16,7 @@ import { isMetaTemplate, CUSTOM_SLOTS } from '@/lib/metaAd';
 import { getEffectiveLayer } from '@/lib/store';
 import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
 import type { LayerId, PlacaData } from '@/types';
-import { Bed, Bath, Maximize, Car, MapPin, Landmark, Receipt, Sparkles } from 'lucide-react';
+import { Bed, Bath, Maximize, Car, MapPin, Landmark, Receipt, Sparkles, HardHat, CalendarClock, Percent } from 'lucide-react';
 
 // El overlay de t16 (fundido de la foto al panel crema) tiene el color de fondo
 // horneado en el gradiente: si el usuario cambia el fondo, lo regeneramos con su color.
@@ -55,10 +55,15 @@ const ATTR_ICONS: Record<string, React.ElementType> = {
   aptoCredito: Landmark,
   expensas: Receipt,
   antiguedad: Sparkles,
+  enPozo: HardHat,
+  entrega: CalendarClock,
+  financiacion: Percent,
 };
 
-function amenIcons(d: PlacaData, nano?: boolean): React.ReactNode {
-  const items = attrItems(d).map((a) => ({ Icon: ATTR_ICONS[a.key] || Maximize, label: a.label }));
+function amenIcons(d: PlacaData, nano?: boolean, skip?: Set<string>): React.ReactNode {
+  const items = attrItems(d)
+    .filter((a) => !skip?.has(a.key))
+    .map((a) => ({ Icon: ATTR_ICONS[a.key] || Maximize, label: a.label }));
   if (!items.length) return '';
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: nano ? 'center' : undefined, gap: '0.65em', width: '100%' }}>
@@ -95,6 +100,96 @@ function pinLine(primary: string, city: string, nano?: boolean): React.ReactNode
       {text}
     </span>
   );
+}
+
+// Destacados del Nano: pills con borde fino, centradas, en mayúsculas chicas.
+function featPills(list: string[]): React.ReactNode {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5em', width: '100%' }}>
+      {list.map((t, i) => (
+        <span
+          key={i}
+          style={{
+            // Borde y radio en em: la burbuja escala entera cuando se agranda la capa.
+            border: '0.09em solid rgba(35,36,52,0.25)',
+            borderRadius: '3em',
+            padding: '0.5em 0.95em',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            fontSize: '0.76em',
+            color: NANO_INK,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Box "ENTREGA ESTIMADA · JULIO 2028" del Nano (borde rojo suave, fecha en rojo).
+function entregaBox(entrega: string): React.ReactNode {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.55em',
+          border: '0.08em solid rgba(217,34,31,0.45)',
+          borderRadius: '3em',
+          padding: '0.55em 1.1em',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <CalendarClock style={{ width: '1em', height: '1em', color: NANO_INK, flexShrink: 0 }} strokeWidth={2.1} />
+        <span style={{ fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', fontSize: '0.78em', color: NANO_INK }}>Entrega estimada</span>
+        <span style={{ fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.82em', color: '#d9221f' }}>{entrega}</span>
+      </span>
+    </div>
+  );
+}
+
+// Re-apilado vertical del t25 cuando hay destacados y/o entrega: se compacta el
+// bloque de texto para que entre todo sin pisarse (el drag manual manda). Estima
+// cuántas filas ocupan las pills y, si sobra lugar, centra el bloque bajando todo.
+function t25Stack(featList: string[], ent: boolean, amenOn: boolean): Partial<Record<string, { y: number }>> {
+  const feat = featList.length > 0;
+  if (!feat && !ent) return {};
+  // Ancho estimado por pill (font 34 → 0.76em): ~14.2px por carácter + padding/gap.
+  const rows = feat
+    ? Math.max(1, Math.ceil(featList.reduce((a, t) => a + t.length * 14.2 + 66, 0) / 972))
+    : 0;
+  const out: Record<string, { y: number }> = { addr: { y: 57.9 }, price: { y: 66.4 } };
+  let y = 72.6;
+  if (amenOn) { out.amen = { y }; y += 3.6; }
+  if (feat) { out.extras = { y }; y += rows * 3.8 + 1.2; }
+  if (ent) { out.desc = { y }; y += 5.2; }
+  // El pin de ubicación lleva aire propio antes y después (no pegado al pie).
+  out.barrio = { y: y + 0.6 };
+  out.logo = { y: y + 4.2 };
+  out.tag = { y: y + 4.9 };
+  out.lbl = { y: y + 8.2 };
+  // Si el pie quedó por encima del lugar del diseño base, bajamos todo a medias
+  // (queda centrado entre la foto y el borde inferior).
+  const shift = Math.max(0, (95.9 - (y + 8.2)) / 2);
+  if (shift) for (const k of Object.keys(out)) out[k] = { y: out[k].y + shift };
+  return out;
+}
+
+// Burbujas del t25: los DATOS de la prop (amb, m², baños, cochera…) + los destacados
+// escritos a mano, todos como pills. Es el formato default de la familia Nano
+// (la línea de íconos quedó apagada por defecto). "amb" se expande a "ambientes".
+function t25Bubbles(d: PlacaData): string[] {
+  const skip = new Set<string>(['enPozo']); // la pill roja ya dice EN POZO
+  if (d.entrega && d.entrega.trim()) skip.add('entrega'); // va en su propio box
+  const attrs = attrItems(d)
+    .filter((a) => !skip.has(a.key))
+    .map((a) => a.label.replace(/^1 amb$/, 'Monoambiente').replace(/^(\d+) amb$/, '$1 ambientes'));
+  const feats = (d.destacados || []).map((s) => s.trim()).filter(Boolean);
+  return [...attrs, ...feats];
 }
 
 // Kicker del t16: "DEPTO EN VENTA" (abrevia "Departamento" como el reference).
@@ -181,7 +276,10 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           // si no, va el barrio + ciudad (modo manual clásico).
           const useAddr = !!(data.titulo && data.titulo.trim());
           const primary = useAddr ? data.addr : data.barrio;
-          const city = tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' || tpl.id === 't25' ? data.city || '' : '';
+          const cityBase = tpl.id === 't16' || tpl.id === 't23' || tpl.id === 't24' || tpl.id === 't25' ? data.city || '' : '';
+          // Con título-gancho, el pie lleva la ubicación completa: dirección · barrio · ciudad.
+          const sep = NANO.has(tpl.id) ? ' · ' : ', ';
+          const city = useAddr ? [data.barrio, cityBase].filter(Boolean).join(sep) : cityBase;
           return pinLine(primary, city, NANO.has(tpl.id));
         }
         return data.barrio ? '📍 ' + data.barrio : '';
@@ -202,25 +300,41 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         // Si el usuario escribió una línea custom, respetarla tal cual; si no, en la
         // familia crema (t16) mostrar la línea con dibujitos.
         if (data.amenText && data.amenText.trim()) return data.amenText;
-        if (ICON_AMEN.has(tpl.id)) return amenIcons(data, NANO.has(tpl.id));
+        if (ICON_AMEN.has(tpl.id)) {
+          // Si la pill ya dice "EN POZO" o el box de entrega está visible, no
+          // repetimos esos datos en la línea de íconos.
+          const skip = new Set<string>();
+          if (data.enPozo && (tpl.id === 't16' || tpl.id === 't18' || tpl.id === 't25')) skip.add('enPozo');
+          if (tpl.id === 't25' && data.entrega && data.entrega.trim()) skip.add('entrega');
+          return amenIcons(data, NANO.has(tpl.id), skip.size ? skip : undefined);
+        }
         return amenString(data);
       case 'op': {
         if (tpl.id === 't26') return 'POR DENTRO';
+        if (data.enPozo && (tpl.id === 't16' || tpl.id === 't18' || tpl.id === 't25')) return 'EN POZO';
         if (!data.op) return '';
         const opTxt = tpl.id === 't17' ? data.op.toUpperCase() : (tpl.id === 't16' || tpl.id === 't18' || tpl.id === 't25') ? `EN ${data.op.toUpperCase()}` : data.op.toUpperCase();
         return opTxt;
       }
       case 'desc':
+        // t25: el slot desc es el box "ENTREGA ESTIMADA · fecha".
+        if (tpl.id === 't25') return data.entrega && data.entrega.trim() ? entregaBox(data.entrega.trim()) : '';
         return data.desc || '';
-      case 'extras':
+      case 'extras': {
+        // t25: el slot extras son las burbujas (datos de la prop + destacados).
+        if (tpl.id === 't25') {
+          const list = t25Bubbles(data);
+          return list.length ? featPills(list) : '';
+        }
         return extrasString(data);
+      }
       case 'tag':
         // Familia Nano: el tag es el wordmark del pie de marca (junto al logo Z).
         if (NANO.has(tpl.id)) return 'ZAMBONI';
         return data.barrio;
       case 'lbl':
-        if (tpl.id === 't25') return 'zambonipropiedades.com';
-        if (tpl.id === 't26') return 'Más fotos en zambonipropiedades.com';
+        if (tpl.id === 't25') return 'zambonipropiedades.com.ar';
+        if (tpl.id === 't26') return 'Más fotos en zambonipropiedades.com.ar';
         return (tpl.id === 't17' || tpl.id === 't18') ? 'Más imágenes de la propiedad' : tpl.id === 't16' ? kickerText(data) : data.op;
       case 'num':
         return '01';
@@ -231,6 +345,12 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
 
   // Effective bg
   const effectiveBg = bgColor || '#fff';
+
+  // t25: insumos del re-apilado (burbujas de datos+destacados / box de entrega)
+  const t25FeatList = tpl.id === 't25' ? t25Bubbles(data) : [];
+  const t25HasEnt = tpl.id === 't25' && !!(data.entrega && data.entrega.trim());
+  // La línea de íconos quedó apagada por defecto en t25; solo cuenta si el usuario la prendió.
+  const t25AmenOn = tpl.id === 't25' && !noOverrides && (storeOverrides.amen?.visible ?? false);
 
   return (
     <div
@@ -299,12 +419,36 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           } else if (tpl.id === 't24') {
             defaults = { ...defaults, size: len <= 12 ? 92 : len <= 20 ? 78 : len <= 30 ? 66 : 56 };
           } else if (tpl.id === 't25') {
-            // Centrado a 88% de ancho: entra más texto por línea que en los editoriales
-            defaults = { ...defaults, size: len <= 14 ? 100 : len <= 22 ? 90 : len <= 34 ? 82 : len <= 44 ? 70 : 60 };
+            // Centrado a 88% de ancho: entra más texto por línea que en los editoriales.
+            // En modo compacto (con destacados/entrega) el título va un paso más chico.
+            const compact = t25FeatList.length > 0 || t25HasEnt;
+            defaults = compact
+              ? { ...defaults, size: len <= 14 ? 92 : len <= 22 ? 82 : len <= 34 ? 74 : len <= 44 ? 64 : 54 }
+              : { ...defaults, size: len <= 14 ? 100 : len <= 22 ? 90 : len <= 34 ? 82 : len <= 44 ? 70 : 60 };
           } else if (tpl.id === 't26') {
             defaults = { ...defaults, size: len <= 16 ? 84 : len <= 26 ? 74 : len <= 38 ? 66 : 56 };
           } else {
             defaults = { ...defaults, size: len <= 13 ? 104 : len <= 18 ? 84 : len <= 24 ? 72 : 60 };
+          }
+        }
+        // t25: con destacados/entrega presentes se re-apilan las posiciones (drag manda).
+        if (tpl.id === 't25') {
+          const pos = t25Stack(t25FeatList, t25HasEnt, t25AmenOn)[lid];
+          if (pos && overrides[lid]?.y == null) defaults = { ...defaults, ...pos };
+        }
+        // t25: la línea de íconos se achica sola para entrar en UNA línea (con
+        // sufijos tipo "totales" / "+ toilette" / "descubierta" se hace larga).
+        if (tpl.id === 't25' && lid === 'amen' && overrides.amen?.size == null && !(data.amenText && data.amenText.trim())) {
+          const skip = new Set<string>();
+          if (data.enPozo) skip.add('enPozo');
+          if (data.entrega && data.entrega.trim()) skip.add('entrega');
+          const items = attrItems(data).filter((a) => !skip.has(a.key));
+          if (items.length) {
+            const chars = items.reduce((a, i) => a + i.label.length, 0);
+            // Ancho estimado en em: ~0.56 por carácter + ícono, "/" y gaps por ítem.
+            const est = 0.56 * chars + 2.3 * items.length;
+            const fit = Math.floor(972 / est);
+            defaults = { ...defaults, size: Math.max(21, Math.min(36, fit)) };
           }
         }
         const ov = overrides[lid];
@@ -323,8 +467,10 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           const iconAmen = lid === 'amen' && ICON_AMEN.has(tpl.id) && !(data.amenText && data.amenText.trim());
           // Ídem ubicación con pin dibujado: se edita desde el campo Barrio.
           const iconBarrio = lid === 'barrio' && PIN_BARRIO.has(tpl.id) && tOv === undefined;
+          // Ídem destacados/entrega del t25: se editan desde el panel de datos.
+          const iconFeat = tpl.id === 't25' && (lid === 'extras' || lid === 'desc') && tOv === undefined;
           return (
-            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable={!iconAmen && !iconBarrio}>
+            <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable={!iconAmen && !iconBarrio && !iconFeat}>
               {content}
             </TextLayer>
           );
@@ -360,8 +506,17 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         );
       })}
 
-      {/* Logo */}
-      {tpl.defaultLayers.logo && <Logo defaults={tpl.defaultLayers.logo as any} interactive={interactive} />}
+      {/* Logo (en t25 sigue el re-apilado de destacados/entrega, salvo drag manual) */}
+      {tpl.defaultLayers.logo && (
+        <Logo
+          defaults={
+            (tpl.id === 't25' && overrides.logo?.y == null
+              ? { ...tpl.defaultLayers.logo, ...t25Stack(t25FeatList, t25HasEnt, t25AmenOn).logo }
+              : tpl.defaultLayers.logo) as any
+          }
+          interactive={interactive}
+        />
+      )}
 
       {/* Badges (stickers) */}
       <Badges />

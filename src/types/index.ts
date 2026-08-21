@@ -101,6 +101,13 @@ export interface PlacaData {
   op: 'Venta' | 'Alquiler';
   expensas?: string;
   antiguedad?: string;
+  enPozo?: boolean; // emprendimiento en pozo (pill "EN POZO" + dato clave)
+  entrega?: string; // fecha de entrega, ej "Dic 2026"
+  financiacion?: boolean; // muestra "Financiación" en datos clave
+  destacados?: string[]; // features de la prop (uno por línea en la UI), ej "Balcón al frente"
+  m2Tipo?: '' | 'totales' | 'cubiertos'; // sufijo de los m² ("75 m² totales")
+  toilette?: boolean; // "1 baño + toilette"
+  cocheraTipo?: '' | 'cubierta' | 'descubierta'; // "1 cochera descubierta"
   desc?: string;
   listingUrl?: string;
   amenText?: string; // override manual de la línea de detalles (amb · m² · baños…)

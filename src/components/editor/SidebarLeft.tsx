@@ -260,7 +260,10 @@ const DatosTab: React.FC = () => {
       <Field label="Tipo de propiedad" v={data.tipoPropiedad || ''} on={(v) => patchData({ tipoPropiedad: v })} ph="ej: Departamento" />
       <Field label="Título (gancho)" v={data.titulo || ''} on={(v) => patchData({ titulo: v })} ph="ej: Exclusivo 4 ambientes" />
       <Field label="Dirección" v={data.addr} on={(v) => patchData({ addr: v })} />
-      <Field label="Barrio" v={data.barrio} on={(v) => patchData({ barrio: v })} />
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Barrio" v={data.barrio} on={(v) => patchData({ barrio: v })} />
+        <Field label="Ciudad" v={data.city || ''} on={(v) => patchData({ city: v })} ph="Mar del Plata" />
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -277,6 +280,32 @@ const DatosTab: React.FC = () => {
         <Field label="Amb" v={data.amb} on={(v) => patchData({ amb: v })} />
         <Field label="m²" v={data.m2} on={(v) => patchData({ m2: v })} />
         <Field label="Baños" v={data.baths} on={(v) => patchData({ baths: v })} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="label">m² (tipo)</label>
+          <select className="select" value={data.m2Tipo || ''} onChange={(e) => patchData({ m2Tipo: e.target.value as any })}>
+            <option value="">—</option>
+            <option value="totales">totales</option>
+            <option value="cubiertos">cubiertos</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Toilette</label>
+          <select className="select" value={data.toilette ? 'Sí' : 'No'} onChange={(e) => patchData({ toilette: e.target.value === 'Sí' })}>
+            <option>No</option>
+            <option>Sí</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Cochera (tipo)</label>
+          <select className="select" value={data.cocheraTipo || ''} onChange={(e) => patchData({ cocheraTipo: e.target.value as any })}>
+            <option value="">—</option>
+            <option value="cubierta">cubierta</option>
+            <option value="descubierta">descubierta</option>
+          </select>
+        </div>
       </div>
 
       <div>
@@ -328,6 +357,32 @@ const DatosTab: React.FC = () => {
         <Field label="Antigüedad" v={data.antiguedad || ''} on={(v) => patchData({ antiguedad: v })} ph="años" />
       </div>
 
+      <div className="bg-brand/5 border border-brand/20 rounded-md p-2.5 space-y-2">
+        <div className="text-[10px] font-bold tracking-[1.5px] uppercase text-brand">Emprendimiento / En pozo</div>
+        <div className="grid grid-cols-2 gap-2">
+          <Toggle label="En pozo" v={data.enPozo ?? false} on={(v) => patchData({ enPozo: v })} />
+          <Toggle label="Financiación" v={data.financiacion ?? false} on={(v) => patchData({ financiacion: v })} />
+        </div>
+        <Field label="Fecha de entrega" v={data.entrega || ''} on={(v) => patchData({ entrega: v })} ph="ej: Dic 2026" />
+        <p className="text-[10px] text-neutral-400 leading-snug">
+          "En pozo" reemplaza la pill roja (EN POZO). La entrega aparece como box "ENTREGA ESTIMADA" en el template Nano.
+        </p>
+      </div>
+
+      <div>
+        <label className="label">Destacados (uno por línea)</label>
+        <textarea
+          className="input h-auto py-1.5"
+          rows={4}
+          value={(data.destacados || []).join('\n')}
+          placeholder={'Dormitorio con vestidor\nBalcón al frente\nVentilación cruzada'}
+          onChange={(e) => patchData({ destacados: e.target.value.split('\n') })}
+        />
+        <p className="text-[10px] text-neutral-400 mt-1 leading-snug">
+          Features de la propiedad. En el template Nano salen como pills con borde debajo de la línea de detalles.
+        </p>
+      </div>
+
       <Field label="Descripción" v={data.desc || ''} on={(v) => patchData({ desc: v })} ph="ej: Piso alto, vista al río" />
 
       <div>
@@ -357,6 +412,23 @@ const DatosTab: React.FC = () => {
     </div>
   );
 };
+
+const Toggle: React.FC<{ label: string; v: boolean; on: (v: boolean) => void }> = ({ label, v, on }) => (
+  <div>
+    <label className="label">{label}</label>
+    <div className="grid grid-cols-2 gap-1.5">
+      {([['Sí', true], ['No', false]] as const).map(([lbl, val]) => (
+        <button
+          key={lbl}
+          onClick={() => on(val)}
+          className={`h-8 rounded text-xs font-medium border transition ${v === val ? 'bg-brand text-white border-brand' : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'}`}
+        >
+          {lbl}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 const Field: React.FC<{ label: string; v: string; on: (v: string) => void; ph?: string }> = ({ label, v, on, ph }) => (
   <div>

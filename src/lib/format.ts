@@ -39,9 +39,17 @@ export function cocheraLabel(n: number): string {
 // `label(d)` devuelve el texto del chip o null si la propiedad no tiene ese dato.
 export const ATTR_DEFS: { key: string; defaultOn: boolean; label: (d: PlacaData) => string | null }[] = [
   { key: 'amb', defaultOn: true, label: (d) => (d.amb ? `${d.amb} amb` : null) },
-  { key: 'm2', defaultOn: true, label: (d) => (d.m2 ? `${d.m2} m²` : null) },
-  { key: 'baths', defaultOn: true, label: (d) => (d.baths ? `${d.baths} ${d.baths === '1' ? 'baño' : 'baños'}` : null) },
-  { key: 'cochera', defaultOn: true, label: (d) => { const c = cocheraCount(d); return c > 0 ? `${c} ${cocheraLabel(c)}` : null; } },
+  { key: 'm2', defaultOn: true, label: (d) => (d.m2 ? `${d.m2} m²${d.m2Tipo ? ' ' + d.m2Tipo : ''}` : null) },
+  { key: 'baths', defaultOn: true, label: (d) => (d.baths ? `${d.baths} ${d.baths === '1' ? 'baño' : 'baños'}${d.toilette ? ' + toilette' : ''}` : null) },
+  { key: 'cochera', defaultOn: true, label: (d) => {
+      const c = cocheraCount(d);
+      if (c === 0) return null;
+      const tipo = d.cocheraTipo ? ' ' + (c === 1 ? d.cocheraTipo : d.cocheraTipo + 's') : '';
+      return `${c} ${cocheraLabel(c)}${tipo}`;
+    } },
+  { key: 'enPozo', defaultOn: true, label: (d) => (d.enPozo ? 'En pozo' : null) },
+  { key: 'entrega', defaultOn: true, label: (d) => (d.entrega ? `Entrega ${d.entrega}` : null) },
+  { key: 'financiacion', defaultOn: true, label: (d) => (d.financiacion ? 'Financiación' : null) },
   { key: 'aptoCredito', defaultOn: false, label: (d) => (d.aptoCredito ? 'Apto crédito' : null) },
   { key: 'expensas', defaultOn: false, label: (d) => (d.expensas ? `Expensas $${d.expensas}` : null) },
   { key: 'antiguedad', defaultOn: false, label: (d) => {
@@ -144,6 +152,9 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (cc > 0) lines.push(`• ${cc} ${ccCap.toLowerCase()}`);
     if (d.expensas) lines.push(`• Expensas: $${d.expensas}`);
     if (d.antiguedad) lines.push(`• Antigüedad: ${d.antiguedad} años`);
+    if (d.enPozo) lines.push('• Emprendimiento en pozo');
+    if (d.entrega) lines.push(`• Entrega: ${d.entrega}`);
+    if (d.financiacion) lines.push('• Financiación disponible');
     lines.push('');
     lines.push(`Valor: ${d.currency} ${d.price}`);
     lines.push('');
@@ -196,6 +207,10 @@ export function buildCaption(d: PlacaData, style: 'formal' | 'casual' | 'premium
     if (cc > 0) lines.push(`🚗 ${cc} ${ccCap.toLowerCase()}${cc === 1 ? ' fija' : ' fijas'}`);
     if (d.expensas) lines.push(`💵 Expensas: $ ${d.expensas}`);
     if (d.antiguedad) lines.push(`🏗 ${d.antiguedad} años de antigüedad`);
+    if (d.enPozo) lines.push('🏗 En pozo — precio de lanzamiento');
+    if (d.entrega) lines.push(`🗓 Entrega estimada: ${d.entrega}`);
+    if (d.financiacion) lines.push('💳 Financiación disponible');
+    for (const f of (d.destacados || []).map((s) => s.trim()).filter(Boolean)) lines.push(`✨ ${f}`);
     lines.push('');
     lines.push(`💰 ${d.currency} ${d.price || '—'}`);
     lines.push('');

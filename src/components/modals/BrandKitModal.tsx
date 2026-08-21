@@ -15,7 +15,7 @@ import { Plus, Save, Trash2, Upload, Check, Briefcase } from 'lucide-react';
 interface Props { open: boolean; onClose: () => void }
 
 const FONT_OPTIONS = [
-  'Inter', 'Bebas Neue', 'Cormorant Garamond', 'DM Serif Display',
+  'Gill Sans MT', 'Inter', 'Bebas Neue', 'Cormorant Garamond', 'DM Serif Display',
   'Marcellus', 'Tenor Sans', 'IBM Plex Mono', 'Cinzel',
   'Playfair Display', 'Space Grotesk', 'Italiana', 'Anton', 'Outfit',
 ];

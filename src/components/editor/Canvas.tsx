@@ -137,6 +137,81 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   const photoIsFullbleed = !tpl.defaultLayers.photo;
   const photoIsSelectedFullbleed = selected === 'photo' && photoIsFullbleed;
 
+  // ===== Selección múltiple: recuadro (marquee) + mover en grupo =====
+  // Arrastrar en el gris alrededor de la placa (o Shift+arrastrar en cualquier
+  // lado) dibuja un recuadro; las capas que toca quedan seleccionadas juntas.
+  const [multiSel, setMultiSel] = useState<HTMLElement[]>([]);
+  const [marquee, setMarquee] = useState<null | { x: number; y: number; w: number; h: number }>(null);
+  const marqueeRef = useRef({ on: false, x0: 0, y0: 0 });
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    const mv = (e: MouseEvent) => {
+      if (!marqueeRef.current.on) return;
+      const { x0, y0 } = marqueeRef.current;
+      setMarquee({ x: Math.min(x0, e.clientX), y: Math.min(y0, e.clientY), w: Math.abs(e.clientX - x0), h: Math.abs(e.clientY - y0) });
+    };
+    const up = (e: MouseEvent) => {
+      if (!marqueeRef.current.on) return;
+      marqueeRef.current.on = false;
+      setMarquee(null);
+      const { x0, y0 } = marqueeRef.current;
+      const rect = {
+        left: Math.min(x0, e.clientX),
+        top: Math.min(y0, e.clientY),
+        right: Math.max(x0, e.clientX),
+        bottom: Math.max(y0, e.clientY),
+      };
+      if (rect.right - rect.left < 8 && rect.bottom - rect.top < 8) return; // fue un click, no un recuadro
+      const root = placaRef.current;
+      if (!root) return;
+      const hits = (Array.from(root.querySelectorAll('[data-layer]')) as HTMLElement[]).filter((el) => {
+        const id = el.getAttribute('data-layer');
+        if (id === 'photo' && photoIsFullbleed) return false; // el fondo no entra al grupo
+        const r = el.getBoundingClientRect();
+        return r.left < rect.right && r.right > rect.left && r.top < rect.bottom && r.bottom > rect.top;
+      });
+      // El click fantasma que dispara el navegador al soltar no debe tocar la selección.
+      suppressClickRef.current = true;
+      setTimeout(() => { suppressClickRef.current = false; }, 150);
+      if (hits.length >= 2) { select(null); setMultiSel(hits); }
+      else if (hits.length === 1) { setMultiSel([]); select(hits[0].getAttribute('data-layer') as any); }
+      else setMultiSel([]);
+    };
+    window.addEventListener('mousemove', mv);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+  }, [photoIsFullbleed, select]);
+
+  // Suprimir el click posterior al marquee (fase captura, antes que cualquier handler).
+  useEffect(() => {
+    const cap = (e: MouseEvent) => {
+      if (suppressClickRef.current) { e.stopPropagation(); e.preventDefault(); }
+    };
+    document.addEventListener('click', cap, true);
+    return () => document.removeEventListener('click', cap, true);
+  }, []);
+
+  // Salir del grupo: Escape, seleccionar una capa suelta, o cambiar template/formato.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMultiSel([]); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  useEffect(() => { if (selected) setMultiSel([]); }, [selected]);
+  useEffect(() => { setMultiSel([]); }, [templateId, format]);
+
+  const startMarquee = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('.moveable-control-box')) return;
+    const insidePlaca = !!t.closest('[data-placa-root]');
+    if (insidePlaca && !e.shiftKey) return; // sobre la placa, solo con Shift
+    marqueeRef.current = { on: true, x0: e.clientX, y0: e.clientY };
+    setMarquee({ x: e.clientX, y: e.clientY, w: 0, h: 0 });
+    e.preventDefault();
+  };
+
   // Dado el id de una capa, devuelve el índice de foto al que está vinculada si esa
   // capa es un "placeholder de foto" (foto contenida, celda de galería, fotos del
   // Meta Ad o un elemento custom de tipo foto). Devuelve null si no es de foto.
@@ -181,6 +256,8 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
   }, [patchActivePhoto]);
 
   const handlePlacaMouseDown = (e: React.MouseEvent) => {
+    // Shift+arrastrar = marquee de selección múltiple (no panear la foto)
+    if (e.shiftKey) return;
     // Only when no layer is selected OR the photo is the "fullbleed" selection
     if (selected && !photoIsSelectedFullbleed) return;
     const photos = usePlacaStore.getState().photos;
@@ -267,9 +344,14 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
     const newH = (e.height / size.h) * 100;
     const patch: any = { w: newW };
     if (layer.h) patch.h = newH;
+    // Capas de burbujas (destacados / box de entrega): agrandar la caja escala
+    // el texto proporcionalmente, así las pills crecen enteras (estilo Canva).
+    if ((selected === 'extras' || selected === 'desc') && layer.w && layer.size) {
+      patch.size = Math.max(12, Math.round(layer.size * (newW / layer.w)));
+    }
     patchLayer(selected, patch);
     e.target.style.width = `${e.width}px`;
-    e.target.style.height = `${e.height}px`;
+    if (layer.h) e.target.style.height = `${e.height}px`;
   };
 
   const handleRotate = (e: OnRotate) => {
@@ -305,8 +387,9 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       }}
       onClick={(e) => {
         // Click on empty canvas area deselects
-        if (e.target === e.currentTarget) select(null);
+        if (e.target === e.currentTarget) { select(null); setMultiSel([]); }
       }}
+      onMouseDown={startMarquee}
     >
       <div
         style={{
@@ -372,6 +455,32 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
             snapDistFormat={(v: number) => `${Math.round(v)}px`}
           />
         )}
+
+        {/* Grupo: mover varias capas juntas (seleccionadas con el marquee) */}
+        {multiSel.length >= 2 && (
+          <Moveable
+            key={`group-${moveableKey}-${multiSel.length}`}
+            target={multiSel}
+            draggable
+            origin={false}
+            zoom={1 / scale}
+            throttleDrag={1}
+            onDragGroup={(e: any) => {
+              for (const ev of e.events) {
+                const id = ev.target.getAttribute('data-layer');
+                if (!id) continue;
+                const layer = getEffectiveLayer(id as any);
+                if (!layer) continue;
+                const dx = (ev.delta[0] / size.w) * 100;
+                const dy = (ev.delta[1] / size.h) * 100;
+                patchLayer(id as any, { x: layer.x + dx, y: layer.y + dy });
+              }
+            }}
+            snappable
+            verticalGuidelines={[0, size.w / 2, size.w]}
+            horizontalGuidelines={[0, size.h / 2, size.h]}
+          />
+        )}
       </div>
 
       <div
@@ -389,8 +498,32 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
         }}
       >
         {Math.round(scale * 100)}%  ·  {size.w}×{size.h}
-        {canFramePhoto && <span className="ml-2 text-brand">· {photoBoxSelected ? 'arrastrá: encuadrar foto · Alt+arrastrá: mover · scroll: zoom · handles: tamaño' : 'drag/scroll para encuadrar'}</span>}
+        {multiSel.length >= 2 ? (
+          <span className="ml-2 text-brand">· {multiSel.length} capas: arrastrá para moverlas juntas · Esc para salir</span>
+        ) : (
+          <>
+            {canFramePhoto && <span className="ml-2 text-brand">· {photoBoxSelected ? 'arrastrá: encuadrar foto · Alt+arrastrá: mover · scroll: zoom · handles: tamaño' : 'drag/scroll para encuadrar'}</span>}
+            <span className="ml-2">· shift+arrastrá: seleccionar varias</span>
+          </>
+        )}
       </div>
+
+      {/* Recuadro del marquee */}
+      {marquee && (
+        <div
+          style={{
+            position: 'fixed',
+            left: marquee.x,
+            top: marquee.y,
+            width: marquee.w,
+            height: marquee.h,
+            border: '1.5px dashed #de1f1a',
+            background: 'rgba(222,31,26,0.06)',
+            zIndex: 1000,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
     </div>
   );
 });
