@@ -14,7 +14,7 @@ import { galleryCellIds } from '@/lib/galleryLayout';
 import { CUSTOM_SLOTS, META_LABELS, isMetaTemplate, metaBlockIdsFor } from '@/lib/metaAd';
 import type { LayerId, DesignPreset } from '@/types';
 
-type Tab = 'inspector' | 'templates' | 'tema';
+type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
 
 const FORMAT_SIZES = { story: { w: 1080, h: 1920 }, post: { w: 1080, h: 1350 } } as const;
 
@@ -69,7 +69,7 @@ export const SidebarRight: React.FC<SidebarRightProps> = ({ placaRef }) => {
       style={{ width: 300, flexShrink: 0 }}
     >
       <div className="flex border-b border-neutral-200 bg-panel">
-        {(['inspector', 'templates', 'tema'] as Tab[]).map((t) => (
+        {(['inspector', 'templates', 'tema', 'extras'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -83,6 +83,7 @@ export const SidebarRight: React.FC<SidebarRightProps> = ({ placaRef }) => {
         {tab === 'inspector' && <InspectorTab />}
         {tab === 'templates' && <TemplatesTab placaRef={placaRef} />}
         {tab === 'tema' && <TemaTab />}
+        {tab === 'extras' && <ExtrasTab />}
       </div>
     </aside>
   );
