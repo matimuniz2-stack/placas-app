@@ -119,6 +119,9 @@ export const Canvas = React.forwardRef<HTMLDivElement>((_, ref) => {
       if (lid === 'amen' && ['t16', 't25'].includes(st.templateId) && !(st.data.amenText && st.data.amenText.trim())) return;
       // Ídem la ubicación con pin dibujado (se edita desde el campo Barrio).
       if (lid === 'barrio' && ['t16', 't17', 't18', 't25'].includes(st.templateId) && st.textOverrides['barrio'] === undefined) return;
+      // t25: las burbujas de destacados y el box de entrega se editan desde el
+      // panel de datos; editarlos in-canvas los rompía a texto plano.
+      if ((lid === 'extras' || lid === 'desc') && st.templateId === 't25') return;
       const isMetaText =
         META_TEXT_EDITABLE.has(lid) ||
         (/^maC\d$/.test(lid) && st.customElements[lid]?.type === 'text');

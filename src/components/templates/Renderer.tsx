@@ -456,8 +456,12 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
         if (visible === false) return null;
 
         if (DATA_LAYERS.includes(lid)) {
+          // t25: destacados (extras) y entrega (desc) son SIEMPRE burbujas/box
+          // armados desde el panel de datos; un override de texto (p. ej. de un
+          // doble click viejo) los rompía a líneas planas, así que se ignora.
+          const bubbleSlot = tpl.id === 't25' && (lid === 'extras' || lid === 'desc');
           // El texto editado in-canvas (doble click) tiene prioridad sobre el auto.
-          const tOv = noOverrides ? undefined : textOverrides[lid];
+          const tOv = noOverrides || bubbleSlot ? undefined : textOverrides[lid];
           const content = tOv !== undefined ? tOv : getContent(lid);
           // Ocultar la capa si no hay contenido (evita "USD", "COCHERA" huérfanos).
           // Si hay override de texto (aunque sea ""), no la ocultamos: el usuario lo eligió.
@@ -468,7 +472,7 @@ export const PlacaRenderer: React.FC<Props> = ({ forCapture, overrideTemplateId,
           // Ídem ubicación con pin dibujado: se edita desde el campo Barrio.
           const iconBarrio = lid === 'barrio' && PIN_BARRIO.has(tpl.id) && tOv === undefined;
           // Ídem destacados/entrega del t25: se editan desde el panel de datos.
-          const iconFeat = tpl.id === 't25' && (lid === 'extras' || lid === 'desc') && tOv === undefined;
+          const iconFeat = bubbleSlot;
           return (
             <TextLayer key={lid} id={lid} defaults={defaults} interactive={interactive} editable={!iconAmen && !iconBarrio && !iconFeat}>
               {content}
