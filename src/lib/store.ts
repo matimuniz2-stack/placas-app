@@ -632,7 +632,7 @@ export function getCurrentTemplate() {
 }
 
 export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
-  const { templateId, layerOverrides, photos } = usePlacaStore.getState();
+  const { templateId, layerOverrides, photos, badges } = usePlacaStore.getState();
   const tpl = ALL_TEMPLATES.find((t) => t.id === templateId);
   let base = tpl?.defaultLayers?.[id];
   // Celdas de galería: la geometría base la da el motor adaptativo (según cantidad de
@@ -644,6 +644,15 @@ export function getEffectiveLayer(id: LayerId): LayerConfig | undefined {
   if (!base && isMetaTemplate(templateId)) base = metaBaseFor(templateId)[id];
   else if (!base) base = META_BASE[id] ?? META2_BASE[id];
   if (!base && /^maC\d$/.test(id)) base = customElBase(id, usePlacaStore.getState().customElements[id]?.type || 'text');
+  // Badge y QR no viven en defaultLayers de ningún template: base propia para que
+  // moveable pueda arrastrarlos/escalarlos (los defaults espejan los del componente).
+  if (!base && id === 'badge') {
+    const ribbon = badges.includes('reservado'); // único preset tipo banda diagonal
+    base = ribbon
+      ? ({ id: 'badge', x: -21.8, y: 3, w: 74, z: 30, rotation: -36, visible: true } as LayerConfig)
+      : ({ id: 'badge', x: 70, y: 4, w: 26, z: 20, visible: true } as LayerConfig);
+  }
+  if (!base && id === 'qr') base = { id: 'qr', x: 84, y: 88, w: 12, z: 30, visible: true } as LayerConfig;
   const override = layerOverrides[id];
   if (!base && !override) return undefined;
   return { ...(base as LayerConfig), ...(override || {}) } as LayerConfig;

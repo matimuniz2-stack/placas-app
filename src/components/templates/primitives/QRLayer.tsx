@@ -18,7 +18,8 @@ export const QRLayer: React.FC = () => {
   }, [url]);
 
   if (!url || !dataUrl) return null;
-  const pos = override || { x: 84, y: 88, w: 12, h: 0 };
+  // Defaults espejan la base de getEffectiveLayer('qr') en store.ts.
+  const pos = { x: 84, y: 88, w: 12, rotation: 0, ...(override || {}) };
 
   return (
     <div
@@ -28,6 +29,7 @@ export const QRLayer: React.FC = () => {
         left: `${pos.x}%`,
         top: `${pos.y}%`,
         width: `${pos.w}%`,
+        transform: `rotate(${pos.rotation ?? 0}deg)`,
         background: '#fff',
         padding: 8,
         boxShadow: '0 4px 12px rgba(0,0,0,0.18)',

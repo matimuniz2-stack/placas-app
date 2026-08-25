@@ -21,10 +21,17 @@ export const BADGE_PRESETS: BadgeDef[] = [
 ];
 
 // Banda diagonal cruzando la esquina superior izquierda (queda recortada por el
-// overflow:hidden del placa root). Medidas en px sobre el canvas de 1080 de ancho.
+// overflow:hidden del placa root). Geometría en % del canvas; los defaults deben
+// espejar la base de getEffectiveLayer('badge') en store.ts para que moveable
+// (drag/resize/rotate) y el render coincidan. Resize escala tipografía y alto.
+const RIBBON_BASE = { x: -21.8, y: 3, w: 74, rotation: -36 };
+
 const Ribbon: React.FC<{ b: BadgeDef }> = ({ b }) => {
   const select = usePlacaStore((s) => s.selectLayer);
   const selected = usePlacaStore((s) => s.selectedLayer === 'badge');
+  const override = usePlacaStore((s) => s.layerOverrides.badge);
+  const pos = { ...RIBBON_BASE, ...(override || {}) };
+  const k = pos.w / RIBBON_BASE.w;
   return (
     <div
       data-layer="badge"
@@ -34,11 +41,11 @@ const Ribbon: React.FC<{ b: BadgeDef }> = ({ b }) => {
       }}
       style={{
         position: 'absolute',
-        left: -235,
-        top: 57,
-        width: 800,
-        height: 130,
-        transform: 'rotate(-36deg)',
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        width: `${pos.w}%`,
+        padding: `${34 * k}px 0`,
+        transform: `rotate(${pos.rotation ?? RIBBON_BASE.rotation}deg)`,
         background: b.bg,
         color: b.fg,
         display: 'flex',
@@ -46,8 +53,8 @@ const Ribbon: React.FC<{ b: BadgeDef }> = ({ b }) => {
         justifyContent: 'center',
         fontFamily: 'Inter',
         fontWeight: 800,
-        fontSize: 62,
-        letterSpacing: 12,
+        fontSize: 62 * k,
+        letterSpacing: 12 * k,
         textTransform: 'uppercase',
         boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
         zIndex: 30,
@@ -75,7 +82,9 @@ export const Badges: React.FC = () => {
   const ribbons = active.filter((b) => b.ribbon);
   const pills = active.filter((b) => !b.ribbon);
 
-  const pos = override || { x: 70, y: 4, w: 26, h: 6 };
+  const PILL_BASE = { x: 70, y: 4, w: 26, rotation: 0 };
+  const pos = { ...PILL_BASE, ...(override || {}) };
+  const k = pos.w / PILL_BASE.w;
 
   return (
     <>
@@ -93,10 +102,13 @@ export const Badges: React.FC = () => {
         position: 'absolute',
         left: `${pos.x}%`,
         top: `${pos.y}%`,
+        width: `${pos.w}%`,
+        transform: `rotate(${pos.rotation ?? 0}deg)`,
         zIndex: 20,
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        alignItems: 'flex-start',
+        gap: 8 * k,
         outline: selected ? '2px dashed #de1f1a' : undefined,
         outlineOffset: 4,
         cursor: 'pointer',
@@ -111,9 +123,10 @@ export const Badges: React.FC = () => {
             color: b.fg,
             fontFamily: 'Inter',
             fontWeight: 800,
-            fontSize: 18,
-            padding: '10px 22px',
-            letterSpacing: 4,
+            fontSize: 18 * k,
+            padding: `${10 * k}px ${22 * k}px`,
+            letterSpacing: 4 * k,
+            whiteSpace: 'nowrap',
             transform: 'rotate(-3deg)',
             boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
           }}
