@@ -72,7 +72,7 @@ const M2Icon: React.FC<{ size?: number; color?: string; strokeWidth?: number }> 
 );
 
 // Spec con ícono. `vertical` = ícono arriba, número y label centrados debajo (estilo aviso).
-const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string; color?: string; vertical?: boolean }> = ({ Icon, value, label, color = NAVY, vertical }) =>
+const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string; color?: string; vertical?: boolean; k?: number }> = ({ Icon, value, label, color = NAVY, vertical, k = 1 }) =>
   vertical ? (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
       <Icon size={42} color={color} strokeWidth={1.8} />
@@ -80,16 +80,16 @@ const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string;
       <span style={{ fontFamily: BODY, fontWeight: 600, fontSize: 23, color: '#4B5563', letterSpacing: 0.3 }}>{label}</span>
     </div>
   ) : (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <Icon size={34} color={color} strokeWidth={1.7} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 * k }}>
+      <Icon size={34 * k} color={color} strokeWidth={1.7} />
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
-        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK }}>{value}</span>
-        <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 22, color: GRAY }}>{label}</span>
+        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34 * k, color: DARK }}>{value}</span>
+        <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 22 * k, color: GRAY }}>{label}</span>
       </div>
     </div>
   );
 
-const VSep: React.FC = () => <div style={{ width: 1, height: 56, background: HAIR }} />;
+const VSep: React.FC<{ k?: number }> = ({ k = 1 }) => <div style={{ width: 1, height: 56 * k, background: HAIR }} />;
 
 // Texto editable in-canvas (doble click). Mientras NO se edita, muestra `children`
 // (que puede ser bicolor/clamp, etc.). Al editar, se reemplaza por un contentEditable
@@ -207,6 +207,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const t20 = templateId === 't20'; // Aviso Pro
   const t21 = templateId === 't21'; // Aviso Premium
   const t22 = templateId === 't22'; // Story Ads (vertical)
+  const t27 = templateId === 't27'; // Meta Ad Card (story con tarjeta blanca)
+  const credito = t27; // usa data.aptoCredito igual que la familia aviso
   const aviso = t20 || t21 || t22; // familia "aviso": título rojo+barrio, precio en bloque, íconos rojos
   const RED = theme.brand || (aviso ? '#E5342B' : '#EF2B2A');
 
@@ -235,13 +237,38 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       headLines = [l0, ...barrioWords];
       headEdit = headLines.join('\n');
     }
+  } else if (t27) {
+    // t27: linea 1 = gancho (titulo) o direccion; linea 2 = barrio en rojo ("Barrio Los Troncos")
+    const b = (data.barrio || '').trim();
+    const l1 = (data.titulo || '').trim() || (data.addr || '').split('\n')[0] || '';
+    const l2 = b ? (/^barrio\b/i.test(b) ? b : `Barrio ${b}`) : '';
+    headLines = headOverride != null ? headOverride.split('\n') : [l1, l2].filter(Boolean);
+    headEdit = headOverride != null ? headOverride : [l1, l2].filter(Boolean).join('\n');
   } else {
     headLines = (headOverride != null ? headOverride.split('\n') : [hl1, hl2].filter(Boolean)).filter((l, i) => i === 0 || l !== '');
     headEdit = headOverride != null ? headOverride : [hl1, hl2].filter(Boolean).join('\n');
   }
   // Tamaño del título: respeta el override del usuario; si no, se achica solo según el largo.
   const hMax = Math.max(0, ...headLines.map((l) => l.length));
-  const headSize = layerOverrides['maHead']?.size ?? (hMax <= 16 ? 62 : hMax <= 22 ? 52 : hMax <= 30 ? 42 : 36);
+  const headSize =
+    layerOverrides['maHead']?.size ??
+    (t27
+      ? hMax <= 14
+        ? 104
+        : hMax <= 18
+          ? 92
+          : hMax <= 24
+            ? 78
+            : hMax <= 30
+              ? 62
+              : 52
+      : hMax <= 16
+        ? 62
+        : hMax <= 22
+          ? 52
+          : hMax <= 30
+            ? 42
+            : 36);
   // t20: el "grande" se calcula sobre las líneas del barrio (sin contar la 1ª roja).
   const t20BigMax = Math.max(0, ...headLines.slice(1).map((l) => l.length));
   const t20Lines = headLines.length - 1; // líneas del barrio (sin contar la roja chica)
@@ -357,31 +384,41 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {/* Foto secundaria 1 */}
       {block('maPhoto2', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto2')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: aviso
-        ? { borderRadius: 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' }
+      ), { extraStyle: aviso || t27
+        ? { borderRadius: t27 ? 22 : 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' }
         : { borderRadius: 26, border: '5px solid #fff', boxShadow: '0 14px 34px rgba(0,0,0,0.16)', overflow: 'hidden' } })}
 
       {/* Foto secundaria 2 (Aviso Pro) */}
       {block('maPhoto3', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto3')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
-      ), { extraStyle: { borderRadius: 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' } })}
+      ), { extraStyle: { borderRadius: t27 ? 22 : 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' } })}
+
+      {/* Tarjeta blanca (t27): panel redondeado que contiene todo el bloque de info */}
+      {t27 &&
+        block('maCard', (L) => (
+          <div style={{ width: '100%', height: '100%', background: '#fff', borderRadius: L.radius ?? 46, boxShadow: '0 -10px 40px rgba(0,0,0,0.10)' }} />
+        ))}
 
       {/* Badge estado */}
       {block('maStatus', () => (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: RED, color: '#fff', borderRadius: 16, padding: '14px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
-          <Home size={30} color="#fff" strokeWidth={2.2} />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, background: RED, color: '#fff', borderRadius: t27 ? 20 : 16, padding: t27 ? '16px 30px' : '14px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.18)' }}>
+          <Home size={t27 ? 34 : 30} color="#fff" strokeWidth={2.2} />
           <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 34, letterSpacing: 1 }}>{status}</span>
         </div>
       ), { auto: true })}
 
       {/* Badge ubicación */}
       {block('maLoc', () => (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: '#000', color: '#fff', borderRadius: 16, padding: '12px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: t27 ? '#0B1B2B' : '#000', color: '#fff', borderRadius: t27 ? 20 : 16, padding: t27 ? '16px 30px' : '12px 26px', boxShadow: '0 6px 18px rgba(0,0,0,0.22)' }}>
           <MapPin size={32} color="#fff" strokeWidth={2.2} />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-            <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 30, letterSpacing: 0.5 }}>{neighborhood}</span>
-            <span style={{ fontFamily: BODY, fontWeight: 400, fontSize: 24, opacity: 0.9 }}>{city}</span>
-          </div>
+          {t27 ? (
+            <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 34, letterSpacing: 0.3 }}>{city}</span>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 30, letterSpacing: 0.5 }}>{neighborhood}</span>
+              <span style={{ fontFamily: BODY, fontWeight: 400, fontSize: 24, opacity: 0.9 }}>{city}</span>
+            </div>
+          )}
         </div>
       ), { auto: true })}
 
@@ -443,9 +480,9 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           }
           return (
             <div>
-              <div style={{ width: 72, height: 6, background: RED, borderRadius: 3, marginBottom: 14 }} />
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <span style={{ fontFamily: HEAD, fontWeight: 600, fontSize: Math.round((L.size ?? 96) * 0.36), color: NAVY }}>{data.currency}</span>
+              <div style={{ width: t27 ? 92 : 72, height: t27 ? 9 : 6, background: RED, borderRadius: 4, marginBottom: t27 ? 18 : 14 }} />
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: t27 ? 18 : 12 }}>
+                <span style={{ fontFamily: HEAD, fontWeight: t27 ? 800 : 600, fontSize: Math.round((L.size ?? 96) * (t27 ? 0.42 : 0.36)), color: t27 ? DARK : NAVY }}>{data.currency}</span>
                 <span style={{ fontFamily: `'${L.font || 'Outfit'}', sans-serif`, fontWeight: L.weight ?? 800, fontSize: L.size ?? 96, color: L.color ?? RED, lineHeight: 0.9 }}>{priceNum}</span>
               </div>
             </div>
@@ -469,8 +506,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
           <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'space-around', gap: 8 }}>
             {feats1.map((f, i) => (
               <React.Fragment key={f.label}>
-                {i > 0 && <VSep />}
-                <Feature Icon={f.Icon} value={String(f.value)} label={f.label} color={aviso ? RED : NAVY} vertical={aviso} />
+                {i > 0 && <VSep k={t27 ? 1.45 : 1} />}
+                <Feature Icon={f.Icon} value={String(f.value)} label={f.label} color={aviso ? RED : NAVY} vertical={aviso} k={t27 ? 1.3 : 1} />
               </React.Fragment>
             ))}
           </div>
@@ -505,10 +542,21 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       }, { auto: true })}
 
       {/* Beneficio / Apto crédito (aviso). t21: con línea divisoria a la izquierda. */}
-      {((aviso && data.aptoCredito) || (!aviso && benefitTitle)) &&
+      {(((aviso || credito) && data.aptoCredito) || (!aviso && !credito && benefitTitle)) &&
         block('maBenefit', () => {
-          const title = aviso ? 'APTO CRÉDITO' : benefitTitle;
-          const sub = aviso ? 'CONSULTANOS' : benefitSub;
+          const title = aviso || credito ? 'APTO CRÉDITO' : benefitTitle;
+          const sub = aviso || credito ? 'CONSULTANOS' : benefitSub;
+          if (t27) {
+            return (
+              <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', gap: 20, background: '#fff', border: `2px solid ${HAIR}`, borderRadius: 20, padding: '0 30px', boxShadow: '0 4px 14px rgba(0,0,0,0.05)' }}>
+                <ShieldCheck size={46} color={RED} strokeWidth={2} />
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+                  <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK, letterSpacing: 0.5 }}>{title}</span>
+                  {sub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 27, color: '#9CA3AF', letterSpacing: 0.5 }}>{sub}</span>}
+                </div>
+              </div>
+            );
+          }
           return (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18 }}>
               {t21 && <div style={{ width: 1, height: 56, background: HAIR }} />}
@@ -528,7 +576,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {block('maBrand', (L) => {
         const k = (L.w || 16) / 16;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 * k, width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 * k, width: '100%', position: 'relative' }}>
+            {t27 && <div style={{ position: 'absolute', left: -46, top: '10%', bottom: '10%', width: 1, background: HAIR }} />}
             {logoUrl ? (
               <img src={logoUrl} alt="" style={{ height: 52 * k, maxWidth: '100%', objectFit: 'contain' }} />
             ) : (

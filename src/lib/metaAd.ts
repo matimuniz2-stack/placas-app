@@ -107,15 +107,47 @@ export const META4_BASE: Record<string, LayerConfig> = {
 };
 export const META4_BLOCK_IDS = Object.keys(META4_BASE);
 
+// ── t27: Meta Ad Card (Story 1080×1920). Foto hero a sangre arriba + TARJETA BLANCA
+// redondeada que ocupa los 2/3 inferiores: título bicolor (gancho negro + barrio rojo),
+// barra roja, precio USD grande, fila de specs con íconos y divisores, dos fotos
+// secundarias lado a lado y pie con "APTO CRÉDITO" + marca Z. Coordenadas en % de 1080×1920. ──
+export const META5_BASE: Record<string, LayerConfig> = {
+  // Foto hero a sangre (arriba)
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 39, z: 0, visible: true },
+  // Badges flotando sobre la foto
+  maStatus: { id: 'maStatus', x: 3.2, y: 2.5, w: 29, h: 4.4, z: 10, visible: true },
+  maLoc: { id: 'maLoc', x: 68.5, y: 2.5, w: 28, h: 4.2, z: 10, visible: true },
+  // Tarjeta blanca (fondo de todo el bloque de info)
+  maCard: { id: 'maCard', x: 1.3, y: 38, w: 97.4, h: 62, radius: 46, z: 1, visible: true },
+  // Título: línea 1 negra (gancho) + línea 2 roja (barrio)
+  maHead: { id: 'maHead', x: 6.9, y: 40.2, w: 86, h: 10, font: 'Outfit', size: 88, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
+  // Subtítulo: apagado por defecto (este layout va directo al precio)
+  maSub: { id: 'maSub', x: 6.9, y: 49, w: 60, h: 4.5, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
+  // Precio (barra roja + USD negro + número rojo)
+  maPrice: { id: 'maPrice', x: 6.9, y: 50.8, w: 62, h: 8, font: 'Outfit', size: 132, color: '#EF2B2A', weight: 800, z: 5, visible: true },
+  // Specs en una sola fila con divisores
+  maFeats: { id: 'maFeats', x: 2, y: 59.8, w: 96, h: 5.4, z: 5, visible: true },
+  // Dos fotos secundarias lado a lado
+  maPhoto2: { id: 'maPhoto2', x: 1.5, y: 65.8, w: 48, h: 20.6, radius: 20, z: 6, visible: true },
+  maPhoto3: { id: 'maPhoto3', x: 50.5, y: 65.8, w: 48, h: 20.6, radius: 20, z: 6, visible: true },
+  // Pie: apto crédito (tarjeta con borde) + marca
+  maBenefit: { id: 'maBenefit', x: 6.6, y: 88.4, w: 39, h: 5.8, z: 5, visible: true },
+  maBrand: { id: 'maBrand', x: 62, y: 86.8, w: 26, h: 9.5, z: 5, visible: true },
+  // CTA y footer: apagados (este layout cierra con marca)
+  maCta: { id: 'maCta', x: 6.6, y: 95, w: 40, h: 6, z: 5, visible: false },
+  maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: false },
+};
+export const META5_BLOCK_IDS = Object.keys(META5_BASE);
+
 export function isMetaTemplate(id: string): boolean {
-  return id === 't19' || id === 't20' || id === 't21' || id === 't22';
+  return id === 't19' || id === 't20' || id === 't21' || id === 't22' || id === 't27';
 }
 
 // Versión del schema de layout de los templates meta. Subir este número cuando se
 // rediseñan las posiciones por defecto (META*_BASE): los borradores guardados con una
 // versión vieja descartan sus overrides de layout al cargar, así toman el diseño nuevo
 // (se conservan datos, fotos, tema). Ver loadLastState en App.tsx.
-export const META_LAYOUT_VERSION = 2;
+export const META_LAYOUT_VERSION = 3;
 
 // Formato FIJO de cada template meta: sus capas están diseñadas en % para una
 // relación de aspecto concreta, así que cambiar de formato rompe el layout.
@@ -123,19 +155,21 @@ export const META_LAYOUT_VERSION = 2;
 // `null` = el template no impone formato (el usuario elige libremente).
 export function metaFixedFormat(id: string): 'post' | 'story' | null {
   if (id === 't19') return 'post';
-  if (id === 't20' || id === 't21' || id === 't22') return 'story';
+  if (id === 't20' || id === 't21' || id === 't22' || id === 't27') return 'story';
   return null;
 }
 export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
   if (templateId === 't20') return META2_BASE;
   if (templateId === 't21') return META3_BASE;
   if (templateId === 't22') return META4_BASE;
+  if (templateId === 't27') return META5_BASE;
   return META_BASE;
 }
 export function metaBlockIdsFor(templateId: string): string[] {
   if (templateId === 't20') return META2_BLOCK_IDS;
   if (templateId === 't21') return META3_BLOCK_IDS;
   if (templateId === 't22') return META4_BLOCK_IDS;
+  if (templateId === 't27') return META5_BLOCK_IDS;
   return META_BLOCK_IDS;
 }
 
@@ -144,6 +178,7 @@ export const META_LABELS: Record<string, string> = {
   maPhoto1: 'Foto principal',
   maPhoto2: 'Foto secundaria 1',
   maPhoto3: 'Foto secundaria 2',
+  maCard: 'Tarjeta blanca',
   maStatus: 'Badge estado',
   maLoc: 'Badge ubicación',
   maHead: 'Título',
@@ -169,7 +204,7 @@ export const META_LABELS: Record<string, string> = {
 export const CUSTOM_SLOTS = ['maC0', 'maC1', 'maC2', 'maC3', 'maC4', 'maC5', 'maC6', 'maC7'];
 
 export function isMetaId(id: string): boolean {
-  return id in META_BASE || /^maC\d$/.test(id);
+  return id in META_BASE || id in META5_BASE || /^maC\d$/.test(id);
 }
 
 // Base por defecto de un elemento custom recién agregado (caja centrada).

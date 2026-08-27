@@ -31,6 +31,7 @@ export type LayerId =
   | 'maPhoto1'
   | 'maPhoto2'
   | 'maPhoto3'
+  | 'maCard'
   | 'maStatus'
   | 'maLoc'
   | 'maHead'

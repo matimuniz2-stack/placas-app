@@ -274,4 +274,16 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
       tag: L({ id: 'tag', x: 38.9, y: 93.3, w: 25, font: 'Gill Sans MT', size: 49, color: '#232434', weight: 700, letterSpacing: 0, uppercase: true }),
     },
   },
+
+  // ============== t27: META AD CARD (story 9:16 para Meta Ads — render en MetaAdRenderer) ==============
+  // Foto hero a sangre + tarjeta blanca redondeada con título bicolor, precio grande,
+  // specs con íconos, 2 fotos secundarias y pie APTO CRÉDITO + marca.
+  {
+    id: 't27',
+    name: 'Meta Ad Card',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];
