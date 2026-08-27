@@ -11,6 +11,8 @@ import type {
   MediaItem,
 } from './reel';
 
+import type { Format } from '@/types';
+
 export interface ReelSlot {
   duration: number;            // seconds for this slot
   motion: MotionStyle;
@@ -26,7 +28,7 @@ export interface ViralTemplate {
   slots: ReelSlot[];
 
   // Global settings applied when this template is selected
-  format: 'story' | 'post';
+  format: Format;
   fps: 24 | 30 | 60;
   kenBurnsZoom: number;        // 1 + delta
   effectsLevel: EffectsLevel;

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Modal } from './Modal';
 import { usePlacaStore } from '@/lib/store';
 import { PlacaRenderer } from '@/components/templates/Renderer';
+import type { Format } from '@/types';
 import { priceString } from '@/lib/format';
 import { Heart, MessageCircle, Send, Bookmark, Wifi, Battery, Signal } from 'lucide-react';
 
@@ -27,7 +28,7 @@ const SCREEN_H = DEVICE_H - BEZEL * 2; // 648
 export const IGSimulator: React.FC<Props> = ({ open, onClose, mode }) => {
   const formatNow = usePlacaStore((s) => s.format);
   const setFormat = usePlacaStore((s) => s.setFormat);
-  const prevFormatRef = useRef<'story' | 'post'>(formatNow);
+  const prevFormatRef = useRef<Format>(formatNow);
 
   useEffect(() => {
     if (!open) return;

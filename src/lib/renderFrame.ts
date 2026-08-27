@@ -2,9 +2,10 @@
 // generateReel but renders ONE frame to a target canvas synchronously (or
 // asynchronously for videos that need seeking).
 import type { MediaItem, Transition, MotionStyle, ColorGrade, TextStyle, PlacaData } from './reel';
+import type { Format } from '@/types';
 
 export interface PreviewSettings {
-  format: 'story' | 'post';
+  format: Format;
   kenBurnsZoom: number;
   transition: Transition;
   transitionDuration: number;
@@ -246,7 +247,7 @@ export async function renderPreviewFrame(
   timeSec: number,
 ): Promise<{ totalSec: number; currentClip: number }> {
   const W = 1080;
-  const H = settings.format === 'story' ? 1920 : 1350;
+  const H = settings.format === 'story' ? 1920 : settings.format === 'square' ? 1080 : 1350;
   if (canvas.width !== W) canvas.width = W;
   if (canvas.height !== H) canvas.height = H;
   const ctx = canvas.getContext('2d')!;

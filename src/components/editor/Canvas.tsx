@@ -7,6 +7,7 @@ import { getTemplate } from '@/components/templates/registry';
 const FORMAT_SIZES = {
   story: { w: 1080, h: 1920 },
   post: { w: 1080, h: 1350 },
+  square: { w: 1080, h: 1080 },
 };
 
 // Capas de texto editables con doble click (deben coincidir con DATA_LAYERS del Renderer)

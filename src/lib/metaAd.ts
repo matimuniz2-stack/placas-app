@@ -139,8 +139,32 @@ export const META5_BASE: Record<string, LayerConfig> = {
 };
 export const META5_BLOCK_IDS = Object.keys(META5_BASE);
 
+// ── t28: Meta Ad Card 1:1 (feed cuadrado 1080×1080). Misma identidad que t27 pero
+// recalculada para el cuadrado: foto hero arriba, tarjeta blanca con título bicolor,
+// precio, specs y pie APTO CRÉDITO + marca. Las dos fotos secundarias existen pero
+// vienen APAGADAS: en 1:1 no entran sin comerse el aire del bloque de datos
+// (se pueden prender desde Capas si se achica el resto). Coordenadas en % de 1080×1080. ──
+export const META6_BASE: Record<string, LayerConfig> = {
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 41, z: 0, visible: true },
+  maStatus: { id: 'maStatus', x: 3.2, y: 4.2, w: 29, h: 7.5, z: 10, visible: true },
+  maLoc: { id: 'maLoc', x: 68.5, y: 4.2, w: 28, h: 7.2, z: 10, visible: true },
+  maCard: { id: 'maCard', x: 1.3, y: 39.5, w: 97.4, h: 60.5, radius: 46, z: 1, visible: true },
+  maHead: { id: 'maHead', x: 6.9, y: 42.3, w: 86, h: 17.5, font: 'Outfit', size: 92, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
+  maSub: { id: 'maSub', x: 6.9, y: 58, w: 60, h: 7, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
+  maPrice: { id: 'maPrice', x: 6.9, y: 60, w: 62, h: 12, font: 'Outfit', size: 116, color: '#EF2B2A', weight: 800, z: 5, visible: true },
+  maFeats: { id: 'maFeats', x: 2, y: 72.8, w: 96, h: 8.5, z: 5, visible: true },
+  // Fotos secundarias: disponibles pero apagadas en 1:1
+  maPhoto2: { id: 'maPhoto2', x: 1.5, y: 82, w: 48, h: 15, radius: 20, z: 6, visible: false },
+  maPhoto3: { id: 'maPhoto3', x: 50.5, y: 82, w: 48, h: 15, radius: 20, z: 6, visible: false },
+  maBenefit: { id: 'maBenefit', x: 6.6, y: 84.2, w: 39, h: 9.2, z: 5, visible: true },
+  maBrand: { id: 'maBrand', x: 64, y: 82.6, w: 22, h: 13, z: 5, visible: true },
+  maCta: { id: 'maCta', x: 6.6, y: 94, w: 40, h: 6, z: 5, visible: false },
+  maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: false },
+};
+export const META6_BLOCK_IDS = Object.keys(META6_BASE);
+
 export function isMetaTemplate(id: string): boolean {
-  return id === 't19' || id === 't20' || id === 't21' || id === 't22' || id === 't27';
+  return id === 't19' || id === 't20' || id === 't21' || id === 't22' || id === 't27' || id === 't28';
 }
 
 // Versión del schema de layout de los templates meta. Subir este número cuando se
@@ -153,9 +177,10 @@ export const META_LAYOUT_VERSION = 3;
 // relación de aspecto concreta, así que cambiar de formato rompe el layout.
 // Meta Ad (t19) = Post 4:5; Aviso Pro/Premium (t20/t21) y Story Ads (t22) = Story 9:16.
 // `null` = el template no impone formato (el usuario elige libremente).
-export function metaFixedFormat(id: string): 'post' | 'story' | null {
+export function metaFixedFormat(id: string): 'post' | 'story' | 'square' | null {
   if (id === 't19') return 'post';
   if (id === 't20' || id === 't21' || id === 't22' || id === 't27') return 'story';
+  if (id === 't28') return 'square';
   return null;
 }
 export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
@@ -163,6 +188,7 @@ export function metaBaseFor(templateId: string): Record<string, LayerConfig> {
   if (templateId === 't21') return META3_BASE;
   if (templateId === 't22') return META4_BASE;
   if (templateId === 't27') return META5_BASE;
+  if (templateId === 't28') return META6_BASE;
   return META_BASE;
 }
 export function metaBlockIdsFor(templateId: string): string[] {
@@ -170,6 +196,7 @@ export function metaBlockIdsFor(templateId: string): string[] {
   if (templateId === 't21') return META3_BLOCK_IDS;
   if (templateId === 't22') return META4_BLOCK_IDS;
   if (templateId === 't27') return META5_BLOCK_IDS;
+  if (templateId === 't28') return META6_BLOCK_IDS;
   return META_BLOCK_IDS;
 }
 

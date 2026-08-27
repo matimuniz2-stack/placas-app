@@ -8,6 +8,8 @@ import {
   type BatchRow,
 } from '@/lib/batch';
 import { usePlacaStore } from '@/lib/store';
+import { metaFixedFormat } from '@/lib/metaAd';
+import type { Format } from '@/types';
 import { extractFromUrl } from '@/lib/urlExtract';
 import { captureToDataUrl, buildFilename, downloadBlob } from '@/lib/export';
 import { buildCaption, slugify } from '@/lib/format';
@@ -105,6 +107,19 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
       format: store.format,
     };
 
+    // Los templates meta tienen formato fijo (4:5, 9:16 o 1:1): su layout está en % de
+     // ESE lienzo, así que se captura solo en su formato y a su tamaño real. El resto de
+     // los templates respeta los checkboxes Story/Post del modal.
+    const lockedFmt = metaFixedFormat(store.templateId);
+    const FMT_SIZE: Record<Format, { w: number; h: number; label: string }> = {
+      story: { w: 1080, h: 1920, label: 'story' },
+      post: { w: 1080, h: 1350, label: 'post' },
+      square: { w: 1080, h: 1080, label: 'cuadrado' },
+    };
+    const wantedFmts: Format[] = lockedFmt
+      ? [lockedFmt]
+      : ([formats.story ? 'story' : null, formats.post ? 'post' : null].filter(Boolean) as Format[]);
+
     const zip = new JSZip();
     let stepCounter = 0;
     let okCount = 0;
@@ -163,21 +178,14 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
           // Wait for React + fonts
           await new Promise((r) => setTimeout(r, 280));
 
-          // Step 3: capture story
-          if (formats.story) {
-            setProgress({ cur: ++stepCounter, total: totalSteps, step: `${i + 1}/${rows.length} · Story…` });
-            usePlacaStore.setState({ format: 'story' });
+          // Step 3/4: capturas (un archivo por formato pedido)
+          for (const f of wantedFmts) {
+            const { w, h, label } = FMT_SIZE[f];
+            setProgress({ cur: ++stepCounter, total: totalSteps, step: `${i + 1}/${rows.length} · ${label}…` });
+            usePlacaStore.setState({ format: f });
             await new Promise((r) => setTimeout(r, 200));
-            const storyUrl = await captureToDataUrl(placaRef.current!, 1080, 1920, 'png', 1);
-            folder.file('story_1080x1920.png', storyUrl.split(',')[1], { base64: true });
-          }
-          // Step 4: capture post
-          if (formats.post) {
-            setProgress({ cur: ++stepCounter, total: totalSteps, step: `${i + 1}/${rows.length} · Post…` });
-            usePlacaStore.setState({ format: 'post' });
-            await new Promise((r) => setTimeout(r, 200));
-            const postUrl = await captureToDataUrl(placaRef.current!, 1080, 1350, 'png', 1);
-            folder.file('post_1080x1350.png', postUrl.split(',')[1], { base64: true });
+            const url = await captureToDataUrl(placaRef.current!, w, h, 'png', 1);
+            folder.file(`${label}_${w}x${h}.png`, url.split(',')[1], { base64: true });
           }
           // Step 5: caption
           if (includeCaption) {
@@ -186,12 +194,14 @@ export const BatchModal: React.FC<Props> = ({ open, onClose, placaRef }) => {
             folder.file('caption.txt', cap);
           }
           // Carousel slides (if many photos)
-          if (downloaded.length > 1 && formats.story) {
+          if (downloaded.length > 1 && wantedFmts.length > 0) {
             const carouselFolder = folder.folder('carrusel');
+            const cf = FMT_SIZE[wantedFmts[0]];
+            usePlacaStore.setState({ format: wantedFmts[0] });
             for (let p = 0; p < downloaded.length; p++) {
               usePlacaStore.setState({ activePhotoIdx: p });
               await new Promise((r) => setTimeout(r, 180));
-              const slide = await captureToDataUrl(placaRef.current!, 1080, 1920, 'png', 1);
+              const slide = await captureToDataUrl(placaRef.current!, cf.w, cf.h, 'png', 1);
               carouselFolder!.file(`slide_${String(p + 1).padStart(2, '0')}.png`, slide.split(',')[1], { base64: true });
             }
           }

@@ -15,7 +15,7 @@ import { amenString, extrasString, priceString, cocheraCount, cocheraLabel, attr
 import { isMetaTemplate, CUSTOM_SLOTS } from '@/lib/metaAd';
 import { getEffectiveLayer } from '@/lib/store';
 import { isPhotoDrag, getDragPhoto } from '@/lib/dragPhoto';
-import type { LayerId, PlacaData } from '@/types';
+import type { Format, LayerId, PlacaData } from '@/types';
 import { Bed, Bath, Maximize, Car, MapPin, Landmark, Receipt, Sparkles, HardHat, CalendarClock, Percent } from 'lucide-react';
 
 // El overlay de t16 (fundido de la foto al panel crema) tiene el color de fondo
@@ -202,6 +202,7 @@ function kickerText(d: PlacaData): string {
 const FORMAT_SIZES = {
   story: { w: 1080, h: 1920 },
   post: { w: 1080, h: 1350 },
+  square: { w: 1080, h: 1080 },
 };
 
 // Layer IDs that go through TextLayer with content from data
@@ -210,7 +211,7 @@ const DATA_LAYERS: LayerId[] = ['addr', 'barrio', 'price', 'amen', 'op', 'desc',
 interface Props {
   forCapture?: boolean;
   overrideTemplateId?: string;
-  formatOverride?: 'story' | 'post';
+  formatOverride?: Format;
   noOverrides?: boolean; // skip layer overrides (for thumbnails)
   interactive?: boolean; // false → no selection outline, no clicks (for thumbs/exports)
 }

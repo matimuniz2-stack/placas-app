@@ -286,4 +286,16 @@ export const ALL_TEMPLATES_DATA: TemplateDef[] = [
     textColor: '#111827',
     defaultLayers: {},
   },
+
+  // ============== t28: META AD CARD 1:1 (feed cuadrado 1080x1080) ==============
+  // Versión cuadrada de t27 para Meta Ads feed. Mismo lenguaje visual, layout
+  // recalculado; las 2 fotos secundarias vienen apagadas (ver META6_BASE).
+  {
+    id: 't28',
+    name: 'Meta Ad Card 1:1',
+    category: 'premium',
+    bgColor: '#ffffff',
+    textColor: '#111827',
+    defaultLayers: {},
+  },
 ];

@@ -40,6 +40,7 @@ interface Props {
 const FORMAT_SIZES = {
   story: { w: 1080, h: 1920 },
   post: { w: 1080, h: 1350 },
+  square: { w: 1080, h: 1080 },
 };
 
 export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
@@ -181,28 +182,30 @@ export const ToolbarTop: React.FC<Props> = ({ placaRef }) => {
         {/* Format toggle. Los templates meta fijan su formato (su layout solo
             funciona en su relación de aspecto): el botón del otro formato se bloquea. */}
         {(() => {
-          const locked = metaFixedFormat(templateId); // 'story' | 'post' | null
-          const lockTitle = locked
-            ? `Este template es ${locked === 'post' ? '4:5 (Post)' : '9:16 (Story)'}`
-            : undefined;
+          const locked = metaFixedFormat(templateId); // 'story' | 'post' | 'square' | null
+          const LABEL: Record<string, string> = { story: '9:16 (Story)', post: '4:5 (Post)', square: '1:1 (Cuadrado)' };
+          const lockTitle = locked ? `Este template es ${LABEL[locked]}` : undefined;
+          const OPTS = [
+            { id: 'story' as const, label: 'Story', Icon: Smartphone },
+            { id: 'post' as const, label: 'Post', Icon: Square },
+            { id: 'square' as const, label: '1:1', Icon: Square },
+          ];
           return (
             <div className="bg-neutral-100 rounded p-0.5 flex gap-0.5">
-              <button
-                onClick={() => { if (locked !== 'post') setFormat('story'); }}
-                disabled={locked === 'post'}
-                title={locked === 'post' ? lockTitle : undefined}
-                className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'story' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${locked === 'post' ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <Smartphone className="w-3 h-3" /> Story
-              </button>
-              <button
-                onClick={() => { if (locked !== 'story') setFormat('post'); }}
-                disabled={locked === 'story'}
-                title={locked === 'story' ? lockTitle : undefined}
-                className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === 'post' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${locked === 'story' ? 'opacity-40 cursor-not-allowed' : ''}`}
-              >
-                <Square className="w-3 h-3" /> Post
-              </button>
+              {OPTS.map(({ id, label, Icon }) => {
+                const off = !!locked && locked !== id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { if (!off) setFormat(id); }}
+                    disabled={off}
+                    title={off ? lockTitle : undefined}
+                    className={`px-2.5 h-7 text-xs rounded font-semibold transition flex items-center gap-1.5 ${format === id ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'} ${off ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    <Icon className="w-3 h-3" /> {label}
+                  </button>
+                );
+              })}
             </div>
           );
         })()}

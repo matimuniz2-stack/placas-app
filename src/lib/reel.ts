@@ -1,6 +1,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 import { toCanvas } from 'html-to-image';
 import { usePlacaStore } from './store';
+import type { Format } from '@/types';
 
 // ─── Motion + Easing ─────────────────────────────────────────────────────────
 export type MotionStyle =
@@ -99,7 +100,7 @@ export interface PlacaData {
 
 export interface ReelOpts {
   placaEl: HTMLElement;
-  format: 'story' | 'post';
+  format: Format;
   durationPerPhoto: number;
   fps: number;
   kenBurnsZoom: number;
@@ -223,7 +224,7 @@ export async function generateReel(opts: ReelOpts): Promise<ReelResult> {
   if (baseItems.length === 0) throw new Error('Agregá al menos una foto o video al timeline.');
 
   const W = 1080;
-  const H = opts.format === 'story' ? 1920 : 1350;
+  const H = opts.format === 'story' ? 1920 : opts.format === 'square' ? 1080 : 1350;
   const captureScale = opts.hd ? 2 : 1;
   const CW = W * captureScale;
   const CH = H * captureScale;

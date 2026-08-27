@@ -207,7 +207,8 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const t20 = templateId === 't20'; // Aviso Pro
   const t21 = templateId === 't21'; // Aviso Premium
   const t22 = templateId === 't22'; // Story Ads (vertical)
-  const t27 = templateId === 't27'; // Meta Ad Card (story con tarjeta blanca)
+  const t28 = templateId === 't28'; // Meta Ad Card 1:1 (feed cuadrado)
+  const t27 = templateId === 't27' || t28; // familia "card": tarjeta blanca + titulo bicolor
   const credito = t27; // usa data.aptoCredito igual que la familia aviso
   const aviso = t20 || t21 || t22; // familia "aviso": título rojo+barrio, precio en bloque, íconos rojos
   const RED = theme.brand || (aviso ? '#E5342B' : '#EF2B2A');

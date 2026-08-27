@@ -11,12 +11,12 @@ import { PlacaRenderer } from '@/components/templates/Renderer';
 import { listPresets, savePreset, deletePreset } from '@/lib/presets';
 import { captureThumb } from '@/lib/export';
 import { galleryCellIds } from '@/lib/galleryLayout';
-import { CUSTOM_SLOTS, META_LABELS, isMetaTemplate, metaBlockIdsFor } from '@/lib/metaAd';
+import { CUSTOM_SLOTS, META_LABELS, isMetaTemplate, metaBlockIdsFor, metaFixedFormat } from '@/lib/metaAd';
 import type { LayerId, DesignPreset } from '@/types';
 
 type Tab = 'inspector' | 'templates' | 'tema' | 'extras';
 
-const FORMAT_SIZES = { story: { w: 1080, h: 1920 }, post: { w: 1080, h: 1350 } } as const;
+const FORMAT_SIZES = { story: { w: 1080, h: 1920 }, post: { w: 1080, h: 1350 }, square: { w: 1080, h: 1080 } } as const;
 
 const LAYER_LABELS: Partial<Record<LayerId, string>> = {
   photo: 'Foto',
@@ -528,22 +528,25 @@ const TemplatesTab: React.FC<{ placaRef?: React.RefObject<HTMLDivElement> }> = (
   );
 };
 
+const THUMB_H = { story: 1920, post: 1350, square: 1080 } as const;
+
 const ThumbPreview: React.FC<{ templateId: string }> = ({ templateId }) => {
   const THUMB_W = 130;
   const scale = THUMB_W / 1080;
-  const isMeta = isMetaTemplate(templateId);
+  // Cada template meta tiene formato fijo (4:5, 9:16 o 1:1): la miniatura lo respeta.
+  const fmt = metaFixedFormat(templateId) ?? 'story';
   return (
     <div className="tpl-thumb-static" style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
       <div
         style={{
           width: 1080,
-          height: isMeta ? 1350 : 1920,
+          height: THUMB_H[fmt],
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
           pointerEvents: 'none',
         }}
       >
-        <PlacaRenderer overrideTemplateId={templateId} formatOverride={isMeta ? 'post' : 'story'} noOverrides interactive={false} />
+        <PlacaRenderer overrideTemplateId={templateId} formatOverride={fmt} noOverrides interactive={false} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-export type Format = 'story' | 'post';
+export type Format = 'story' | 'post' | 'square';
 
 export type LayerId =
   | 'photo'
