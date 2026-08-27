@@ -48,6 +48,7 @@ export default async function handler(req: Request): Promise<Response> {
   "amb": "cantidad de ambientes (solo número, ej: 3)",
   "m2": "superficie en m² (solo número)",
   "baths": "cantidad de baños (solo número)",
+  "dorms": "cantidad de dormitorios (solo número)",
   "cocheras": "cantidad de cocheras (solo número, 0 si no tiene)",
   "price": "precio (solo número, sin símbolos ni puntos)",
   "currency": "USD" | "ARS",
@@ -121,6 +122,7 @@ Reglas:
     if (parsed.amb) out.amb = String(parsed.amb).replace(/\D/g, '') || String(parsed.amb);
     if (parsed.m2) out.m2 = String(parsed.m2).replace(/\D/g, '');
     if (parsed.baths) out.baths = String(parsed.baths).replace(/\D/g, '');
+    if (parsed.dorms) out.dorms = String(parsed.dorms).replace(/\D/g, '');
     if (parsed.cocheras != null) {
       const n = parseInt(String(parsed.cocheras).replace(/\D/g, ''), 10);
       if (!isNaN(n)) {

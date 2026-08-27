@@ -276,8 +276,9 @@ const DatosTab: React.FC = () => {
         <Field label="Precio" v={data.price} on={(v) => patchData({ price: v.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') })} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <Field label="Amb" v={data.amb} on={(v) => patchData({ amb: v })} />
+        <Field label="Dorm" v={data.dorms || ''} on={(v) => patchData({ dorms: v })} />
         <Field label="m²" v={data.m2} on={(v) => patchData({ m2: v })} />
         <Field label="Baños" v={data.baths} on={(v) => patchData({ baths: v })} />
       </div>

@@ -43,6 +43,7 @@ export async function importFromUrl(url: string, onProgress?: (m: string) => voi
   // los de la propiedad anterior (título-gancho, expensas…), la placa mezclaría datos.
   usePlacaStore.getState().patchData({
     titulo: '',
+    dorms: '',
     expensas: '',
     antiguedad: '',
     amenText: '',

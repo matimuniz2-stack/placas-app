@@ -8,11 +8,14 @@ import {
   Home,
   MapPin,
   Sofa,
+  BedDouble,
   Bath,
   Car,
   Ruler,
   MessageCircle,
   ShieldCheck,
+  Sparkles,
+  Trees,
   Globe,
   Facebook,
   Instagram,
@@ -88,6 +91,16 @@ const Feature: React.FC<{ Icon: React.ElementType; value: string; label: string;
       </div>
     </div>
   );
+
+// Ícono del box de destacados, elegido por lo que dice el destacado principal.
+const highlightIcon = (txt: string): React.ElementType => {
+  const t = txt.toLowerCase();
+  if (/suite|dormi|vestidor|habitac|cama/.test(t)) return BedDouble;
+  if (/balc|terraza|patio|jard|parrilla|quincho|verde/.test(t)) return Trees;
+  if (/cochera|garage|auto/.test(t)) return Car;
+  if (/cr[eé]dito|financ/.test(t)) return ShieldCheck;
+  return Sparkles;
+};
 
 const VSep: React.FC<{ k?: number }> = ({ k = 1 }) => <div style={{ width: 1, height: 56 * k, background: HAIR }} />;
 
@@ -242,7 +255,7 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
     // t27: linea 1 = gancho (titulo) o direccion; linea 2 = barrio en rojo ("Barrio Los Troncos")
     const b = (data.barrio || '').trim();
     const l1 = (data.titulo || '').trim() || (data.addr || '').split('\n')[0] || '';
-    const l2 = b ? (/^barrio\b/i.test(b) ? b : `Barrio ${b}`) : '';
+    const l2 = b; // tal cual lo escribe el usuario ("Zona Centro", "Barrio Los Troncos"…)
     headLines = headOverride != null ? headOverride.split('\n') : [l1, l2].filter(Boolean);
     headEdit = headOverride != null ? headOverride : [l1, l2].filter(Boolean).join('\n');
   } else {
@@ -251,18 +264,14 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   }
   // Tamaño del título: respeta el override del usuario; si no, se achica solo según el largo.
   const hMax = Math.max(0, ...headLines.map((l) => l.length));
+  // Familia card (t27/t28): el título se ajusta al ancho del bloque (auto-fit) en vez
+  // de saltar por escalones — así "Exclusivo Chalet" y "Amplio Departamento" llenan
+  // la línea igual de bien. Cap más bajo en 1:1, donde el alto es la mitad.
+  const cardFit = Math.round(1625 / Math.max(1, hMax));
   const headSize =
     layerOverrides['maHead']?.size ??
     (t27
-      ? hMax <= 14
-        ? 104
-        : hMax <= 18
-          ? 92
-          : hMax <= 24
-            ? 78
-            : hMax <= 30
-              ? 62
-              : 52
+      ? Math.max(44, Math.min(t28 ? 80 : 104, cardFit))
       : hMax <= 16
         ? 62
         : hMax <= 22
@@ -290,20 +299,30 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
   const cc = cocheraCount(data);
   const features = [
     { Icon: Sofa, value: data.amb, label: data.amb === '1' ? 'ambiente' : 'ambientes' },
+    { Icon: BedDouble, value: data.dorms || '', label: data.dorms === '1' ? 'dormitorio' : 'dormitorios' },
     { Icon: Bath, value: data.baths, label: data.baths === '1' ? 'baño' : 'baños' },
-    { Icon: Car, value: cc > 0 ? String(cc) : '', label: cocheraLabel(cc) },
     { Icon: M2Icon, value: data.m2 || '', label: 'm² cubiertos' },
+    { Icon: Car, value: cc > 0 ? String(cc) : '', label: cocheraLabel(cc) },
     { Icon: Ruler, value: data.lote || '', label: 'm² lote' },
   ].filter((f) => f.value && String(f.value).trim());
   // En los templates "aviso", si hay 4+ specs se dividen en 2 tandas (bloques movibles
   // por separado): tanda 1 = primera mitad, tanda 2 = resto.
   // t22 (Story) NO parte specs: van en una sola fila para no comer la zona segura.
+  // Familia card: una sola fila, máximo 4 specs (5 no entran sin apretar los íconos).
+  if (t27 && features.length > 4) features.length = 4;
   const splitFeats = (t20 || t21) && features.length >= 4;
   const featsHalf = Math.ceil(features.length / 2);
   const feats1 = splitFeats ? features.slice(0, featsHalf) : features;
   const feats2 = splitFeats ? features.slice(featsHalf) : [];
   const benefitTitle = (data.benefitTitle || '').trim();
   const benefitSub = (data.benefitSubtitle || '').trim();
+  // Pill de dirección de la familia card (editable in-canvas)
+  const addrOverride = textOverrides['maAddr'];
+  const addrPill = addrOverride != null ? addrOverride : (data.addr || '').split('\n')[0].trim();
+  // Destacados de la propiedad: van en el box del pie (pisan a "apto crédito")
+  const highlights = (data.destacados || []).map((h) => h.trim()).filter(Boolean);
+  const dest1 = highlights[0] || '';
+  const dest2 = highlights[1] || '';
   const waLink = agent?.phone ? `https://wa.me/${agent.phone.replace(/\D/g, '')}` : null;
   const logoUrl = theme.logoUrl;
 
@@ -393,6 +412,23 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       {block('maPhoto3', (L) => (
         <PhotoBox photo={photos[photoIdxFor('maPhoto3')!]} style={{ position: 'absolute', inset: 0, borderRadius: L.radius }} />
       ), { extraStyle: { borderRadius: t27 ? 22 : 18, boxShadow: '0 8px 22px rgba(0,0,0,0.1)', overflow: 'hidden' } })}
+
+      {/* Pill de dirección (familia card): centrada, montada sobre el borde foto/tarjeta */}
+      {t27 &&
+        addrPill &&
+        block('maAddr', (L) => {
+          const s: React.CSSProperties = { fontFamily: HEAD, fontWeight: 700, fontSize: L.size ?? 34, letterSpacing: 0.3 };
+          return (
+            <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+              <MetaText id="maAddr" interactive={interactive} editText={addrPill} style={s}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, background: '#0B1B2B', color: '#fff', borderRadius: 22, padding: '14px 34px', boxShadow: '0 8px 22px rgba(0,0,0,0.22)' }}>
+                  <MapPin size={30} color="#fff" strokeWidth={2.2} />
+                  <span style={s}>{addrPill}</span>
+                </div>
+              </MetaText>
+            </div>
+          );
+        })}
 
       {/* Tarjeta blanca (t27): panel redondeado que contiene todo el bloque de info */}
       {t27 &&
@@ -543,17 +579,21 @@ export const MetaAdRenderer: React.FC<{ interactive?: boolean }> = ({ interactiv
       }, { auto: true })}
 
       {/* Beneficio / Apto crédito (aviso). t21: con línea divisoria a la izquierda. */}
-      {(((aviso || credito) && data.aptoCredito) || (!aviso && !credito && benefitTitle)) &&
+      {(((aviso || credito) && (data.aptoCredito || (t27 && dest1))) || (!aviso && !credito && benefitTitle)) &&
         block('maBenefit', () => {
           const title = aviso || credito ? 'APTO CRÉDITO' : benefitTitle;
           const sub = aviso || credito ? 'CONSULTANOS' : benefitSub;
           if (t27) {
+            // Los destacados mandan sobre "apto crédito": son el gancho de la propiedad.
+            const t1 = dest1 || title;
+            const t2 = dest1 ? dest2 : sub;
+            const Icon = dest1 ? highlightIcon(t1) : ShieldCheck;
             return (
               <div style={{ display: 'flex', width: '100%', height: '100%', alignItems: 'center', gap: 20, background: '#fff', border: `2px solid ${HAIR}`, borderRadius: 20, padding: '0 30px', boxShadow: '0 4px 14px rgba(0,0,0,0.05)' }}>
-                <ShieldCheck size={46} color={RED} strokeWidth={2} />
+                <Icon size={46} color={dest1 ? DARK : RED} strokeWidth={2} />
                 <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-                  <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK, letterSpacing: 0.5 }}>{title}</span>
-                  {sub && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 27, color: '#9CA3AF', letterSpacing: 0.5 }}>{sub}</span>}
+                  <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 34, color: DARK, letterSpacing: 0.5, textTransform: 'uppercase' }}>{t1}</span>
+                  {t2 && <span style={{ fontFamily: BODY, fontWeight: 500, fontSize: 27, color: '#9CA3AF', letterSpacing: 0.5, textTransform: 'uppercase' }}>{t2}</span>}
                 </div>
               </div>
             );

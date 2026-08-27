@@ -113,26 +113,28 @@ export const META4_BLOCK_IDS = Object.keys(META4_BASE);
 // secundarias lado a lado y pie con "APTO CRÉDITO" + marca Z. Coordenadas en % de 1080×1920. ──
 export const META5_BASE: Record<string, LayerConfig> = {
   // Foto hero a sangre (arriba)
-  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 39, z: 0, visible: true },
+  maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 42.6, z: 0, visible: true },
   // Badges flotando sobre la foto
-  maStatus: { id: 'maStatus', x: 3.2, y: 2.5, w: 29, h: 4.4, z: 10, visible: true },
-  maLoc: { id: 'maLoc', x: 68.5, y: 2.5, w: 28, h: 4.2, z: 10, visible: true },
+  maStatus: { id: 'maStatus', x: 3.2, y: 2.4, w: 29, h: 4.4, z: 10, visible: true },
+  maLoc: { id: 'maLoc', x: 68.5, y: 2.4, w: 28, h: 4.2, z: 10, visible: true },
+  // Pill de dirección: centrada y montada sobre el borde foto/tarjeta
+  maAddr: { id: 'maAddr', x: 0, y: 40.2, w: 100, h: 3.8, z: 12, visible: true },
   // Tarjeta blanca (fondo de todo el bloque de info)
-  maCard: { id: 'maCard', x: 1.3, y: 38, w: 97.4, h: 62, radius: 46, z: 1, visible: true },
-  // Título: línea 1 negra (gancho) + línea 2 roja (barrio)
-  maHead: { id: 'maHead', x: 6.9, y: 40.2, w: 86, h: 10, font: 'Outfit', size: 88, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
+  maCard: { id: 'maCard', x: 1.3, y: 42.4, w: 97.4, h: 57.6, radius: 46, z: 1, visible: true },
+  // Título: línea 1 negra (gancho) + línea 2 roja (barrio/zona)
+  maHead: { id: 'maHead', x: 6.9, y: 45, w: 86, h: 10.5, font: 'Outfit', size: 92, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
   // Subtítulo: apagado por defecto (este layout va directo al precio)
-  maSub: { id: 'maSub', x: 6.9, y: 49, w: 60, h: 4.5, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
+  maSub: { id: 'maSub', x: 6.9, y: 53.5, w: 60, h: 4.5, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
   // Precio (barra roja + USD negro + número rojo)
-  maPrice: { id: 'maPrice', x: 6.9, y: 50.8, w: 62, h: 8, font: 'Outfit', size: 132, color: '#EF2B2A', weight: 800, z: 5, visible: true },
-  // Specs en una sola fila con divisores
-  maFeats: { id: 'maFeats', x: 2, y: 59.8, w: 96, h: 5.4, z: 5, visible: true },
+  maPrice: { id: 'maPrice', x: 6.9, y: 55.4, w: 62, h: 8, font: 'Outfit', size: 132, color: '#EF2B2A', weight: 800, z: 5, visible: true },
+  // Specs en una sola fila con divisores (máx 4)
+  maFeats: { id: 'maFeats', x: 2, y: 64.2, w: 96, h: 4.5, z: 5, visible: true },
   // Dos fotos secundarias lado a lado
-  maPhoto2: { id: 'maPhoto2', x: 1.5, y: 65.8, w: 48, h: 20.6, radius: 20, z: 6, visible: true },
-  maPhoto3: { id: 'maPhoto3', x: 50.5, y: 65.8, w: 48, h: 20.6, radius: 20, z: 6, visible: true },
-  // Pie: apto crédito (tarjeta con borde) + marca
-  maBenefit: { id: 'maBenefit', x: 6.6, y: 88.4, w: 39, h: 5.8, z: 5, visible: true },
-  maBrand: { id: 'maBrand', x: 62, y: 86.8, w: 26, h: 9.5, z: 5, visible: true },
+  maPhoto2: { id: 'maPhoto2', x: 2.7, y: 68.8, w: 45.7, h: 17.5, radius: 20, z: 6, visible: true },
+  maPhoto3: { id: 'maPhoto3', x: 51.1, y: 68.8, w: 46.2, h: 17.5, radius: 20, z: 6, visible: true },
+  // Pie: destacados (o apto crédito) en tarjeta con borde + marca
+  maBenefit: { id: 'maBenefit', x: 3.7, y: 87.9, w: 41.5, h: 7.8, z: 5, visible: true },
+  maBrand: { id: 'maBrand', x: 62, y: 87, w: 26, h: 9.6, z: 5, visible: true },
   // CTA y footer: apagados (este layout cierra con marca)
   maCta: { id: 'maCta', x: 6.6, y: 95, w: 40, h: 6, z: 5, visible: false },
   maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: false },
@@ -148,16 +150,17 @@ export const META6_BASE: Record<string, LayerConfig> = {
   maPhoto1: { id: 'maPhoto1', x: 0, y: 0, w: 100, h: 41, z: 0, visible: true },
   maStatus: { id: 'maStatus', x: 3.2, y: 4.2, w: 29, h: 7.5, z: 10, visible: true },
   maLoc: { id: 'maLoc', x: 68.5, y: 4.2, w: 28, h: 7.2, z: 10, visible: true },
-  maCard: { id: 'maCard', x: 1.3, y: 39.5, w: 97.4, h: 60.5, radius: 46, z: 1, visible: true },
-  maHead: { id: 'maHead', x: 6.9, y: 42.3, w: 86, h: 17.5, font: 'Outfit', size: 92, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
+  maAddr: { id: 'maAddr', x: 0, y: 37.6, w: 100, h: 6.6, z: 12, visible: true },
+  maCard: { id: 'maCard', x: 1.3, y: 41, w: 97.4, h: 59, radius: 46, z: 1, visible: true },
+  maHead: { id: 'maHead', x: 6.9, y: 44.2, w: 86, h: 15.5, font: 'Outfit', size: 80, color: '#111827', weight: 800, lineHeight: 1.02, z: 5, visible: true },
   maSub: { id: 'maSub', x: 6.9, y: 58, w: 60, h: 7, font: 'Inter', size: 28, color: '#6B7280', weight: 500, lineHeight: 1.3, z: 5, visible: false },
-  maPrice: { id: 'maPrice', x: 6.9, y: 60, w: 62, h: 12, font: 'Outfit', size: 116, color: '#EF2B2A', weight: 800, z: 5, visible: true },
-  maFeats: { id: 'maFeats', x: 2, y: 72.8, w: 96, h: 8.5, z: 5, visible: true },
-  // Fotos secundarias: disponibles pero apagadas en 1:1
-  maPhoto2: { id: 'maPhoto2', x: 1.5, y: 82, w: 48, h: 15, radius: 20, z: 6, visible: false },
-  maPhoto3: { id: 'maPhoto3', x: 50.5, y: 82, w: 48, h: 15, radius: 20, z: 6, visible: false },
-  maBenefit: { id: 'maBenefit', x: 6.6, y: 84.2, w: 39, h: 9.2, z: 5, visible: true },
-  maBrand: { id: 'maBrand', x: 64, y: 82.6, w: 22, h: 13, z: 5, visible: true },
+  maPrice: { id: 'maPrice', x: 6.9, y: 61.5, w: 62, h: 11.5, font: 'Outfit', size: 104, color: '#EF2B2A', weight: 800, z: 5, visible: true },
+  maFeats: { id: 'maFeats', x: 2, y: 74.5, w: 96, h: 8, z: 5, visible: true },
+  // Fotos secundarias: disponibles pero apagadas en 1:1 (no entran sin comerse el aire)
+  maPhoto2: { id: 'maPhoto2', x: 2.7, y: 82, w: 45.7, h: 15, radius: 20, z: 6, visible: false },
+  maPhoto3: { id: 'maPhoto3', x: 51.1, y: 82, w: 46.2, h: 15, radius: 20, z: 6, visible: false },
+  maBenefit: { id: 'maBenefit', x: 3.7, y: 86.2, w: 42, h: 9, z: 5, visible: true },
+  maBrand: { id: 'maBrand', x: 64, y: 84, w: 22, h: 13, z: 5, visible: true },
   maCta: { id: 'maCta', x: 6.6, y: 94, w: 40, h: 6, z: 5, visible: false },
   maFooter: { id: 'maFooter', x: 0, y: 95.2, w: 100, h: 4.8, z: 8, visible: false },
 };
@@ -171,7 +174,7 @@ export function isMetaTemplate(id: string): boolean {
 // rediseñan las posiciones por defecto (META*_BASE): los borradores guardados con una
 // versión vieja descartan sus overrides de layout al cargar, así toman el diseño nuevo
 // (se conservan datos, fotos, tema). Ver loadLastState en App.tsx.
-export const META_LAYOUT_VERSION = 3;
+export const META_LAYOUT_VERSION = 4;
 
 // Formato FIJO de cada template meta: sus capas están diseñadas en % para una
 // relación de aspecto concreta, así que cambiar de formato rompe el layout.
@@ -206,6 +209,7 @@ export const META_LABELS: Record<string, string> = {
   maPhoto2: 'Foto secundaria 1',
   maPhoto3: 'Foto secundaria 2',
   maCard: 'Tarjeta blanca',
+  maAddr: 'Pill dirección',
   maStatus: 'Badge estado',
   maLoc: 'Badge ubicación',
   maHead: 'Título',

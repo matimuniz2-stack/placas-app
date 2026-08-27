@@ -129,7 +129,7 @@ function extractImages(html: string, url: string): string[] {
 // una vez y leemos los campos con regex normales. Devuelve solo lo que encuentra.
 function parseTokkoJson(html: string): Partial<{
   addr: string; barrio: string; city: string; tipoPropiedad: string;
-  amb: string; m2: string; baths: string; price: string; currency: 'USD' | 'ARS';
+  amb: string; m2: string; baths: string; dorms?: string; price: string; currency: 'USD' | 'ARS';
   op: 'Venta' | 'Alquiler'; expensas: string; antiguedad: string; desc: string;
   cochera: 'Sí' | 'No'; cocheras: string; aptoCredito: boolean;
 }> {
@@ -187,6 +187,8 @@ function parseTokkoJson(html: string): Partial<{
   if (amb) out.amb = amb;
   const baths = attrNum('bathroom_amount');
   if (baths) out.baths = baths;
+  const dorms = attrNum('suite_amount') || attrNum('bedroom_amount');
+  if (dorms) out.dorms = dorms;
   const m2 = origNum('roofed_surface') || origNum('total_surface') || origNum('surface');
   if (m2) out.m2 = m2;
   const parking = attrNum('parking_lot_amount') || attrNum('garage');
@@ -218,7 +220,7 @@ function parseTokkoJson(html: string): Partial<{
 // .k/.v y el barrio en el div .addr ("Rumencó Joven — Mar del Plata").
 function parseZamboniSite(html: string): Partial<{
   addr: string; barrio: string; city: string; tipoPropiedad: string;
-  amb: string; m2: string; baths: string; price: string; currency: 'USD' | 'ARS';
+  amb: string; m2: string; baths: string; dorms?: string; price: string; currency: 'USD' | 'ARS';
   op: 'Venta' | 'Alquiler'; desc: string; cochera: 'Sí' | 'No'; cocheras: string;
   amenities: string[]; photoUrls: string[];
 }> {
@@ -284,6 +286,7 @@ function parseZamboniSite(html: string): Partial<{
   const num = (s?: string) => (s || '').replace(/[^\d]/g, '');
   if (specs['ambientes']) out.amb = num(specs['ambientes']);
   if (specs['baños'] || specs['banos']) out.baths = num(specs['baños'] || specs['banos']);
+  if (specs['dormitorios'] || specs['dormitorio']) out.dorms = num(specs['dormitorios'] || specs['dormitorio']);
   // m²: superficie total primero (es el dato que va en la placa); si no, cubiertos
   const sup = specs['superficie'] || specs['sup. total'] || specs['cubiertos'] || specs['sup. cubierta'];
   if (sup) out.m2 = num(sup);
@@ -374,6 +377,7 @@ export default async function handler(req: Request): Promise<Response> {
     const m2Match =
       text.match(/(\d+)\s*m²/i) || text.match(/(\d+)\s*m2/i) || text.match(/(\d+)\s*metros/i);
     const bathsMatch = text.match(/(\d+)\s*ba[ñn]os?/i);
+    const dormsMatch = text.match(/(\d+)\s*(?:dormitorios?|dorm\b)/i);
     const priceUsd = text.match(/(?:USD?|U\$S|US\$|u\$s)\s*\$?\s*([\d.,]+)/i);
     const priceArs = text.match(/\$\s*([\d.,]+)/i);
 
@@ -425,6 +429,7 @@ export default async function handler(req: Request): Promise<Response> {
       amb: ambMatch ? ambMatch[1] : '',
       m2: m2Match ? m2Match[1] || m2Match[2] || m2Match[3] || '' : '',
       baths: bathsMatch ? bathsMatch[1] : '',
+      dorms: dormsMatch ? dormsMatch[1] : '',
       price,
       currency,
       op,

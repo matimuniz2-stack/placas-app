@@ -32,6 +32,7 @@ export type LayerId =
   | 'maPhoto2'
   | 'maPhoto3'
   | 'maCard'
+  | 'maAddr'
   | 'maStatus'
   | 'maLoc'
   | 'maHead'
@@ -92,6 +93,7 @@ export interface PlacaData {
   amb: string;
   m2: string;
   baths: string;
+  dorms?: string; // dormitorios (spec del aviso Meta Ads)
   cochera: 'Sí' | 'No';
   cocheras?: string; // cantidad de cocheras (numérico). Si está, manda sobre cochera Sí/No.
   tipoPropiedad?: string; // ej: "Departamento" (título del Aviso Pro)

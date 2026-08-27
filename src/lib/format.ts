@@ -39,6 +39,7 @@ export function cocheraLabel(n: number): string {
 // `label(d)` devuelve el texto del chip o null si la propiedad no tiene ese dato.
 export const ATTR_DEFS: { key: string; defaultOn: boolean; label: (d: PlacaData) => string | null }[] = [
   { key: 'amb', defaultOn: true, label: (d) => (d.amb ? `${d.amb} amb` : null) },
+  { key: 'dorms', defaultOn: true, label: (d) => (d.dorms ? `${d.dorms} dorm` : null) },
   { key: 'm2', defaultOn: true, label: (d) => (d.m2 ? `${d.m2} m²${d.m2Tipo ? ' ' + d.m2Tipo : ''}` : null) },
   { key: 'baths', defaultOn: true, label: (d) => (d.baths ? `${d.baths} ${d.baths === '1' ? 'baño' : 'baños'}${d.toilette ? ' + toilette' : ''}` : null) },
   { key: 'cochera', defaultOn: true, label: (d) => {
